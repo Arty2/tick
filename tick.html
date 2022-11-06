@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<link href="style.css" rel="stylesheet" />
+	<title>/tick</title>
+	<style type="text/css">
+		:root {
+			--page-color: 0, 0, 0;
+			--text-color: 250, 250, 250;
+			--hyperlink-color: 255, 255, 0;
+			--accent-color: 255, 0, 0;
+			--text-color-inverted: 20, 20, 20;
+
+			--line-height: 1.4em;  /* units used implicitely, but could be removed if multiplied with s00 later */
+			--gutter-height: 2rem;
+			--gutter-width: 2rem;
+
+			--font: Lekton, Consolas, monospace;
+
+			--sratio: 1.15;
+			--s00: 1em; /* always 1em = 1rem */
+			--s-3: calc(var(--s-2) / var(--sratio));
+			--s-2: calc(var(--s-1) / var(--sratio));
+			--s-1: calc(var(--s00) / var(--sratio));
+			--s01: calc(var(--s00) * var(--sratio));
+			--s02: calc(var(--s01) * var(--sratio));
+			--s03: calc(var(--s02) * var(--sratio));
+			--s04: calc(var(--s03) * var(--sratio));
+
+			--page-color-transparency: 0.89;
+		}
+
+		:root.theme-white {
+			--page-color: 255, 255, 255;
+			--text-color: 20, 20, 20;
+			--hyperlink-color: 255, 0, 255;
+			--accent-color: 255, 0, 0;
+		}
+
+		:focus {
+			outline: 0;
+		}
+
+		html, * {
+			box-sizing: border-box;
+			font-family: var(--font);
+		}
+
+		body {
+			height: 100%;
+			margin: 0;
+
+			background-color: rgb(var(--page-color));
+			color: rgb(var(--text-color));
+			font-size: var(--s00);
+			text-align: center;
+			overflow: hidden;
+		}
+
+		kbd {
+			display: inline-block;
+			padding: 0 0.5em;
+			line-height: 1.4;
+
+			border: 1.5px solid;
+			border-radius: 3px;
+		}
+
+		a {
+					transition: color 0.3s;
+				}
+
+				a:link, a:visited {
+					color: rgba(var(--hyperlink-color));
+					text-decoration: none;
+				}
+
+				a:hover, a:focus {
+					color: rgba(var(--accent-color));
+					transition: color 0s;
+				}
+
+				a:focus {
+					text-decoration: underline;
+				}
+
+		hr {
+			border: none;
+			color: inherit;
+			border-top: 1px solid currentColor;
+		}
+
+		#progress-container {
+			width: 100vw;
+			position: fixed;
+			top: 0;
+			bottom: 0;
+
+			pointer-events: none;
+		}
+
+		#progress-bar {
+			width: 100%;
+			height: 100%;
+			background-color: none;
+			border: currentColor solid;
+			border-width: 10vh 0;
+			transform: scaleX(0);
+			transform-origin: 0 0;
+			transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+		}
+
+		#ticker, #label, #tools {
+			-webkit-touch-callout: none;
+			-webkit-user-select: none;
+			user-select: none;
+
+			cursor: pointer;
+		}
+
+		#ticker, #label {
+			position: fixed;
+			top: 50%;
+			left: 50%;
+			width: 100%;
+
+			text-align: center;
+		}
+
+		#ticker {
+			transform: translate(-50%, calc(-50% - 3vw));
+
+			font-size: 30vw;
+			line-height: 23vw;
+		}
+
+		#label {
+			transform: translate(-50%, calc(-50% + 13vw));
+
+			font-size: 10vw;
+			line-height: 10vw;
+		}
+
+		#label:focus {
+			text-decoration: underline;
+		}
+
+			#label:focus-within:not(:hover) {
+				opacity: 0.1 !important;
+			}
+
+		#tools {
+					display: block;
+					position: fixed;
+					bottom: var(--gutter-height);
+					right: var(--gutter-width);
+					height: var(--line-height);
+					z-index: 1000;
+
+					animation: 3s ease 1s fadeout;
+					animation-fill-mode: forwards;
+				}
+
+				#tools:hover,
+				#tools:focus-within {
+					animation: none;
+				}
+
+				#tools > a, .btn {
+					display: inline-block;
+					padding-left: 0.15rem;
+					
+					cursor: pointer;
+					font-size: 110%;
+					font-size: var(--s02);
+					text-decoration: none;
+
+					transition: opacity 0s ease-in;
+					transition-delay: 1s;
+				}
+
+				#tools:hover a.hidden,
+				#tools:focus-within a.hidden {
+					opacity: 1;
+					transition-delay: 0s;
+				}
+
+		.hidable {
+			opacity: 1;
+			transition: opacity 0.3s, top 0.15s, bottom 0.15s;
+		}
+
+		.hidable.hidden {
+			opacity: 0;
+		}
+
+		#manual {
+			position: fixed;
+			top: 0;
+			bottom: 0;
+			width: 100%;
+			padding: var(--gutter-width);
+
+			background: rgba(var(--page-color),var(--page-color-transparency));
+			overflow: auto;
+			text-align: left;
+		}
+
+			#manual.hidden {
+				bottom: -100vh;
+
+				pointer-events: none !important;
+				user-select: none !important;
+			}
+
+			#manual .btn {
+				display: block;
+				position: fixed;
+				top: var(--gutter-height);
+				right: var(--gutter-width);
+				height: var(--line-height);
+			}
+
+		body.overtimed {
+			color: rgb(var(--accent-color));
+		}
+			body.overtimed #progress-bar {
+				opacity: 0;
+			}
+			body.overtimed #label {
+				animation: 3s ease infinite blink;
+				animation-fill-mode: forwards;
+			}
+
+		body.paused {
+			color: rgb(var(--hyperlink-color));
+		}
+			body.paused #label {
+				animation: 3s ease infinite blink;
+				animation-fill-mode: forwards;
+			}
+
+		@keyframes blink {
+			0%   { opacity: 0; }
+			50%  { opacity: 1; }
+			100% { opacity: 0; }
+		}
+
+		@keyframes fadeout {
+			0%   { opacity: 1; }
+			100% { opacity: 0; }
+		}
+	</style>
+</head>
+<body>
+<div id="tools">
+	<a tabindex="5" onclick="ticker_reset();" title="Reset" class="hidable hidden">⭯</a>
+	<a tabindex="2" onclick="toggle_fullscreen();" title="Fullscreen" class="hidable hidden">↕</a>
+	<a tabindex="3" onclick="toggle_theme();" title="Theme" class="hidable hidden">◐</a>
+	<a tabindex="4" onclick="toggle_sound();" title="Theme" class="hidable hidden">𝄢</a>
+	<a tabindex="1" onclick="toggle_manual();" title="Manual">🛈</a>
+</div>
+<div id="progress-container">
+	<div id="progress-bar"></div>
+</div>
+<div id="ticker"></div>
+<div id="label" spellcheck="false"></div>
+<noscript>JavaScript is required for this app to work.</noscript>
+<div id="manual" class="hidable hidden">
+	<h1>/tick</h1>
+	<p><em>Tick</em> is shortcut-first countdown timer for your streams (e.g. <a href="https://obsproject.com/kb/browser-source" rel="nofollow">OBS browser source</a>), webinars (e.g. <a href="https://support.zoom.us/hc/en-us/articles/201362153-Sharing-your-screen-or-desktop-on-Zoom" rel="nofollow">Zoom’s screen share</a>), or any reverse time-keeping needs.</p>
+	<ul>
+	<li><a href="https://rawcdn.githack.com/Arty2/tick/master/tick.html" rel="nofollow">Live Demo</a></li>
+	<li><a href="https://heracl.es/tick" rel="nofollow">Project website</a></li>
+	<li>Current version: <code class="notranslate">1.0</code> (2022-11-06)</li>
+	</ul>
+	<h2>How to use</h2>
+	<p>This is a single HTML file with no depedencies other than requiring JavaScript to be enabled, so if you wish to use this tool offline, then simply save it (Windows: <kbd>Ctrl</kbd> + <kbd>S</kbd>, MacOS: <kbd>Command</kbd> + <kbd>S</kbd>) to your device, and open it with your browser (Firefox, Chrome etc).</p>
+	<p>Always be cautious of scripts you find available online: open them in a text editor and inspect what they do.</p>
+	<h2>Options</h2>
+	<p>The toolbar provides access to the manual for quick reference to mouse and keyboard shortcuts, and quick access to important toggles (sound, theme, fullscreen) and timer reset. It first appears at the bottom-right and hides itself after a few moments. Tap or hover your mouse over this area to reveal it.</p>
+	<h3>Mouse events</h3>
+	<ul>
+	<li><em>Click</em> once on the timer or label to start, if not already started.</li>
+	<li><em>Click</em> again to pause or un-pause, if started.</li>
+	<li><em>Click</em> one to reset and stop the timer, if overtime.</li>
+	<li><em>Double Click</em> anywhere to go into fullscreen.</li>
+	</ul>
+	<h3>Keyboard shortcuts</h3>
+	<ul>
+	<li><kbd>Enter</kbd> to start at 10 minutes, if not already paused. Will subsequently restart the timer.</li>
+	<li><kbd>Space</kbd> to start at 10 minutes, or pause if started, or restart at 10 minutes if into overtime.</li>
+	<li>Up arrow <kbd>↑</kbd> to add 10 minutes to the timer, if not already paused.</li>
+	<li>Down arrow <kbd>↓</kbd> to subtract 5 minutes from the timer, if not already paused.</li>
+	<li>Left arrow <kbd>←</kbd> to add 1 minute, if not already paused.</li>
+	<li>Right arrow <kbd>→</kbd> to subtract 1 minute, if not already paused.</li>
+	<li><kbd>Page Up</kbd> to go into fullscreen mode. <kbd>Page Up</kbd> or <kbd>Esc</kbd> to exit fullscreen.</li>
+	<li><kbd>Page Down</kbd> to toggle the theme between dark (default) and light.</li>
+	<li><kbd>End</kbd> to reset and stop the timer.</li>
+	<li><kbd>Insert</kbd> to toggle sound mode: automatically play a bell sound when the timer goes into overtime. Off by default.</li>
+	<li><kbd>Shift</kbd> to play a bell sound on demand.</li>
+	<li><kbd>Delete</kbd> or <kbd>Backspace</kbd> to delete the current label and replace with text input. The label is dimmed when in edit more. <kbd>Enter</kbd> or <kbd>Esc</kbd> to confirm and exit edit mode.</li>
+	<li><kbd>Home</kbd> to display the manual. <kbd>Home</kbd> or <kbd>Esc</kbd> when the manual is open to hide it.</li>
+	</ul>
+	<h2>Point of view</h2>
+	<p>Single page; no external assets; no build systems; functional vanilla JavaScript.<br>
+	Pull requests welcome if they don’t deviate from these principles or alter coding style.</p>
+	<h2>Etymology</h2>
+	<p>A tick is an atomic unit used to define system time in computing. It is also a hematophagous parasitic insect that affects humans and other animals.</p>
+	<h2>Credits</h1>
+	<ul>
+	<li>Code based on <a href="https://github.com/njallam/stream-pomodoro">njallam / stream-pomodoro</a>.</li>
+	<li>Bell sounds via <a href="https://github.com/joshreiss/Working-with-the-Web-Audio-API/">oshreiss / Working-with-the-Web-Audio-API</a>.</li>
+	<li>The font used in the screenshots above is <a href="https://fonts.google.com/specimen/Lekton" rel="nofollow">Lekton</a> designed at ISIA Urbino, Italy. Specifically the <a href="https://www.roleplay.gr/blog/greekifying-lekton-font" rel="nofollow">Lekton Greek</a> version designed by Manon Photopoulos, autohinted by the author.</li>
+	</ul>
+	<hr>
+	<p>© 2022 <a href="https://heracl.es" rel="nofollow">Heracles Papatheodorou</a> a.k.a <a href="https://www.twitter.com/Arty2" rel="nofollow">@Arty2</a>, MIT Licence</p>
+	<a class="btn" onclick="toggle_manual();" title="Manual">✕</a>
+</div>
+<script>
+	// const urlParams = new URLSearchParams(window.location.search);
+
+	let paused;
+	let overtimed;
+	let interval;
+	let length;
+	let remainingTime;
+	let endTime;
+	let sound;
+
+	/* functions --------------------------------------------------*/
+
+	function $() {
+		var elements = [];
+		for (var i=0, j=arguments.length; i < j; i++) {
+			var element = arguments[i];
+			if (typeof element == 'string')
+				element = document.getElementById(element);
+			if (j == 1)
+				return element;
+			elements.push(element);
+		}
+		return elements;
+	}
+
+	function textselect(el, win = window) {
+			var doc = win.document, sel, range;
+			if (win.getSelection && doc.createRange) {
+					sel = win.getSelection();
+					range = doc.createRange();
+					range.selectNodeContents(el);
+					sel.removeAllRanges();
+					sel.addRange(range);
+			} else if (doc.body.createTextRange) {
+					range = doc.body.createTextRange();
+					range.moveToElementText(el);
+					range.select();
+			}
+	}
+
+
+	function label_update(text) {
+		if (length > 0) {
+			text = Math.floor(length / 60) +' MIN';
+		}
+
+		if (paused) {
+			text = 'PAUSED';
+		}
+
+		if (overtimed) {
+			text = 'OVERTIME';
+		}
+
+		if (!text) {
+			text = '/tick';
+		}
+
+		$('label').textContent = text;
+		document.title = text;
+		// console.log(text); // DEBUG
+	}
+
+	function ticker_update() {
+		remainingTime = (endTime - Date.now()) / 1000;
+
+		let remainingSeconds = Math.round(remainingTime);
+		let minutes = Math.abs(remainingSeconds > 0 ? Math.floor(remainingSeconds / 60) : Math.ceil(remainingSeconds / 60)).toString().padStart(2, '0');
+		let seconds = Math.abs(remainingSeconds % 60).toString().padStart(2, '0');
+		let time = `${minutes}∶${seconds}`; // use ∶ ratio character for vertical centering
+		let sign = (remainingSeconds >= 0 ? '' : '+')
+
+		$('ticker').textContent = time;
+
+		if (remainingTime <= 0) {
+			if (!overtimed) {
+				document.body.classList.add('overtimed');
+				overtimed = true;
+				label_update();
+				if (sound) { bell(); }
+			}
+		} else if (overtimed) {
+			document.body.classList.remove('overtimed');
+			overtimed = false;
+			label_update();
+		}
+
+		document.title = sign + time;
+
+		let progress = length < 0 ? 1 : ((length - remainingTime) / length)
+
+		if (progress < 1) {
+			$('progress-bar').style.transform = `scaleX(${Math.floor(progress * 1000)/1000})`;
+		} else {
+			$('progress-bar').style.transform = 'scaleX(1)';
+		}
+	}
+
+	function ticker_run() {
+		console.log('run');
+		clearInterval(interval);
+		paused = null;
+		interval = setInterval(ticker_update, 100);
+		label_update(Math.floor(length / 60) +' MIN');
+	}
+
+	function ticker_pause(mins) {
+		if (remainingTime > 0) {
+			if (paused) {
+				console.log('un-paused');
+				document.body.classList.remove('paused');
+				endTime = Date.now() + remainingTime * 1000;
+				ticker_run();
+			} else if (interval) {
+				console.log('paused');
+				document.body.classList.add('paused');
+				clearInterval(interval);
+				interval = null;
+				paused = true;
+				label_update();
+			}
+		} else if (!remainingTime) {
+			ticker_start(mins);
+		} else {
+			ticker_reset();
+		}
+	}
+
+	function ticker_start(mins = 10) {
+		if (!paused) {
+			length = (length > 0 ? length : 60 * mins);
+			endTime = Date.now() + length * 1000;
+			ticker_run();
+		}
+	}
+
+	function ticker_zero() {
+		console.log('zero');
+		endTime = Date.now();
+		remainingTime = 0;
+		length = 0;
+		$('ticker').textContent = '00∶00';
+	}
+
+	function ticker_reset() {
+		console.log('reset');
+		// location.reload(); // DEBUG
+		clearInterval(interval);
+		interval = null;
+		paused = false;
+		overtimed = false;
+		document.body.classList.remove('paused');
+		document.body.classList.remove('overtimed');
+		$('progress-bar').style.transform = 'scaleX(0)';
+		ticker_zero();
+		label_update();
+	}
+
+	function ticker_add(mins = 1) {
+		if (interval) {
+			console.log('add');
+			length += 60 * mins;
+			endTime += 60000 * mins;
+			if (endTime < Date.now()) {
+				ticker_reset();
+			} else {
+				label_update();
+			}
+			label_update();
+			// ticker_update();
+		} else if (!remainingTime) {
+			length = 60 * mins;
+			ticker_start(mins);
+		}
+	}
+
+	function ticker_subtract(mins = 1) {
+		if (interval && length > 0) {
+			console.log('subtract');
+			length -= 60 * mins;
+			endTime -= 60000 * mins; 
+			if (endTime < Date.now()) {
+				ticker_zero();
+			} else {
+				label_update();
+			}
+			ticker_update();
+		} else if (remainingTime < 0) {
+			console.log('subzero');
+			length -= 60 * mins;
+			endTime -= 60000 * mins;
+		}
+	}
+
+	function toggle_theme() {
+		document.documentElement.classList.toggle('theme-white');
+	}
+
+	function toggle_manual() {
+		$('manual').classList.toggle('hidden');
+	}
+
+	function toggle_fullscreen() {
+		if (!document.fullscreenElement) {
+			document.documentElement.requestFullscreen().catch((err) => {
+				alert('Click anywhere on the page, or press any key first!');
+			});
+		} else {
+			document.exitFullscreen();
+		}
+	}
+
+	function toggle_sound() {
+		sound = sound ? false : true;
+		if (sound) { 
+			bell();
+		}	else {
+			bell(0.2,0.15);
+		}
+	}
+
+	/* sound generator -----------------------------------------------*/
+	// via https://github.com/joshreiss/Working-with-the-Web-Audio-API/
+	// min. duration 0.07
+	var audioCtx;
+	function bell(pitch = 8, duration = 0.07) {
+		if (audioCtx) { audioCtx.close(); }
+		audioCtx  = new (window.AudioContext || window.webkitAudioContext)();
+		var DBToAmp = function(db) { return Math.pow(10, db / 20); }
+		var Params= {
+			nOsc:13,
+			F:[97.0362,155.7461,200.6708,291.5601,335.2872,401.6002,500.6919,
+				599.8203,679.0558,704.6314,850.3987,1016.353,1169.165,1343.452],
+			Slope:[-0.71286,-1.08551,-2.68134,-0.80383,-5.88471,-1.06387,-3.419,
+				-3.69923,-6.71634,-3.57097,-6.85307,-7.04044,-5.6755,-7.25273],
+			Amp0:[ -55.7976,-44.8857,-33.3415,-70.8675,-24.9633,-75.653,-27.2338,
+				-66.8294,-23.635,-57.3287,-43.0425,-50.9267,-55.1784,-46.6498]
+		}
+		var gNode=[],osc=[],FinalAmp;
+		for (i=0;i<Params.nOsc;i++) {
+			gNode[i]=audioCtx.createGain();
+			osc[i]= audioCtx.createOscillator();
+			osc[i].start();
+			osc[i].connect(gNode[i]).connect(audioCtx.destination);
+		}
+		var now = audioCtx.currentTime;
+		for (i=0;i<Params.nOsc;i++) {
+			osc[i].frequency.setValueAtTime(pitch*Params.F[i],now);
+			gNode[i].gain.setValueAtTime(DBToAmp(Params.Amp0[i]), now);
+			FinalAmp=DBToAmp(Params.Amp0[i]+Params.Slope[i]*8/duration);
+			gNode[i].gain.exponentialRampToValueAtTime(FinalAmp,now+8);
+			gNode[i].gain.linearRampToValueAtTime(0, now + 12);
+		}		
+	}
+
+	/* onload start --------------------------------------------------*/
+	window.onload=function() {
+		ticker_zero();
+		label_update();
+
+		window.addEventListener('keydown', function(e) {
+			// console.log(document.activeElement) // DEBUG
+			console.log(e.keyCode); // DEBUG
+			if (document.activeElement !== $('label')) {
+				// Enter (13) to start at 10 minutes, if not already paused
+				if (e.keyCode == 13) { ticker_start(10); }
+				// Space (32) to start at 10 minutes or pause if already started
+				else if (e.keyCode == 32) { ticker_pause(10); }
+				// Right (39) to subtract 1 minute
+				else if (e.keyCode == 39) { ticker_subtract(); }
+				// Left (37) to add 1 minute
+				else if (e.keyCode == 37) { ticker_add(); }
+				// Down (40) to subtract 5 minutes
+				else if (e.keyCode == 40) { ticker_subtract(5); }
+				// Up (38) to add 10 minutes
+				else if (e.keyCode == 38) { ticker_add(10); }
+				// Shift (16) to ring bell
+				else if (e.keyCode == 16) { bell(); }
+				// Delete (46) or Backspace (8) to focus label
+				else if (e.keyCode == 8 || e.keyCode == 46) {
+					$('label').contentEditable = true;
+					$('label').focus();
+					textselect($('label'));
+				}
+			} else {
+				// Enter (13) or Esc (27) to exit edit label
+				if (e.keyCode == 13 || e.keyCode == 27 ) {
+					$('label').blur();
+					$('label').contentEditable = false;
+				}
+			}
+			// PageUp (33) to fullscreeb
+			if (e.keyCode == 33) { toggle_fullscreen(); }
+			// PageDown (34) toggle theme
+			else if (e.keyCode == 34) { toggle_theme(); }
+			// End (35) to reset
+			else if (e.keyCode == 35) { ticker_reset(); }
+			// Home (36) to toggle manual
+			else if (e.keyCode == 36) { toggle_manual(); }
+			// Esc (27) to exit info
+			else if (e.keyCode == 27) {
+				if (!$('manual').classList.contains('hidden')) {
+					toggle_manual();
+				}
+			}
+			// Insert (45) to toggle sound
+			else if (e.keyCode == 45) { toggle_sound(); }
+
+		});
+
+		$('label').addEventListener('click', function (event) {
+			ticker_pause();
+			this.blur();		});
+
+		$('ticker').addEventListener('click', function (event) {
+			ticker_pause();
+		});
+
+		window.addEventListener('click', function (event) {
+			if (event.detail === 2) {
+				toggle_fullscreen(window);
+			}
+		});
+	} // end onload
+</script>
+</body>
+
+</html>
