@@ -4,9 +4,9 @@
 
 - [Live Demo](https://rawcdn.githack.com/Arty2/tick/master/tick.html)
 - [Project website](https://heracl.es/tick)
-- Current version: `1.0` (2022-11-06)
+- Current version: `1.1` (2022-11-06)
 
-![Screenshot of /tick’s counting down at 2 minutes](./screenshots/ticker-screenshot_01.png)
+![Screenshot of /tick’s counting down at 59 seconds](./screenshots/ticker-screenshot_01.png)
 
 ## How to use
 
@@ -54,6 +54,7 @@ The toolbar provides access to the manual for quick reference to mouse and keybo
 - [ ] Long-click or long-press to play bell sound on demand.
 - [ ] Key buffer (numerals only) to modify timer minutes directly.
 - [ ] Display (bottom left) an overall timer that doesn’t reset.
+- [ ] Sync to other windows with `BroadcastChannel`.
 - [ ] Local storage to remember theme and sound options.
 - [ ] Implement theming settings compatible with [/valgrind](https://heracl.es/valgrind).
 - [ ] Considering [hundredrabbits / Themes](https://github.com/hundredrabbits/Themes) simple theme framework; convert current themes.

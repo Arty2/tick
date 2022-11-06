@@ -3,7 +3,6 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-	<link href="style.css" rel="stylesheet" />
 	<title>/tick</title>
 	<style type="text/css">
 		:root {
@@ -69,22 +68,25 @@
 		}
 
 		a {
-					transition: color 0.3s;
-				}
+			color: rgb(--text-color);
+			text-decoration: underline;
+			transition: color 0.3s;
+			-webkit-tap-highlight-color: transparent;
+		}
 
-				a:link, a:visited {
-					color: rgba(var(--hyperlink-color));
-					text-decoration: none;
-				}
+			a:link, a:visited {
+				color: inherit;
+				text-decoration: none;
+			}
 
-				a:hover, a:focus {
-					color: rgba(var(--accent-color));
-					transition: color 0s;
-				}
+			a:hover, a:focus {
+				color: rgba(var(--hyperlink-color));
+				transition: color 0s;
+			}
 
-				a:focus {
-					text-decoration: underline;
-				}
+			a:focus {
+				text-decoration: underline;
+			}
 
 		hr {
 			border: none;
@@ -127,6 +129,8 @@
 			width: 100%;
 
 			text-align: center;
+
+			-webkit-tap-highlight-color: transparent;
 		}
 
 		#ticker {
@@ -274,7 +278,7 @@
 	<ul>
 	<li><a href="https://rawcdn.githack.com/Arty2/tick/master/tick.html" rel="nofollow">Live Demo</a></li>
 	<li><a href="https://heracl.es/tick" rel="nofollow">Project website</a></li>
-	<li>Current version: <code class="notranslate">1.0</code> (2022-11-06)</li>
+	<li>Current version: <code class="notranslate">1.1</code> (2022-11-06)</li>
 	</ul>
 	<h2>How to use</h2>
 	<p>This is a single HTML file with no depedencies other than requiring JavaScript to be enabled, so if you wish to use this tool offline, then simply save it (Windows: <kbd>Ctrl</kbd> + <kbd>S</kbd>, MacOS: <kbd>Command</kbd> + <kbd>S</kbd>) to your device, and open it with your browser (Firefox, Chrome etc).</p>
@@ -537,7 +541,7 @@
 		if (sound) { 
 			bell();
 		}	else {
-			bell(0.2,0.15);
+			bell(0.5,0.1);
 		}
 	}
 
@@ -545,7 +549,7 @@
 	// via https://github.com/joshreiss/Working-with-the-Web-Audio-API/
 	// min. duration 0.07
 	var audioCtx;
-	function bell(pitch = 8, duration = 0.07) {
+	function bell(pitch = 8, duration = 0.1) {
 		if (audioCtx) { audioCtx.close(); }
 		audioCtx  = new (window.AudioContext || window.webkitAudioContext)();
 		var DBToAmp = function(db) { return Math.pow(10, db / 20); }
@@ -582,7 +586,7 @@
 
 		window.addEventListener('keydown', function(e) {
 			// console.log(document.activeElement) // DEBUG
-			console.log(e.keyCode); // DEBUG
+			// console.log(e.keyCode); // DEBUG
 			if (document.activeElement !== $('label')) {
 				// Enter (13) to start at 10 minutes, if not already paused
 				if (e.keyCode == 13) { ticker_start(10); }
