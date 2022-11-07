@@ -4,7 +4,7 @@
 
 - [Live Demo](https://rawcdn.githack.com/Arty2/tick/master/tick.html)
 - [Project website](https://heracl.es/tick)
-- Current version: `1.1` (2022-11-06)
+- Current version: `1.2` (2022-11-07)
 
 ![Screenshot of /tick’s counting down at 59 seconds](./screenshots/ticker-screenshot_01.png)
 
@@ -19,33 +19,45 @@ Always be cautious of scripts you find available online: open them in a text edi
 
 The toolbar provides access to the manual for quick reference to mouse and keyboard shortcuts, and quick access to important toggles (sound, theme, fullscreen) and timer reset. It first appears at the bottom-right and hides itself after a few moments. Tap or hover your mouse over this area to reveal it.
 
+### Touch events
+
+- *Tap* once on the timer or label to start, if not already started. *Tap* again to pause or un-pause.
+- *Tap* once to reset and stop the timer, if overtime.
+- *Double Tap* anywhere to go into fullscreen.
+- *Swipe up* 👆 to add 10 minutes to the timer, if not already paused.
+- *Swipe down* 👇 to subtract 5 minutes from the timer, if not already paused.
+- *Swipe left* 👈 to add 1 minute, if not already paused.
+- *Swipe right* 👉 to subtract 1 minute, if not already paused.
+
 ### Mouse events
 
-- *Click* once on the timer or label to start, if not already started.
-- *Click* again to pause or un-pause, if started.
-- *Click* one to reset and stop the timer, if overtime.
+- *Click* once on the timer or label to start, if not already started. *Click* again to pause or un-pause.
+- *Click* once to reset and stop the timer, if overtime.
 - *Double Click* anywhere to go into fullscreen.
 
 ### Keyboard shortcuts
 
 - <kbd>Enter</kbd> to start at 10 minutes, if not already paused. Will subsequently restart the timer.
 - <kbd>Space</kbd> to start at 10 minutes, or pause if started, or restart at 10 minutes if into overtime.
-- Up arrow <kbd>↑</kbd> to add 10 minutes to the timer, if not already paused.
-- Down arrow <kbd>↓</kbd> to subtract 5 minutes from the timer, if not already paused.
-- Left arrow <kbd>←</kbd> to add 1 minute, if not already paused.
-- Right arrow <kbd>→</kbd> to subtract 1 minute, if not already paused.
+- *Up arrow* <kbd>↑</kbd> to add 10 minutes to the timer, if not already paused.
+- *Down arrow* <kbd>↓</kbd> to subtract 5 minutes from the timer, if not already paused.
+- *Left arrow* <kbd>←</kbd> to add 1 minute, if not already paused.
+- *Right arrow* <kbd>→</kbd> to subtract 1 minute, if not already paused.
 - <kbd>Page Up</kbd> to go into fullscreen mode. <kbd>Page Up</kbd> or <kbd>Esc</kbd> to exit fullscreen. 
 - <kbd>Page Down</kbd> to toggle the theme between dark (default) and light.
 - <kbd>End</kbd> to reset and stop the timer.
 - <kbd>Insert</kbd> to toggle sound mode: automatically play a bell sound when the timer goes into overtime. Off by default.
-- <kbd>Shift</kbd> to play a bell sound on demand.
+- <kbd>Tab</kbd> to play a bell sound on demand.
 - <kbd>Delete</kbd> or <kbd>Backspace</kbd> to delete the current label and replace with text input. The label is dimmed when in edit more. <kbd>Enter</kbd> or <kbd>Esc</kbd> to confirm and exit edit mode.
 - <kbd>Home</kbd> to display the manual. <kbd>Home</kbd> or <kbd>Esc</kbd> when the manual is open to hide it.
 
 
 ## Future Improvements
 
-- [ ] No option to add or remove minutes in touch devices. a) Add [simple gestures](https://stackoverflow.com/a/62825217) left/right and up/down. b) Add ◀ buttons ▶ on either side of the timer.
+- [x] No option to add or remove minutes in touch devices.
+	+ [x] a) Add [simple gestures](https://stackoverflow.com/a/62825217) left/right and up/down.
+	+ [ ] b) Add ◀ buttons ▶ on either side of the timer.
+- [ ] 
 - [ ] Simple webworker and Manifest to allow saving as an app on mobile devices.
 - [ ] Split minutes over 60 into hours.
 - [ ] URL Get params `URLSearchParams(window.location.search)` to define initial timer (defaults at 10 minutes) or modify theme colors.
@@ -74,6 +86,7 @@ A tick is an atomic unit used to define system time in computing. It is also a h
 
 - Code based on [njallam / stream-pomodoro](https://github.com/njallam/stream-pomodoro).
 - Bell sounds via [oshreiss / Working-with-the-Web-Audio-API](https://github.com/joshreiss/Working-with-the-Web-Audio-API/).
+- Touch gestures based on code from [StackOverflow @Rob](https://stackoverflow.com/a/69617795)
 - The font used in the screenshots above is [Lekton](https://fonts.google.com/specimen/Lekton) designed at ISIA Urbino, Italy. Specifically the [Lekton Greek](https://www.roleplay.gr/blog/greekifying-lekton-font) version designed by Manon Photopoulos, autohinted by the author.
 
 * * *
