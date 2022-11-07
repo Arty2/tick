@@ -579,6 +579,56 @@
 		}		
 	}
 
+	/* touch gestures -------------------------------------------------*/
+	// based on https://stackoverflow.com/a/69617795
+	class TouchEvent {
+		static SWIPE_THRESHOLD = 50;
+
+		static SWIPE_LEFT   = 1;
+		static SWIPE_RIGHT  = 2;
+		static SWIPE_UP     = 3;
+		static SWIPE_DOWN   = 4;
+
+		constructor(startEvent, endEvent) {
+			this.startEvent = startEvent;
+			this.endEvent = endEvent || null;
+		}
+
+		swipe_left()  { return this.swipe_direction() == TouchEvent.SWIPE_LEFT;  }
+		swipe_right() { return this.swipe_direction() == TouchEvent.SWIPE_RIGHT; }
+		swipe_up()    { return this.swipe_direction() == TouchEvent.SWIPE_UP;    }
+		swipe_down()  { return this.swipe_direction() == TouchEvent.SWIPE_DOWN;  }
+
+		swipe_direction() {
+			let start = this.startEvent.changedTouches[0];
+			let end = this.endEvent.changedTouches[0];
+
+			if (!start || !end) { return null; }
+
+			let h_diff = start.screenX - end.screenX;
+			let v_diff = start.screenY - end.screenY;
+
+			if (Math.abs(h_diff) > Math.abs(v_diff)) {
+				if (h_diff >= TouchEvent.SWIPE_THRESHOLD) {
+					return TouchEvent.SWIPE_LEFT;
+				} else if (h_diff <= -TouchEvent.SWIPE_THRESHOLD) {
+					return TouchEvent.SWIPE_RIGHT;
+				}
+			} else {
+				if (v_diff >= TouchEvent.SWIPE_THRESHOLD) {
+					return TouchEvent.SWIPE_UP;
+				} else if (v_diff <= -TouchEvent.SWIPE_THRESHOLD) {
+					return TouchEvent.SWIPE_DOWN;
+				}
+			}
+			return null;
+		}
+
+		setEndEvent(endEvent) {
+			this.endEvent = endEvent;
+		}
+	}
+
 	/* onload start --------------------------------------------------*/
 	window.onload=function() {
 		ticker_zero();
@@ -636,7 +686,8 @@
 
 		$('label').addEventListener('click', function (event) {
 			ticker_pause();
-			this.blur();		});
+			this.blur();
+		});
 
 		$('ticker').addEventListener('click', function (event) {
 			ticker_pause();
@@ -647,6 +698,27 @@
 				toggle_fullscreen(window);
 			}
 		});
+
+
+		let touchEvent = null;	
+		function gestures() {
+			if (!touchEvent) { return; }
+
+			touchEvent.setEndEvent(event);
+
+			if (touchEvent.swipe_right())     { ticker_subtract(); }
+			else if (touchEvent.swipe_left()) { ticker_add(); }
+			else if (touchEvent.swipe_up())   { ticker_add(10); }
+			else if (touchEvent.swipe_down()) { ticker_subtract(5); }
+
+			touchEvent = null;
+		}
+
+		window.addEventListener('touchstart', (event) => {
+		    touchEvent = new TouchEvent(event);
+		});
+
+		window.addEventListener('touchend', gestures);
 	} // end onload
 </script>
 </body>
