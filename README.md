@@ -8,6 +8,7 @@
 
 ![Screenshot of /tick’s counting down at 59 seconds](./screenshots/ticker-screenshot_01.png)
 
+
 ## How to use
 
 This is a single HTML file with no depedencies other than requiring JavaScript to be enabled, so if you wish to use this tool offline, then simply save it (Windows: <kbd>Ctrl</kbd> + <kbd>S</kbd>, MacOS: <kbd>Command</kbd> + <kbd>S</kbd>) to your device, and open it with your browser (Firefox, Chrome etc).
@@ -51,22 +52,27 @@ The toolbar provides access to the manual for quick reference to mouse and keybo
 - <kbd>Delete</kbd> or <kbd>Backspace</kbd> to delete the current label and replace with text input. The label is dimmed when in edit more. <kbd>Enter</kbd> or <kbd>Esc</kbd> to confirm and exit edit mode.
 - <kbd>Home</kbd> to display the manual. <kbd>Home</kbd> or <kbd>Esc</kbd> when the manual is open to hide it.
 
+### URL parameters
+
+Define a custom default timer, by specifying the `mins` [URL parameter](https://developer.mozilla.org/en-US/docs/Learn/Common_questions/What_is_a_URL#parameters). For example, `…/tick.html?mins=25` will make the timer start at 25 minutes ([pomodoro](https://en.wikipedia.org/wiki/Pomodoro_Technique)).
+
 
 ## Future Improvements
 
 - [x] No option to add or remove minutes in touch devices.
 	+ [x] a) Add [simple gestures](https://stackoverflow.com/a/62825217) left/right and up/down.
 	+ [ ] b) Add ◀ buttons ▶ on either side of the timer.
-- [ ] 
 - [ ] Simple webworker and Manifest to allow saving as an app on mobile devices.
 - [ ] Split minutes over 60 into hours.
-- [ ] URL Get params `URLSearchParams(window.location.search)` to define initial timer (defaults at 10 minutes) or modify theme colors.
+- [ ] URL Get params `URLSearchParams(window.location.search)`
+	+ [x] a) to define initial timer (defaults at 10 minutes)
+	+ [ ] b) modify theme colors.
 - [ ] Sound option to ring bell every minute, if overtime.
 - [ ] Keep seconds intact when adding or subtracting minutes from or into overtime. Keeps the visual flow undisturbed.
 - [ ] Long-click or long-press to play bell sound on demand.
 - [ ] Key buffer (numerals only) to modify timer minutes directly.
 - [ ] Display (bottom left) an overall timer that doesn’t reset.
-- [ ] Sync to other windows with `BroadcastChannel`.
+- [ ] Control panel or sync to other windows with `BroadcastChannel` (such as [Speech Countdown Timer](https://obsproject.com/forum/resources/speech-countdown-timer.1179/))
 - [ ] Local storage to remember theme and sound options.
 - [ ] Implement theming settings compatible with [/valgrind](https://heracl.es/valgrind).
 - [ ] Considering [hundredrabbits / Themes](https://github.com/hundredrabbits/Themes) simple theme framework; convert current themes.
@@ -86,7 +92,7 @@ A tick is an atomic unit used to define system time in computing. It is also a h
 
 - Code based on [njallam / stream-pomodoro](https://github.com/njallam/stream-pomodoro).
 - Bell sounds via [oshreiss / Working-with-the-Web-Audio-API](https://github.com/joshreiss/Working-with-the-Web-Audio-API/).
-- Touch gestures based on code from [StackOverflow @Rob](https://stackoverflow.com/a/69617795)
+- Touch gestures based on code from [StackOverflow @Rob](https://stackoverflow.com/a/69617795).
 - The font used in the screenshots above is [Lekton](https://fonts.google.com/specimen/Lekton) designed at ISIA Urbino, Italy. Specifically the [Lekton Greek](https://www.roleplay.gr/blog/greekifying-lekton-font) version designed by Manon Photopoulos, autohinted by the author.
 
 * * *

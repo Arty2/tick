@@ -317,6 +317,8 @@
 	<li><kbd>Delete</kbd> or <kbd>Backspace</kbd> to delete the current label and replace with text input. The label is dimmed when in edit more. <kbd>Enter</kbd> or <kbd>Esc</kbd> to confirm and exit edit mode.</li>
 	<li><kbd>Home</kbd> to display the manual. <kbd>Home</kbd> or <kbd>Esc</kbd> when the manual is open to hide it.</li>
 	</ul>
+	<h3>URL parameters</h3>
+	<p>Define a custom default timer, by specifying the <code class="notranslate">mins</code> <a href="https://developer.mozilla.org/en-US/docs/Learn/Common_questions/What_is_a_URL#parameters" rel="nofollow">URL parameter</a>. For example, <code class="notranslate">…/tick.html?mins=25</code> will make the timer start at 25 minutes (<a href="https://en.wikipedia.org/wiki/Pomodoro_Technique" rel="nofollow">pomodoro</a>).</p>
 	<h2>Point of view</h2>
 	<p>Single page; no external assets; no build systems; functional vanilla JavaScript.<br>
 	Pull requests welcome if they don’t deviate from these principles or alter coding style.</p>
@@ -333,7 +335,7 @@
 	<a class="btn" onclick="toggle_manual();" title="Manual">ｘ</a>
 </div>
 <script>
-	// const urlParams = new URLSearchParams(window.location.search);
+	const urlParams = new URLSearchParams(window.location.search);
 
 	let paused;
 	let overtimed;
@@ -461,7 +463,7 @@
 		}
 	}
 
-	function ticker_start(mins = 10) {
+	function ticker_start(mins = (parseInt(urlParams.get('mins')) || 10)) {
 		if (!paused) {
 			length = (length > 0 ? length : 60 * mins);
 			endTime = Date.now() + length * 1000;
@@ -707,7 +709,6 @@
 				toggle_fullscreen(window);
 			}
 		});
-
 
 		let touchEvent = null;	
 		function gestures() {
