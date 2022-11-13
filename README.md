@@ -4,7 +4,7 @@
 
 - [Live Demo](https://rawcdn.githack.com/Arty2/tick/master/tick.html)
 - [Project website](https://heracl.es/tick)
-- Current version: `1.2` (2022-11-07)
+- Current version: `1.3` (2022-11-13)
 
 ![Screenshot of /tick’s counting down at 59 seconds](./screenshots/ticker-screenshot_01.png)
 
@@ -63,7 +63,7 @@ Define a custom default timer, by specifying the `mins` [URL parameter](https://
 	+ [x] a) Add [simple gestures](https://stackoverflow.com/a/62825217) left/right and up/down.
 	+ [ ] b) Add ◀ buttons ▶ on either side of the timer.
 - [ ] Simple webworker and Manifest to allow saving as an app on mobile devices.
-- [ ] Split minutes over 60 into hours.
+- [x] Split minutes over 60 into hours.
 - [ ] URL Get params `URLSearchParams(window.location.search)`
 	+ [x] a) to define initial timer (defaults at 10 minutes)
 	+ [ ] b) modify theme colors.
