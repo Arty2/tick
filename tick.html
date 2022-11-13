@@ -121,7 +121,7 @@
 			cursor: pointer;
 		}
 
-		#ticker, #hours, #label  {
+		#ticker, #label  {
 			position: fixed;
 			top: 50%;
 			left: 50%;
@@ -140,9 +140,15 @@
 		}
 
 		#hours {
-			transform: translate(-88%, calc(-50% - 10vw));
+			position: absolute;
+			margin-left: -2ch;
 
 			font-size: 10vw;
+			line-height: 10vw;
+		}
+
+		#minutes::after {
+			content: '∶'; /* use ∶ ratio character for vertical centering */
 		}
 
 		#label {
@@ -275,8 +281,9 @@
 <div id="progress-container">
 	<div id="progress-bar"></div>
 </div>
-<div id="hours"></div>
-<div id="ticker"></div>
+<div id="ticker">
+	<span id="hours"></span><span id="minutes"></span><span id="seconds"></div>
+</div>
 <div id="label" spellcheck="false"></div>
 <noscript>JavaScript is required for this app to work.</noscript>
 <div id="manual" class="hidable hidden">
@@ -285,7 +292,7 @@
 	<ul>
 	<li><a href="https://rawcdn.githack.com/Arty2/tick/master/tick.html" rel="nofollow">Live Demo</a></li>
 	<li><a href="https://heracl.es/tick" rel="nofollow">Project website</a></li>
-	<li>Current version: <code class="notranslate">1.3</code> (2022-11-13)</li>
+	<li>Current version: <code class="notranslate">1.4</code> (2022-11-13)</li>
 	</ul>
 	<h2>How to use</h2>
 	<p>This is a single HTML file with no depedencies other than requiring JavaScript to be enabled, so if you wish to use this tool offline, then simply save it (Windows: <kbd>Ctrl</kbd> + <kbd>S</kbd>, MacOS: <kbd>Command</kbd> + <kbd>S</kbd>) to your device, and open it with your browser (Firefox, Chrome etc).</p>
@@ -418,7 +425,8 @@
 						Math.ceil(remainingSeconds % 3600 / 60)
 					).toString().padStart(2, '0');
 		let seconds = Math.abs(remainingSeconds % 60).toString().padStart(2, '0');
-		$('ticker').textContent = `${minutes}∶${seconds}`; // use ∶ ratio character for vertical centering
+		$('seconds').textContent = seconds;
+		$('minutes').textContent = minutes;
 		$('hours').textContent = (hours > 0 ? `${hours}H` : '');
 
 		if (remainingTime <= 0) {
@@ -488,7 +496,9 @@
 		endTime = Date.now();
 		remainingTime = 0;
 		length = 0;
-		$('ticker').textContent = '00∶00';
+		$('hours').textContent = '';
+		$('minutes').textContent = '00';
+		$('seconds').textContent = '00';
 	}
 
 	function ticker_reset() {

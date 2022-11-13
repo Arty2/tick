@@ -4,7 +4,7 @@
 
 - [Live Demo](https://rawcdn.githack.com/Arty2/tick/master/tick.html)
 - [Project website](https://heracl.es/tick)
-- Current version: `1.3` (2022-11-13)
+- Current version: `1.4` (2022-11-13)
 
 ![Screenshot of /tick’s counting down at 59 seconds](./screenshots/ticker-screenshot_01.png)
 
