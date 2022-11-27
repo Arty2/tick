@@ -173,6 +173,7 @@
 					right: var(--gutter-width);
 					z-index: 1000;
 
+					text-align: right;
 					text-transform: uppercase;
 
 					animation: 3s ease 1s fadeout;
@@ -186,13 +187,12 @@
 
 				#tools a,
 				.btn {
-					display: inline-block;
-					margin-left: 0.3rem;
+					display: block;
+					width: auto;
 					padding: 0 0.3em;
 					
 					background-color: rgba(var(--page-color),var(--page-color-transparency));
 					cursor: pointer;
-					font-size: 110%;
 					font-size: var(--s02);
 					text-decoration: none;
 
@@ -254,9 +254,9 @@
 			width: 100%;
 			margin: 0;
 			padding: var(--gutter-height) var(--gutter-width) 0;
-			line-height: var(--line-height);
 
 			background: rgba(var(--page-color),var(--page-color-transparency));
+			font-size: var(--s02);
 		}
 
 		body.overtimed {
