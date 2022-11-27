@@ -171,7 +171,6 @@
 					position: fixed;
 					bottom: var(--gutter-height);
 					right: var(--gutter-width);
-					height: var(--line-height);
 					z-index: 1000;
 
 					text-transform: uppercase;
@@ -293,6 +292,9 @@
 </head>
 <body>
 <div id="tools">
+	<a tabindex="8" onclick="ticker_reset();ticker_start(25);" title="25 minutes" class="hidable hidden">25&nbsp;MIN</a>
+	<a tabindex="7" onclick="ticker_reset();ticker_start(10);" title="10 minutes" class="hidable hidden">10&nbsp;MIN</a>
+	<a tabindex="6" onclick="ticker_reset();ticker_start(5);" title="5 minutes" class="hidable hidden">5&nbsp;MIN</a>
 	<a tabindex="5" onclick="ticker_reset();" title="reset" class="hidable hidden">reset</a>
 	<a tabindex="2" onclick="toggle_fullscreen();" title="fullscreen" class="hidable hidden">fullscreen</a>
 	<a tabindex="3" onclick="toggle_theme();" title="theme" class="hidable hidden">theme</a>
