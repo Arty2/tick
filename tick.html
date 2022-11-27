@@ -166,6 +166,36 @@
 				opacity: 0.1 !important;
 			}
 
+
+		.hidable {
+			opacity: 1;
+			transition: opacity 0.3s, top 0.15s, bottom 0.15s;
+		}
+
+		.hidable.hidden {
+			opacity: 0;
+			height: 0;
+		}
+
+		.btn {
+			display: block;
+			width: auto;
+			height: var(--line-height);
+			padding: 0 0.3em;
+			
+			background-color: rgba(var(--page-color),var(--page-color-transparency));
+			cursor: pointer;
+			font-size: var(--s02);
+			text-decoration: none;
+
+			transition: opacity 0s ease-in, height 0s ease-in;
+			transition-delay: 1s;
+		}
+
+		.btn:hover {
+			text-decoration: underline;
+		}
+
 		#tools {
 					display: block;
 					position: fixed;
@@ -185,46 +215,19 @@
 					animation: none;
 				}
 
-				#tools a,
-				.btn {
-					display: block;
-					width: auto;
-					padding: 0 0.3em;
-					
-					background-color: rgba(var(--page-color),var(--page-color-transparency));
-					cursor: pointer;
-					font-size: var(--s02);
-					text-decoration: none;
-
-					transition: opacity 0s ease-in;
-					transition-delay: 1s;
-				}
-
-				#tools a:hover,
-				.btn:hover {
-					text-decoration: underline;
-				}
-
-				#tools:hover a.hidden,
-				#tools:focus-within a.hidden {
+				#tools:hover .btn.hidden,
+				#tools:focus-within .btn.hidden {
 					opacity: 1;
 					transition-delay: 0s;
+					height: var(--line-height);
 				}
-
-		.hidable {
-			opacity: 1;
-			transition: opacity 0.3s, top 0.15s, bottom 0.15s;
-		}
-
-		.hidable.hidden {
-			opacity: 0;
-		}
 
 		#manual {
 			position: fixed;
 			top: 0;
 			bottom: 0;
 			width: 100%;
+			height: 100vh;
 			padding: calc(var(--gutter-height) + var(--line-height)) var(--gutter-width);
 
 			background: rgba(var(--page-color),var(--page-color-transparency));
@@ -292,14 +295,14 @@
 </head>
 <body>
 <div id="tools">
-	<a tabindex="8" onclick="ticker_reset();ticker_start(25);" title="25 minutes" class="hidable hidden">25&nbsp;MIN</a>
-	<a tabindex="7" onclick="ticker_reset();ticker_start(10);" title="10 minutes" class="hidable hidden">10&nbsp;MIN</a>
-	<a tabindex="6" onclick="ticker_reset();ticker_start(5);" title="5 minutes" class="hidable hidden">5&nbsp;MIN</a>
-	<a tabindex="5" onclick="ticker_reset();" title="reset" class="hidable hidden">reset</a>
-	<a tabindex="2" onclick="toggle_fullscreen();" title="fullscreen" class="hidable hidden">fullscreen</a>
-	<a tabindex="3" onclick="toggle_theme();" title="theme" class="hidable hidden">theme</a>
-	<a tabindex="4" onclick="toggle_sound();" title="sound" class="hidable hidden">sound</a>
-	<a tabindex="1" onclick="toggle_manual();" title="manual">info</a>
+	<a class="btn hidable hidden" tabindex="8" onclick="ticker_reset();ticker_start(25);" title="25 minutes">25&nbsp;MIN</a>
+	<a class="btn hidable hidden" tabindex="7" onclick="ticker_reset();ticker_start(10);" title="10 minutes">10&nbsp;MIN</a>
+	<a class="btn hidable hidden" tabindex="6" onclick="ticker_reset();ticker_start(5);" title="5 minutes">5&nbsp;MIN</a>
+	<a class="btn hidable hidden" tabindex="5" onclick="ticker_reset();" title="reset">reset</a>
+	<a class="btn hidable hidden" tabindex="2" onclick="toggle_fullscreen();" title="fullscreen">fullscreen</a>
+	<a class="btn hidable hidden" tabindex="3" onclick="toggle_theme();" title="theme">theme</a>
+	<a class="btn hidable hidden" tabindex="4" onclick="toggle_sound();" title="sound">sound</a>
+	<a class="btn" tabindex="1" onclick="toggle_manual();" title="manual">info</a>
 </div>
 <div id="progress-container">
 	<div id="progress-bar"></div>
