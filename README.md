@@ -4,7 +4,7 @@
 
 - [Live Demo](https://rawcdn.githack.com/Arty2/tick/master/tick.html)
 - [Project website](https://heracl.es/tick)
-- Current version: `1.4` (2022-11-13)
+- Current version: `1.5` (2022-11-27)
 
 ![Screenshot of /tick’s counting down at 59 seconds](./screenshots/ticker-screenshot_01.png)
 
@@ -18,32 +18,34 @@ Always be cautious of scripts you find available online: open them in a text edi
 
 ## Options
 
-The toolbar provides access to the manual for quick reference to mouse and keyboard shortcuts, and quick access to important toggles (sound, theme, fullscreen) and timer reset. It first appears at the bottom-right and hides itself after a few moments. Tap or hover your mouse over this area to reveal it.
+The toolbar provides access to the manual for quick reference to mouse and keyboard shortcuts, and quick access to important toggles (sound, theme, fullscreen), timer reset, and three presets (5, 10, 25 minutes). It first appears at the bottom-right and hides itself after a few moments. Tap or hover your mouse over this area to reveal it. You may not add or subtract from the timer when paused.
 
 ### Touch events
 
 - *Tap* once on the timer or label to start, if not already started. *Tap* again to pause or un-pause.
 - *Tap* once to reset and stop the timer, if overtime.
 - *Double Tap* anywhere to go into fullscreen.
-- *Swipe up* 👆 to add 10 minutes to the timer, if not already paused.
-- *Swipe down* 👇 to subtract 5 minutes from the timer, if not already paused.
-- *Swipe left* 👈 to add 1 minute, if not already paused.
-- *Swipe right* 👉 to subtract 1 minute, if not already paused.
+- *Swipe up* 👆 to add 10 minutes to the timer.
+- *Swipe down* 👇 to subtract 5 minutes from the timer.
+- *Swipe left* 👈 to add 1 minute.
+- *Swipe right* 👉 to subtract 1 minute.
 
 ### Mouse events
 
 - *Click* once on the timer or label to start, if not already started. *Click* again to pause or un-pause.
 - *Click* once to reset and stop the timer, if overtime.
 - *Double Click* anywhere to go into fullscreen.
+- *Scroll up* to add 1 minute.
+- *Scroll down* to subtract 1 minute.
 
 ### Keyboard shortcuts
 
-- <kbd>Enter</kbd> to start at 10 minutes, if not already paused. Will subsequently restart the timer.
+- <kbd>Enter</kbd> to start at 10 minutes. Will subsequently restart the timer.
 - <kbd>Space</kbd> to start at 10 minutes, or pause if started, or restart at 10 minutes if into overtime.
-- *Up arrow* <kbd>↑</kbd> to add 10 minutes to the timer, if not already paused.
-- *Down arrow* <kbd>↓</kbd> to subtract 5 minutes from the timer, if not already paused.
-- *Left arrow* <kbd>←</kbd> to add 1 minute, if not already paused.
-- *Right arrow* <kbd>→</kbd> to subtract 1 minute, if not already paused.
+- *Up arrow* <kbd>↑</kbd> to add 10 minutes to the timer.
+- *Down arrow* <kbd>↓</kbd> to subtract 5 minutes from the timer.
+- *Left arrow* <kbd>←</kbd> to add 1 minute.
+- *Right arrow* <kbd>→</kbd> to subtract 1 minute.
 - <kbd>Page Up</kbd> to go into fullscreen mode. <kbd>Page Up</kbd> or <kbd>Esc</kbd> to exit fullscreen. 
 - <kbd>Page Down</kbd> to toggle the theme between dark (default) and light.
 - <kbd>End</kbd> to reset and stop the timer.
@@ -57,7 +59,7 @@ The toolbar provides access to the manual for quick reference to mouse and keybo
 Define a custom default timer, by specifying the `mins` [URL parameter](https://developer.mozilla.org/en-US/docs/Learn/Common_questions/What_is_a_URL#parameters). For example, `…/tick.html?mins=25` will make the timer start at 25 minutes ([pomodoro](https://en.wikipedia.org/wiki/Pomodoro_Technique)).
 
 
-## Future Improvements
+## Future improvements (maybe)
 
 - [x] No option to add or remove minutes in touch devices.
 	+ [x] a) Add [simple gestures](https://stackoverflow.com/a/62825217) left/right and up/down.
@@ -67,6 +69,7 @@ Define a custom default timer, by specifying the `mins` [URL parameter](https://
 - [ ] URL Get params `URLSearchParams(window.location.search)`
 	+ [x] a) to define initial timer (defaults at 10 minutes)
 	+ [ ] b) modify theme colors.
+	+ [ ] c) text label
 - [ ] Sound option to ring bell every minute, if overtime.
 - [ ] Keep seconds intact when adding or subtracting minutes from or into overtime. Keeps the visual flow undisturbed.
 - [ ] Long-click or long-press to play bell sound on demand.
@@ -76,6 +79,7 @@ Define a custom default timer, by specifying the `mins` [URL parameter](https://
 - [ ] Local storage to remember theme and sound options.
 - [ ] Implement theming settings compatible with [/valgrind](https://heracl.es/valgrind).
 - [ ] Considering [hundredrabbits / Themes](https://github.com/hundredrabbits/Themes) simple theme framework; convert current themes.
+- [ ] Comments to code
 
 
 ## Point of view
