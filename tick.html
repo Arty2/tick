@@ -771,12 +771,14 @@
 		}
 
 		window.addEventListener('touchstart', (event) => {
-		    touchEvent = new TouchEvent(event);
+			if ($('manual').classList.contains('hidden')) {
+		    	touchEvent = new TouchEvent(event);
+			}
 		});
 
 		window.addEventListener('touchend', gestures);
 
-		function wheelie(e) {
+		function scrollwheel(e) {
 			if ($('manual').classList.contains('hidden')) {
 				if (e.deltaY > 0) {
 					ticker_subtract(1);
@@ -785,7 +787,7 @@
 				}
 			}
 		}
-		window.addEventListener('wheel', wheelie);
+		window.addEventListener('wheel', scrollwheel);
 	} // end onload
 </script>
 </body>
