@@ -174,6 +174,8 @@
 					height: var(--line-height);
 					z-index: 1000;
 
+					text-transform: uppercase;
+
 					animation: 3s ease 1s fadeout;
 					animation-fill-mode: forwards;
 				}
@@ -183,10 +185,13 @@
 					animation: none;
 				}
 
-				#tools > a, .btn {
+				#tools a,
+				.btn {
 					display: inline-block;
-					padding-left: 0.15rem;
+					margin-left: 0.3rem;
+					padding: 0 0.3em;
 					
+					background-color: rgba(var(--page-color),var(--page-color-transparency));
 					cursor: pointer;
 					font-size: 110%;
 					font-size: var(--s02);
@@ -194,6 +199,11 @@
 
 					transition: opacity 0s ease-in;
 					transition-delay: 1s;
+				}
+
+				#tools a:hover,
+				.btn:hover {
+					text-decoration: underline;
 				}
 
 				#tools:hover a.hidden,
@@ -272,11 +282,11 @@
 </head>
 <body>
 <div id="tools">
-	<a tabindex="5" onclick="ticker_reset();" title="reset" class="hidable hidden">ｒ</a>
-	<a tabindex="2" onclick="toggle_fullscreen();" title="fullscreen" class="hidable hidden">ｆ</a>
-	<a tabindex="3" onclick="toggle_theme();" title="theme" class="hidable hidden">ｔ</a>
-	<a tabindex="4" onclick="toggle_sound();" title="sound" class="hidable hidden">ｓ</a>
-	<a tabindex="1" onclick="toggle_manual();" title="manual">ｉ</a>
+	<a tabindex="5" onclick="ticker_reset();" title="reset" class="hidable hidden">reset</a>
+	<a tabindex="2" onclick="toggle_fullscreen();" title="fullscreen" class="hidable hidden">fullscreen</a>
+	<a tabindex="3" onclick="toggle_theme();" title="theme" class="hidable hidden">theme</a>
+	<a tabindex="4" onclick="toggle_sound();" title="sound" class="hidable hidden">sound</a>
+	<a tabindex="1" onclick="toggle_manual();" title="manual">info</a>
 </div>
 <div id="progress-container">
 	<div id="progress-bar"></div>
@@ -346,7 +356,7 @@
 	</ul>
 	<hr>
 	<p>© 2022 <a href="https://heracl.es" rel="nofollow">Heracles Papatheodorou</a> a.k.a <a href="https://www.twitter.com/Arty2" rel="nofollow">@Arty2</a>, MIT Licence</p>
-	<a class="btn" onclick="toggle_manual();" title="Manual">ｘ</a>
+	<a class="btn" onclick="toggle_manual();" title="Manual">CLOSE</a>
 </div>
 <script>
 	const urlParams = new URLSearchParams(window.location.search);
