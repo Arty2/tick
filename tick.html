@@ -226,7 +226,7 @@
 			top: 0;
 			bottom: 0;
 			width: 100%;
-			padding: var(--gutter-width);
+			padding: calc(var(--gutter-height) + var(--line-height)) var(--gutter-width);
 
 			background: rgba(var(--page-color),var(--page-color-transparency));
 			color: rgb(var(--text-color));
@@ -248,6 +248,17 @@
 				right: var(--gutter-width);
 				height: var(--line-height);
 			}
+		h1 {
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			margin: 0;
+			padding: var(--gutter-height) var(--gutter-width) 0;
+			line-height: var(--line-height);
+
+			background: rgba(var(--page-color),var(--page-color-transparency));
+		}
 
 		body.overtimed {
 			color: rgb(var(--accent-color));
@@ -298,7 +309,7 @@
 <noscript>JavaScript is required for this app to work.</noscript>
 <div id="manual" class="hidable hidden">
 	<h1>/tick</h1>
-	<p><em>Tick</em> is shortcut-first countdown timer for your streams (e.g. <a href="https://obsproject.com/kb/browser-source" rel="nofollow">OBS browser source</a>), webinars (e.g. <a href="https://support.zoom.us/hc/en-us/articles/201362153-Sharing-your-screen-or-desktop-on-Zoom" rel="nofollow">Zoom’s screen share</a>), or any reverse time-keeping needs.</p>
+	<p><em>/tick</em> is shortcut-first countdown timer for your streams (e.g. <a href="https://obsproject.com/kb/browser-source" rel="nofollow">OBS browser source</a>), webinars (e.g. <a href="https://support.zoom.us/hc/en-us/articles/201362153-Sharing-your-screen-or-desktop-on-Zoom" rel="nofollow">Zoom’s screen share</a>), or any reverse time-keeping needs.</p>
 	<ul>
 	<li><a href="https://rawcdn.githack.com/Arty2/tick/master/tick.html" rel="nofollow">Live Demo</a></li>
 	<li><a href="https://heracl.es/tick" rel="nofollow">Project website</a></li>
