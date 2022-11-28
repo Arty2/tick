@@ -299,9 +299,9 @@
 	<a class="btn hidable hidden" tabindex="7" onclick="ticker_reset();ticker_start(10);" title="10 minutes">10&nbsp;MIN</a>
 	<a class="btn hidable hidden" tabindex="6" onclick="ticker_reset();ticker_start(5);" title="5 minutes">5&nbsp;MIN</a>
 	<a class="btn hidable hidden" tabindex="5" onclick="ticker_reset();" title="reset">reset</a>
-	<a class="btn hidable hidden" tabindex="2" onclick="toggle_fullscreen();" title="fullscreen">fullscreen</a>
+	<a class="btn hidable hidden" tabindex="4" onclick="toggle_fullscreen();" title="fullscreen">fullscreen</a>
 	<a class="btn hidable hidden" tabindex="3" onclick="toggle_theme();" title="theme">theme</a>
-	<a class="btn hidable hidden" tabindex="4" onclick="toggle_sound();" title="sound">sound</a>
+	<a class="btn hidable hidden" tabindex="2" onclick="toggle_sound();" title="sound">sound</a>
 	<a class="btn" tabindex="1" onclick="toggle_manual();" title="manual">info</a>
 </div>
 <div id="progress-container">
@@ -318,7 +318,7 @@
 	<ul>
 	<li><a href="https://rawcdn.githack.com/Arty2/tick/master/tick.html" rel="nofollow">Live Demo</a></li>
 	<li><a href="https://heracl.es/tick" rel="nofollow">Project website</a></li>
-	<li>Current version: <code class="notranslate">1.5</code> (2022-11-27)</li>
+	<li>Current version: <code class="notranslate">1.6</code> (2022-11-28)</li>
 	</ul>
 	<h2>How to use</h2>
 	<p>This is a single HTML file with no depedencies other than requiring JavaScript to be enabled, so if you wish to use this tool offline, then simply save it (Windows: <kbd>Ctrl</kbd> + <kbd>S</kbd>, MacOS: <kbd>Command</kbd> + <kbd>S</kbd>) to your device, and open it with your browser (Firefox, Chrome etc).</p>
@@ -355,7 +355,7 @@
 	<li><kbd>Page Down</kbd> to toggle the theme between dark (default) and light.</li>
 	<li><kbd>End</kbd> to reset and stop the timer.</li>
 	<li><kbd>Insert</kbd> to toggle sound mode: automatically play a bell sound when the timer goes into overtime. Off by default.</li>
-	<li><kbd>Tab</kbd> to play a bell sound on demand.</li>
+	<li><kbd>Shift</kbd> to play a bell sound on demand.</li>
 	<li><kbd>Delete</kbd> or <kbd>Backspace</kbd> to delete the current label and replace with text input. The label is dimmed when in edit more. <kbd>Enter</kbd> or <kbd>Esc</kbd> to confirm and exit edit mode.</li>
 	<li><kbd>Home</kbd> to display the manual. <kbd>Home</kbd> or <kbd>Esc</kbd> when the manual is open to hide it.</li>
 	</ul>
@@ -696,7 +696,7 @@
 
 		window.addEventListener('keydown', function(e) {
 			// console.log(document.activeElement) // DEBUG
-			// console.log(e.keyCode); // DEBUG
+			console.log(e.keyCode); // DEBUG
 			if (document.activeElement !== $('label')) {
 				// Enter (13) to start at 10 minutes, if not already paused
 				if (e.keyCode == 13) { ticker_start(); }
@@ -710,8 +710,8 @@
 				else if (e.keyCode == 40) { ticker_subtract(5); }
 				// Up (38) to add 10 minutes
 				else if (e.keyCode == 38) { ticker_add(10); }
-				// Tab (9) to ring bell
-				else if (e.keyCode == 9) { bell(); e.preventDefault(); }
+				// Shift (16) to ring bell
+				else if (e.keyCode == 16) { bell(); e.preventDefault(); }
 				// Delete (46) or Backspace (8) to focus label
 				else if (e.keyCode == 8 || e.keyCode == 46) {
 					$('label').contentEditable = true;
