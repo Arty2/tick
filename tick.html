@@ -699,7 +699,11 @@
 			// console.log(e.keyCode); // DEBUG
 			if (document.activeElement !== $('label')) {
 				// Enter (13) to start at 10 minutes, if not already paused
-				if (e.keyCode == 13) { ticker_start(); }
+				if (e.keyCode == 13) {
+					if (!document.activeElement.classList.contains('btn')) {
+						ticker_start();
+					}
+				}
 				// Space (32) to start at 10 minutes or pause if already started
 				else if (e.keyCode == 32) { ticker_pause(); }
 				// Right (39) to subtract 1 minute
