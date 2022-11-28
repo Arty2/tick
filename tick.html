@@ -173,26 +173,33 @@
 		}
 
 		.hidable.hidden {
-			opacity: 0;
 			height: 0;
+			opacity: 0;
+			visibility: hidden;
 		}
 
 		.btn {
 			display: block;
 			width: auto;
 			height: var(--line-height);
+			margin: 0 0 0 auto;
 			padding: 0 0.3em;
 			
 			background-color: rgba(var(--page-color),var(--page-color-transparency));
+			border: none;
+			color: rgb(var(--text-color));
 			cursor: pointer;
 			font-size: var(--s02);
+			text-align: right;
+			text-transform: uppercase;
 			text-decoration: none;
 
 			transition: opacity 0s ease-in, height 0s ease-in;
 			transition-delay: 1s;
 		}
 
-		.btn:hover {
+		.btn:hover, .btn:focus {
+			color: rgb(var(--hyperlink-color));
 			text-decoration: underline;
 		}
 
@@ -203,8 +210,6 @@
 					right: var(--gutter-width);
 					z-index: 1000;
 
-					text-align: right;
-					text-transform: uppercase;
 
 					animation: 3s ease 1s fadeout;
 					animation-fill-mode: forwards;
@@ -217,9 +222,10 @@
 
 				#tools:hover .btn.hidden,
 				#tools:focus-within .btn.hidden {
-					opacity: 1;
-					transition-delay: 0s;
 					height: var(--line-height);
+					opacity: 1;
+					visibility: visible;
+					transition-delay: 0s;
 				}
 
 		#manual {
@@ -295,14 +301,14 @@
 </head>
 <body>
 <div id="tools">
-	<a class="btn hidable hidden" tabindex="8" onclick="ticker_reset();ticker_start(25);" title="25 minutes">25&nbsp;MIN</a>
-	<a class="btn hidable hidden" tabindex="7" onclick="ticker_reset();ticker_start(10);" title="10 minutes">10&nbsp;MIN</a>
-	<a class="btn hidable hidden" tabindex="6" onclick="ticker_reset();ticker_start(5);" title="5 minutes">5&nbsp;MIN</a>
-	<a class="btn hidable hidden" tabindex="5" onclick="ticker_reset();" title="reset">reset</a>
-	<a class="btn hidable hidden" tabindex="4" onclick="toggle_fullscreen();" title="fullscreen">fullscreen</a>
-	<a class="btn hidable hidden" tabindex="3" onclick="toggle_theme();" title="theme">theme</a>
-	<a class="btn hidable hidden" tabindex="2" onclick="toggle_sound();" title="sound">sound</a>
-	<a class="btn" tabindex="1" onclick="toggle_manual();" title="manual">info</a>
+	<button class="btn hidable hidden" tabindex="8" onclick="ticker_reset();ticker_start(25);" title="25 minutes">25&nbsp;MIN</button>
+	<button class="btn hidable hidden" tabindex="7" onclick="ticker_reset();ticker_start(10);" title="10 minutes">10&nbsp;MIN</button>
+	<button class="btn hidable hidden" tabindex="6" onclick="ticker_reset();ticker_start(5);" title="5 minutes">5&nbsp;MIN</button>
+	<button class="btn hidable hidden" tabindex="5" onclick="ticker_reset();" title="reset">reset</button>
+	<button class="btn hidable hidden" tabindex="4" onclick="toggle_fullscreen();" title="fullscreen">fullscreen</button>
+	<button class="btn hidable hidden" tabindex="3" onclick="toggle_theme();" title="theme">theme</button>
+	<button class="btn hidable hidden" tabindex="2" onclick="toggle_sound();" title="sound">sound</button>
+	<button class="btn" tabindex="1" onclick="toggle_manual();" title="manual">info</button>
 </div>
 <div id="progress-container">
 	<div id="progress-bar"></div>
@@ -318,7 +324,7 @@
 	<ul>
 	<li><a href="https://rawcdn.githack.com/Arty2/tick/master/tick.html" rel="nofollow">Live Demo</a></li>
 	<li><a href="https://heracl.es/tick" rel="nofollow">Project website</a></li>
-	<li>Current version: <code class="notranslate">1.6</code> (2022-11-28)</li>
+	<li>Current version: <code class="notranslate">1.7</code> (2022-11-28)</li>
 	</ul>
 	<h2>How to use</h2>
 	<p>This is a single HTML file with no depedencies other than requiring JavaScript to be enabled, so if you wish to use this tool offline, then simply save it (Windows: <kbd>Ctrl</kbd> + <kbd>S</kbd>, MacOS: <kbd>Command</kbd> + <kbd>S</kbd>) to your device, and open it with your browser (Firefox, Chrome etc).</p>
@@ -355,7 +361,7 @@
 	<li><kbd>Page Down</kbd> to toggle the theme between dark (default) and light.</li>
 	<li><kbd>End</kbd> to reset and stop the timer.</li>
 	<li><kbd>Insert</kbd> to toggle sound mode: automatically play a bell sound when the timer goes into overtime. Off by default.</li>
-	<li><kbd>Shift</kbd> to play a bell sound on demand.</li>
+	<li><kbd>`</kbd> to play a bell sound on demand.</li>
 	<li><kbd>Delete</kbd> or <kbd>Backspace</kbd> to delete the current label and replace with text input. The label is dimmed when in edit more. <kbd>Enter</kbd> or <kbd>Esc</kbd> to confirm and exit edit mode.</li>
 	<li><kbd>Home</kbd> to display the manual. <kbd>Home</kbd> or <kbd>Esc</kbd> when the manual is open to hide it.</li>
 	</ul>
@@ -374,7 +380,7 @@
 	</ul>
 	<hr>
 	<p>© 2022 <a href="https://heracl.es" rel="nofollow">Heracles Papatheodorou</a> a.k.a <a href="https://www.twitter.com/Arty2" rel="nofollow">@Arty2</a>, MIT Licence</p>
-	<a class="btn" onclick="toggle_manual();" title="Manual">CLOSE</a>
+	<button class="btn" tabindex="0" onclick="toggle_manual();" title="Manual">CLOSE</button>
 </div>
 <script>
 	const urlParams = new URLSearchParams(window.location.search);
@@ -600,7 +606,7 @@
 		sound = sound ? false : true;
 		if (sound) { 
 			bell();
-		}	else {
+		} else {
 			bell(0.5,0.2);
 		}
 	}
@@ -700,6 +706,7 @@
 			if (document.activeElement !== $('label')) {
 				// Enter (13) to start at 10 minutes, if not already paused
 				if (e.keyCode == 13) {
+					// but not when a button is focused?
 					if (!document.activeElement.classList.contains('btn')) {
 						ticker_start();
 					}
@@ -714,8 +721,8 @@
 				else if (e.keyCode == 40) { ticker_subtract(5); }
 				// Up (38) to add 10 minutes
 				else if (e.keyCode == 38) { ticker_add(10); }
-				// Shift (16) to ring bell
-				else if (e.keyCode == 16) { bell(); e.preventDefault(); }
+				// ` (192) to ring bell
+				else if (e.keyCode == 192) { bell(); e.preventDefault(); }
 				// Delete (46) or Backspace (8) to focus label
 				else if (e.keyCode == 8 || e.keyCode == 46) {
 					$('label').contentEditable = true;
@@ -729,7 +736,7 @@
 					$('label').contentEditable = false;
 				}
 			}
-			// PageUp (33) to fullscreeb
+			// PageUp (33) to fullscreen
 			if (e.keyCode == 33) { toggle_fullscreen(); }
 			// PageDown (34) toggle theme
 			else if (e.keyCode == 34) { toggle_theme(); }
@@ -739,7 +746,9 @@
 			else if (e.keyCode == 36) { toggle_manual(); }
 			// Esc (27) to exit info
 			else if (e.keyCode == 27) {
-				if (!$('manual').classList.contains('hidden')) {
+				if ($('tools').contains(document.activeElement)) {
+					document.activeElement.blur(); // tab on the only tabindex element (visible) will not fire again after blur
+				} else if (!$('manual').classList.contains('hidden')) {
 					toggle_manual();
 				}
 			}

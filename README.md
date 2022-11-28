@@ -4,7 +4,7 @@
 
 - [Live Demo](https://rawcdn.githack.com/Arty2/tick/master/tick.html)
 - [Project website](https://heracl.es/tick)
-- Current version: `1.6` (2022-11-28)
+- Current version: `1.7` (2022-11-28)
 
 ![Screenshot of /tick’s counting down at 59 seconds](./screenshots/ticker-screenshot_01.png)
 
@@ -50,7 +50,7 @@ The toolbar provides access to the manual for quick reference to mouse and keybo
 - <kbd>Page Down</kbd> to toggle the theme between dark (default) and light.
 - <kbd>End</kbd> to reset and stop the timer.
 - <kbd>Insert</kbd> to toggle sound mode: automatically play a bell sound when the timer goes into overtime. Off by default.
-- <kbd>Shift</kbd> to play a bell sound on demand.
+- <kbd>`</kbd> to play a bell sound on demand.
 - <kbd>Delete</kbd> or <kbd>Backspace</kbd> to delete the current label and replace with text input. The label is dimmed when in edit more. <kbd>Enter</kbd> or <kbd>Esc</kbd> to confirm and exit edit mode.
 - <kbd>Home</kbd> to display the manual. <kbd>Home</kbd> or <kbd>Esc</kbd> when the manual is open to hide it.
 
