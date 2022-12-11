@@ -61,25 +61,27 @@ Define a custom default timer, by specifying the `mins` [URL parameter](https://
 
 ## Future improvements (maybe)
 
+- [ ] [Screen Wake](https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API) on fullscreen mode.
+- [ ] Simple webworker and Manifest to allow saving as an app on mobile devices.
+- [ ] Add an [inline](https://dev.to/ezzabuzaid/using-inline-web-workers-to-improve-ui-performance-540n) [Web Worker timer](https://hackwild.com/article/web-worker-timers/) to increase accuracy.
 - [x] No option to add or remove minutes in touch devices.
 	+ [x] a) Add [simple gestures](https://stackoverflow.com/a/62825217) left/right and up/down.
-	+ [ ] b) Add ◀ buttons ▶ on either side of the timer.
-- [ ] Simple webworker and Manifest to allow saving as an app on mobile devices.
+	+ [ ] b) Add ◀ buttons ▶ on either side of the timer, only on hover.
 - [x] Split minutes over 60 into hours.
 - [ ] URL Get params `URLSearchParams(window.location.search)`
 	+ [x] a) to define initial timer (defaults at 10 minutes)
 	+ [ ] b) modify theme colors.
 	+ [ ] c) text label
-- [ ] Sound option to ring bell every minute, if overtime.
-- [ ] Keep seconds intact when adding or subtracting minutes from or into overtime. Keeps the visual flow undisturbed.
+- [ ] Sound option (three-state toggle) to ring bell every minute, if overtime.
+- [ ] Display (bottom left) an overall timer that doesn’t reset.
+- [ ] Code comments.
 - [ ] Long-click or long-press to play bell sound on demand.
 - [ ] Key buffer (numerals only) to modify timer minutes directly.
-- [ ] Display (bottom left) an overall timer that doesn’t reset.
+- [ ] Keep seconds intact when adding or subtracting minutes from or into overtime. Keeps the visual flow undisturbed.
 - [ ] Control panel or sync to other windows with `BroadcastChannel` (such as [Speech Countdown Timer](https://obsproject.com/forum/resources/speech-countdown-timer.1179/))
 - [ ] Local storage to remember theme and sound options.
 - [ ] Implement theming settings compatible with [/valgrind](https://heracl.es/valgrind).
 - [ ] Considering [hundredrabbits / Themes](https://github.com/hundredrabbits/Themes) simple theme framework; convert current themes.
-- [ ] Comments to code
 
 
 ## Point of view
