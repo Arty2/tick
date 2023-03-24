@@ -324,7 +324,7 @@
 	<ul>
 	<li><a href="https://rawcdn.githack.com/Arty2/tick/master/tick.html" rel="nofollow">Live Demo</a></li>
 	<li><a href="https://heracl.es/tick" rel="nofollow">Project website</a></li>
-	<li>Current version: <code class="notranslate">1.7</code> (2022-11-28)</li>
+	<li>Current version: <code class="notranslate">1.8</code> (2023-03-24)</li>
 	</ul>
 	<h2>How to use</h2>
 	<p>This is a single HTML file with no depedencies other than requiring JavaScript to be enabled, so if you wish to use this tool offline, then simply save it (Windows: <kbd>Ctrl</kbd> + <kbd>S</kbd>, MacOS: <kbd>Command</kbd> + <kbd>S</kbd>) to your device, and open it with your browser (Firefox, Chrome etc).</p>
@@ -603,25 +603,31 @@
 	}
 
 	function exit_fullscreen(el) {
-		if (el.exitFullscreen ) {
-			el.exitFullscreen ();
-		} else if (el.webkitExitFullscreen ) {
+		if (el.exitFullscreen) {
+			el.exitFullscreen();
+		} else if (el.webkitExitFullscreen) {
 			el.webkitExitFullscreen;
 		}
 	}
 
-	function toggle_fullscreen() {
+	async function toggle_fullscreen() {
 		document.fullscreenEnabled =
 			document.fullscreenEnabled ||
-			document.mozFullScreenEnabled ||
 			document.documentElement.webkitRequestFullScreen;
-		var doc = window.document;
-		var el = doc.documentElement;
 
 		if (document.fullscreenEnabled) {
 			request_fullscreen(document.documentElement);
+			let wakeLock = null;
+			try {
+				wakeLock = await navigator.wakeLock.request("screen");
+			} catch (err) {
+				console.log(`${err.name}, ${err.message}`);
+			}
 		} else {
 			exit_fullscreen(document.documentElement);
+			wakeLock.release().then(() => {
+				wakeLock = null;
+			});
 		}
 	}
 

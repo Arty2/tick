@@ -2,9 +2,9 @@
 
 *Tick* is shortcut-first countdown timer for your streams (e.g. [OBS browser source](https://obsproject.com/kb/browser-source)), webinars (e.g. [Zoom’s screen share](https://support.zoom.us/hc/en-us/articles/201362153-Sharing-your-screen-or-desktop-on-Zoom)), or any reverse time-keeping needs.
 
-- [Live Demo](https://rawcdn.githack.com/Arty2/tick/master/tick.html)
+- [Live Demo](https://raw.githack.com/Arty2/tick/master/tick.html)
 - [Project website](https://heracl.es/tick)
-- Current version: `1.7` (2022-11-28)
+- Current version: `1.8` (2023-03-24)
 
 ![Screenshot of /tick’s counting down at 59 seconds](./screenshots/ticker-screenshot_01.png)
 
@@ -20,7 +20,7 @@ Always be cautious of scripts you find available online: open them in a text edi
 
 The toolbar provides access to the manual for quick reference to mouse and keyboard shortcuts, and quick access to important toggles (sound, theme, fullscreen), timer reset, and three presets (5, 10, 25 minutes). It first appears at the bottom-right and hides itself after a few moments. Tap or hover your mouse over this area to reveal it. You may not add or subtract from the timer when paused.
 
-### Touch events
+### Touch controls
 
 - *Tap* once on the timer or label to start, if not already started. *Tap* again to pause or un-pause.
 - *Tap* once to reset and stop the timer, if overtime.
@@ -30,7 +30,7 @@ The toolbar provides access to the manual for quick reference to mouse and keybo
 - *Swipe left* 👈 to add 1 minute.
 - *Swipe right* 👉 to subtract 1 minute.
 
-### Mouse events
+### Mouse controls
 
 - *Click* once on the timer or label to start, if not already started. *Click* again to pause or un-pause.
 - *Click* once to reset and stop the timer, if overtime.
@@ -61,7 +61,7 @@ Define a custom default timer, by specifying the `mins` [URL parameter](https://
 
 ## Future improvements (maybe)
 
-- [ ] [Screen Wake](https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API) on fullscreen mode.
+- [x] [Screen Wake](https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API) on fullscreen mode.
 - [ ] Simple webworker and Manifest to allow saving as an app on mobile devices.
 - [ ] Add an [inline](https://dev.to/ezzabuzaid/using-inline-web-workers-to-improve-ui-performance-540n) [Web Worker timer](https://hackwild.com/article/web-worker-timers/) to increase accuracy.
 - [x] No option to add or remove minutes in touch devices.
