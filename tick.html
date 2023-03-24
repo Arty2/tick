@@ -16,7 +16,7 @@
 			--gutter-height: 2rem;
 			--gutter-width: 2rem;
 
-			--font: Lekton, Consolas, monospace;
+			--font: Input, Lekton, Consolas, monospace;
 
 			--sratio: 1.15;
 			--s00: 1em; /* always 1em = 1rem */
@@ -331,7 +331,7 @@
 	<p>Always be cautious of scripts you find available online: open them in a text editor and inspect what they do.</p>
 	<h2>Options</h2>
 	<p>The toolbar provides access to the manual for quick reference to mouse and keyboard shortcuts, and quick access to important toggles (sound, theme, fullscreen), timer reset, and three presets (5, 10, 25 minutes). It first appears at the bottom-right and hides itself after a few moments. Tap or hover your mouse over this area to reveal it. You may not add or subtract from the timer when paused.</p>
-	<h3>Touch events</h3>
+	<h3>Touch controls</h3>
 	<ul>
 	<li><em>Tap</em> once on the timer or label to start, if not already started. <em>Tap</em> again to pause or un-pause.</li>
 	<li><em>Tap</em> once to reset and stop the timer, if overtime.</li>
@@ -341,7 +341,7 @@
 	<li><em>Swipe left</em> 👈 to add 1 minute.</li>
 	<li><em>Swipe right</em> 👉 to subtract 1 minute.</li>
 	</ul>
-	<h3>Mouse events</h3>
+	<h3>Mouse controls</h3>
 	<ul>
 	<li><em>Click</em> once on the timer or label to start, if not already started. <em>Click</em> again to pause or un-pause.</li>
 	<li><em>Click</em> once to reset and stop the timer, if overtime.</li>
@@ -592,13 +592,36 @@
 		$('manual').classList.toggle('hidden');
 	}
 
-	function toggle_fullscreen() {
-		if (!document.fullscreenElement) {
-			document.documentElement.requestFullscreen().catch((err) => {
+	function request_fullscreen(el) {
+		if (el.requestFullscreen) {
+			el.requestFullscreen().catch((err) => {
 				alert('Click anywhere on the page, or press any key first!');
 			});
+		} else if (el.webkitRequestFullScreen) {
+			el.webkitRequestFullScreen(el.ALLOW_KEYBOARD_INPUT);
+		}
+	}
+
+	function exit_fullscreen(el) {
+		if (el.exitFullscreen ) {
+			el.exitFullscreen ();
+		} else if (el.webkitExitFullscreen ) {
+			el.webkitExitFullscreen;
+		}
+	}
+
+	function toggle_fullscreen() {
+		document.fullscreenEnabled =
+			document.fullscreenEnabled ||
+			document.mozFullScreenEnabled ||
+			document.documentElement.webkitRequestFullScreen;
+		var doc = window.document;
+		var el = doc.documentElement;
+
+		if (document.fullscreenEnabled) {
+			request_fullscreen(document.documentElement);
 		} else {
-			document.exitFullscreen();
+			exit_fullscreen(document.documentElement);
 		}
 	}
 
@@ -788,7 +811,7 @@
 
 		window.addEventListener('touchstart', (event) => {
 			if ($('manual').classList.contains('hidden')) {
-		    	touchEvent = new TouchEvent(event);
+				touchEvent = new TouchEvent(event);
 			}
 		});
 
