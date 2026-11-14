@@ -135,7 +135,7 @@ The list under the timer shows the sessions like this. The icons stand in one co
    WRAP  ▶| 30:00 [23:30]
 ```
 
-A session with a length shows its name, a triangle and the length. A session that counts down to a time of day shows its name, a triangle with a bar, the time left until then, and that time in brackets.
+Only the next three sessions are listed; `…` under them means there are more. A session with a length shows its name, a triangle and the length. A session that counts down to a time of day shows its name, a triangle with a bar, the time left until then, and that time in brackets.
 
 ---
 
@@ -176,7 +176,7 @@ While a session is on, the menu's button reads **remote: waiting** until a remot
 
 ### The remote pad
 
-The remote pad's top bar shows the connection, the timer's code and a small QR code. Typing another code into the bar and pressing Enter switches the pad to that timer. Under the top bar, the remote pad shows the same line as the timer screen: the time since the session started on the left, and the time of day on the right. Below that it shows the time left, the session name and the queue. All of this sits in a frame, as a small picture of the timer screen. The pad keeps its own screen from going dark while it is open.
+The remote pad's top bar shows the connection, the timer's code and a small QR code. Typing another code into the bar and pressing Enter switches the pad to that timer. Under the top bar, the remote pad shows the same line as the timer screen: the time since the session started on the left, and the time of day on the right. Below that it shows the time left, the session name and the queue. All of this sits in a frame in the shape of a screen (4:3), as a small picture of the timer screen. The pad keeps its own screen from going dark while it is open.
 
 Its buttons reset, start or pause (one button, which changes between the two), ring the bell, load the next or the previous session, and add or take away time.
 

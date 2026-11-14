@@ -80,3 +80,16 @@ export function queueRow(entry, className) {
 export const tickQueueRows = root => root.querySelectorAll('.q-left').forEach(el => {
   const t = fmt(secsUntil(el.dataset.at)); if (el.textContent !== t) el.textContent = t;
 });
+
+// The list shows the next three sessions; an ellipsis stands for any more.
+// (The whole queue is still in the queue window and the remote's queue box.)
+export const QUEUE_SHOWN = 3;
+export function queueRows(queue, rowClass, moreClass) {
+  const rows = queue.slice(0, QUEUE_SHOWN).map(e => queueRow(e, rowClass));
+  if (queue.length > QUEUE_SHOWN) {
+    const more = el(moreClass, '\u2026');
+    more.title = `${queue.length - QUEUE_SHOWN} more`;
+    rows.push(more);
+  }
+  return rows;
+}

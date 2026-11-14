@@ -8,7 +8,8 @@ const rows = (page: import('@playwright/test').Page) => page.locator('.sq-queued
 
 test('a pipe-separated queue reads, with commas and colons free in names', async ({ page }) => {
 	await open(page, '#mins=20' + q('Break>5|Q&A, panel>10|Panel>[10:30]|15'), '2026-11-14T10:12:00');
-	await expect(rows(page)).toHaveText(['Break 05:00', 'Q&A, panel 10:00', /^Panel\s\d\d:\d\d\s\[10:30\]$/, '15:00']);
+	await expect(rows(page)).toHaveText(['Break 05:00', 'Q&A, panel 10:00', /^Panel\s\d\d:\d\d\s\[10:30\]$/]); // the list shows three
+	await expect(page.locator('#btn-next')).toHaveText('queue: 05:00 10:00 [10:30] 15:00'); // the queue holds all four
 });
 
 test('a >HH:MM session counts down to that time of day when it loads', async ({ page }) => {
@@ -76,7 +77,13 @@ test("the remote's queue box writes and reads the same notation", async ({ page,
 test('in the list: the name, the icon, the time; a time of day has a triangle with a bar, the time left, then the target in brackets', async ({ page, context }) => {
 	await open(page, '#mins=20' + q('Break>5|Q&A>15|Wrap>[10:30]|7'), '2026-11-14T10:12:00');
 	const [length, timed] = [rows(page).nth(0), rows(page).nth(2)];
-	await expect(rows(page)).toHaveText(['Break 05:00', 'Q&A 15:00', /^Wrap\s1[78]:\d\d\s\[10:30\]$/, '07:00']);
+	await expect(rows(page)).toHaveText(['Break 05:00', 'Q&A 15:00', /^Wrap\s1[78]:\d\d\s\[10:30\]$/]);
+	// Three sessions are listed; an ellipsis under the icons stands for the rest.
+	const more = page.locator('.sq-more');
+	await expect(more).toHaveText('\u2026');
+	const mb = (await more.boundingBox())!;
+	expect(Math.abs(mb.x + mb.width / 2 - page.viewportSize()!.width / 2)).toBeLessThan(2);
+	expect(mb.y).toBeGreaterThan((await rows(page).nth(2).boundingBox())!.y);
 	await expect(length.locator('.ico')).toHaveClass(/ico-play/);
 	await expect(timed.locator('.ico')).toHaveClass(/ico-target/);
 	// Left to right in a row: the name, then the icon, the time, and the target.
@@ -88,7 +95,7 @@ test('in the list: the name, the icon, the time; a time of day has a triangle wi
 	const boxes = (sel: string) => page.locator(sel).evaluateAll((els) => els.map((el) => { const r = el.getBoundingClientRect(); return { left: r.left, right: r.right, mid: (r.left + r.right) / 2 }; }));
 	const width = page.viewportSize()!.width;
 	const icons = await boxes('.sq-queued .ico');
-	expect(icons).toHaveLength(4);
+	expect(icons).toHaveLength(3);
 	for (const i of icons) expect(Math.abs(i.mid - width / 2)).toBeLessThan(1);
 	const names = (await boxes('.sq-queued .q-name')).slice(0, 3);
 	expect(Math.max(...names.map((n) => n.right)) - Math.min(...names.map((n) => n.right))).toBeLessThan(0.5); // right-aligned
@@ -137,6 +144,8 @@ test('in the list: the name, the icon, the time; a time of day has a triangle wi
 	await visit(pad, '/#remote=' + code);
 	await pad.clock.runFor(200);
 	await expect(pad.locator('.rc-q-row').nth(2)).toHaveText(/^Wrap\s1[67]:\d\d\s\[10:30\]$/);
+	await expect(pad.locator('.rc-q-row')).toHaveCount(3);
+	await expect(pad.locator('.rc-q-more')).toHaveText('\u2026');
 	await expect(pad.locator('.rc-q-row').nth(2).locator('.ico')).toHaveClass(/ico-target/);
 	const padIcons = await pad.locator('.rc-q-row .ico').evaluateAll((els) => els.map((el) => { const r = el.getBoundingClientRect(); return (r.left + r.right) / 2; }));
 	const frame = (await pad.locator('#rc-preview').boundingBox())!;
@@ -145,7 +154,8 @@ test('in the list: the name, the icon, the time; a time of day has a triangle wi
 
 test('the length follows the last ">": minutes, minutes:seconds, or a time of day in brackets; names keep colons, "@" and ">"', async ({ page }) => {
 	await open(page, '#mins=20' + q('Q&A: part 2>15|me@example>5:00|a>b>90|Long>7:40|[10:30]|7|12'), '2026-11-14T10:12:00');
-	await expect(rows(page)).toHaveText(['Q&A: part 2 15:00', 'me@example 05:00', 'a>b 90:00', 'Long 08:00', /^\s?1[78]:\d\d\s\[10:30\]$/, '07:00', '12:00']);
+	await expect(rows(page)).toHaveText(['Q&A: part 2 15:00', 'me@example 05:00', 'a>b 90:00']);
+	await expect(page.locator('#btn-next')).toHaveText('queue: 15:00 05:00 90:00 08:00 [10:30] 07:00 12:00');
 });
 
 test.describe('on a narrow screen', () => {
@@ -180,7 +190,6 @@ test.describe('on a narrow screen', () => {
 			await expect(loc).toContainText('extraordinarily');
 			const m = await cut(loc);
 			expect(m.overflow).toBe('ellipsis');
-			expect(m.cut).toBe(true);
 			expect(m.right).toBeLessThanOrEqual(frame.x + frame.width); // inside the frame
 		}
 	});

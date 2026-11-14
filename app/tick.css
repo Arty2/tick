@@ -243,11 +243,13 @@ body.kiosk #swipe-hint{display:none}
 }
 #sq-queue-block{width:calc(100vw - 4rem);margin:0 auto}
 :is(.sq-queued,.rc-q-row){display:grid;grid-template-columns:subgrid;grid-column:1 / -1;align-items:baseline}
-:is(.sq-next-header,.rc-q-head){grid-column:1 / -1;justify-self:center}
+:is(.sq-next-header,.rc-q-head,.sq-more,.rc-q-more){grid-column:1 / -1;justify-self:center}
+/* "…": more sessions than the three listed. */
+.rc-q-more{color:var(--c-next);line-height:1}
 :is(.sq-queued,.rc-q-row) > .ico{justify-self:center;margin:0 0.5em}
 .q-name{justify-self:end;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .q-rest{justify-self:start;white-space:nowrap}
-#sq-queue-block :is(.q-name,.q-rest,.ico,.sq-next-header){pointer-events:auto}
+#sq-queue-block :is(.q-name,.q-rest,.ico,.sq-next-header,.sq-more){pointer-events:auto}
 .sq-item{
   font-size:var(--list-fs);letter-spacing:0.12em;color:var(--c-next);
   text-transform:uppercase;white-space:nowrap;opacity:0.8;transition:opacity 0.15s;
@@ -483,11 +485,22 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
 /* The kiosk as the pad sees it, in a frame of the ink colour: a picture of
    the screen being controlled. */
 #rc-preview{
-  flex:1 0 auto;align-self:stretch;display:flex;flex-direction:column;align-items:center;gap:0.5rem;
-  border:1px solid var(--fg);padding:0.5rem 0.7rem 0.7rem;min-width:0;
-  /* Wider than the buttons: half their distance from the screen's edge. */
-  margin:0 -0.75rem;
+  flex:0 0 auto;align-self:center;display:flex;flex-direction:column;align-items:center;gap:0.4rem;
+  border:1px solid var(--fg);padding:0.5rem 0.7rem 0.6rem;min-width:0;overflow:hidden;
+  /* A screen's shape, 4:3. Wider than the buttons — half their distance from
+     the screen's edge — but never wider than they grow, nor taller than
+     most of a short screen. */
+  aspect-ratio:4 / 3;box-sizing:border-box;margin:0 -0.75rem;
+  width:min(calc(100% + 1.5rem), calc(640px + 1.5rem), calc(70vh * 4 / 3));
+  /* What is inside is sized from the frame's own height (cqh), so the time,
+     the name and three queue rows always fit the picture. */
+  container-type:size;--rc-list-fs:clamp(10px,5cqh,22px);
 }
+#rc-preview #remote-state-display{font-size:clamp(36px,30cqh,240px)}
+/* As on the kiosk, the time gives way while a message shows. */
+#rc-preview:has(#rc-msg-preview:not([hidden])) #remote-state-display{font-size:clamp(30px,22cqh,180px)}
+#rc-preview #top-bar.in-pad :is(#session-timer,#wall-clock){font-size:clamp(10px,4.4cqh,16px)}
+#rc-preview #rc-msg-preview{font-size:clamp(11px,5cqh,20px)}
 #rc-preview > *{max-width:100%}
 /* The message on the kiosk, as it shows there: the orange band above the time. */
 #rc-msg-preview{
@@ -522,7 +535,7 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
   font-variant-numeric:tabular-nums;color:var(--c-idle);transition:color 0.25s;
   line-height:1;
 }
-#rc-time{flex:1 0 auto;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.5rem}
+#rc-time{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.5rem}
 /* While the kiosk is lost the pad's time is its own copy: dotted underline. */
 #remote-state-display.local{text-decoration:underline dotted;text-decoration-thickness:0.04em;text-underline-offset:0.12em}
 #remote-label-display{

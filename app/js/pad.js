@@ -3,7 +3,7 @@
 // Loaded by main.js instead of timer.js.
 import { $, pad, fmt, nextUntilMs, codeParam, remoteUrl, kioskUrl, go, copyText, haptic,
   openModal, closeModal, wireBtn, backdropClose, CODE_RE } from './util.js';
-import { parseQueue, queueStr, queueRow } from './queue.js';
+import { parseQueue, queueStr, queueRows } from './queue.js';
 import { clientLink, LOST_MS } from './transport.js';
 import { qrSvg } from './qr.js';
 
@@ -49,9 +49,7 @@ function rcApplyState(snap) {
   if (Array.isArray(snap.nextQueue) && snap.nextQueue.length) {
     const head = document.createElement('div'); head.className = 'rc-q-head'; head.textContent = 'Next';
     qd.append(head);
-    for (const e of snap.nextQueue) {
-      qd.append(queueRow(e, 'rc-q-row'));
-    }
+    qd.append(...queueRows(snap.nextQueue, 'rc-q-row', 'rc-q-more'));
   }
   // The queue box: written in the same form the box reads (and a share
   // link uses), unless it is being edited.
