@@ -1,4 +1,4 @@
-import { test, expect, open } from './fixtures';
+import { test, expect, open, menu } from './fixtures';
 
 // The counter is sized by both width and height, so it should never leave
 // the screen: not on a portrait phone, not on a short landscape one, and not
@@ -69,4 +69,67 @@ test('the manual opens with the links and the credit', async ({ page }) => {
 	await expect(links.nth(1)).toHaveAttribute('href', 'https://github.com/Arty2/tick');
 	await expect(page.locator('#manual .manual-credit')).toHaveText('Dialectic Acheiropoieton of Heracles Papatheodorou and Claude');
 	await expect(page.locator('#manual .manual-credit')).toBeInViewport();
+});
+
+test.describe('on a phone', () => {
+	test.use({ viewport: { width: 390, height: 700 }, hasTouch: true });
+
+	test('a menu row too long for the screen scrolls, from its first button to its last', async ({ page }) => {
+		await open(page, '?next=Talk:10');
+		await page.keyboard.press('u');
+		await page.locator('#until-hour').press('Enter'); // "target: ▶ 10:30" makes the row long
+		await menu(page);
+		const row = page.locator('.tb-group', { has: page.locator('#btn-reset') });
+		const edges = () =>
+			row.evaluate((g) => {
+				const shown = [...g.children].filter((c) => (c as HTMLElement).offsetParent);
+				const box = g.getBoundingClientRect();
+				return { overflow: g.scrollWidth > g.clientWidth, first: shown[0].getBoundingClientRect().left - box.left, last: box.right - shown.at(-1)!.getBoundingClientRect().right };
+			});
+		const start = await edges();
+		expect(start.overflow).toBe(true);
+		expect(start.first).toBeGreaterThanOrEqual(0); // nothing hidden off the left
+		await row.evaluate((g) => (g.scrollLeft = g.scrollWidth));
+		expect((await edges()).last).toBeGreaterThanOrEqual(0); // and the end is reachable
+	});
+
+	test('a short menu row still sits on the right', async ({ page }) => {
+		await open(page);
+		await menu(page);
+		const gap = await page.locator('.tb-group', { has: page.locator('#btn-theme') }).evaluate((g) => {
+			const box = g.getBoundingClientRect();
+			return box.right - g.lastElementChild!.getBoundingClientRect().right;
+		});
+		expect(gap).toBeLessThan(20);
+	});
+
+	test('the open menu covers the ? button', async ({ page }) => {
+		await open(page);
+		await menu(page);
+		const box = (await page.locator('#btn-tick').boundingBox())!;
+		const top = await page.evaluate(([x, y]) => document.elementFromPoint(x, y)!.closest('#toolbar, #btn-tick')?.id, [box.x + box.width / 2, box.y + box.height / 2]);
+		expect(top).toBe('toolbar');
+	});
+
+	test("the manual's title bar holds only the title; name and version are below", async ({ page }) => {
+		await open(page);
+		await page.keyboard.press('Home');
+		await expect(page.locator('#manual-h1-fixed h1')).toHaveText('Manual');
+		await expect(page.locator('#manual .manual-app')).toContainText('/tick v');
+		const title = (await page.locator('#manual-h1-fixed h1').boundingBox())!;
+		const text = await page.locator('#manual-h1-fixed h1').evaluate((h) => {
+			const r = document.createRange();
+			r.selectNodeContents(h);
+			return r.getBoundingClientRect().right;
+		});
+		const close = (await page.locator('#manual-close').boundingBox())!;
+		expect(text).toBeLessThan(close.x);
+		void title;
+	});
+});
+
+test('the target-time preview shows only the time left', async ({ page }) => {
+	await open(page, '', '2026-11-14T10:12:00');
+	await page.keyboard.press('u');
+	await expect(page.locator('#until-preview')).toHaveText('18:00');
 });
