@@ -267,6 +267,9 @@ test('the pad reads top to bottom: status and kiosk icon, time, queue, controls,
 	const [status, icon] = [await top('#remote-status-bar'), await top('#rc-new-kiosk')];
 	expect(Math.abs(status.y + status.height / 2 - (icon.y + icon.height / 2))).toBeLessThan(4); // same line
 	expect(icon.width).toBeLessThan(60); // a small icon, not a big button
+	const code = await top('#rc-code-input');
+	expect(Math.abs(code.height - icon.height)).toBeLessThan(0.5); // the code box and the kiosk button match
+	expect(Math.abs(code.y - icon.y)).toBeLessThan(0.5);
 	const [input, set, prev, next, bell, reset] = [await top('#rc-queue-input'), await top('#rc-queue-send'), await top('#rc-prev'), await top('#rc-next'), await top('[data-rc="bell"]'), await top('[data-rc="reset"]')];
 	expect(Math.abs(set.y + set.height / 2 - (input.y + input.height / 2))).toBeLessThan(4); // set on the queue's line
 	expect(set.x).toBeGreaterThan(input.x); // to its right

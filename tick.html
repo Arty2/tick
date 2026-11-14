@@ -404,9 +404,11 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
 }
 .rc-top-right{display:flex;align-items:center;gap:0.5rem}
 .rc-code{
-  width:calc(6ch + 0.8em);background:rgba(128,128,128,0.1);border:1px solid var(--dim);color:var(--fg);
+  /* The kiosk button's height, so the two read as one pair in the bar. */
+  height:2.4rem;box-sizing:border-box;width:calc(6ch + 0.8em + 0.8rem + 2px);
+  background:rgba(128,128,128,0.1);border:1px solid var(--dim);color:var(--fg);
   font-family:var(--font);font-size:clamp(15px,4vw,18px);letter-spacing:0.12em;text-transform:uppercase;
-  padding:0.35rem 0.4rem;outline:none;text-align:center;box-sizing:content-box;
+  padding:0 0.4rem;outline:none;text-align:center;
   user-select:text;-webkit-user-select:text;
 }
 .rc-code:focus{border-color:var(--fg)}
