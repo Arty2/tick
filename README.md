@@ -1,106 +1,216 @@
 # /tick
 
-*Tick* is shortcut-first countdown timer for your streams (e.g. [OBS browser source](https://obsproject.com/kb/browser-source)), webinars (e.g. [Zoom’s screen share](https://support.zoom.us/hc/en-us/articles/201362153-Sharing-your-screen-or-desktop-on-Zoom)), or any reverse time-keeping needs.
+A single-file countdown timer for presentations, streams, and stage use.
 
-- [Live Demo](https://raw.githack.com/Arty2/tick/master/tick.html)
-- [Project website](https://heracl.es/tick)
-- Current version: `1.8` (2023-03-24)
+No install. No build step. No server. Open `tick.html` and go.
 
-![Screenshot of /tick’s counting down at 59 seconds](./screenshots/ticker-screenshot_01.png)
+![/tick counting down a 25-minute keynote, with a break and Q&A queued next](./screenshots/ticker-screenshot_01.png)
 
+---
 
-## How to use
+## Quick start
 
-This is a single HTML file with no depedencies other than requiring JavaScript to be enabled, so if you wish to use this tool offline, then simply save it (Windows: <kbd>Ctrl</kbd> + <kbd>S</kbd>, MacOS: <kbd>Command</kbd> + <kbd>S</kbd>) to your device, and open it with your browser (Firefox, Chrome etc).
+Download `tick.html` and open it in any browser. That's it.
 
-Always be cautious of scripts you find available online: open them in a text editor and inspect what they do.
+Or serve it from anywhere — it's one file with no external dependencies at load time.
 
+---
 
-## Options
+## What it does
 
-The toolbar provides access to the manual for quick reference to mouse and keyboard shortcuts, and quick access to important toggles (sound, theme, fullscreen), timer reset, and three presets (5, 10, 25 minutes). It first appears at the bottom-right and hides itself after a few moments. Tap or hover your mouse over this area to reveal it. You may not add or subtract from the timer when paused.
+- Counts down from any duration (1–999 min)
+- Turns red and counts up in overtime — auto-advances to the next session if one is queued
+- Named session queue: label each slot, drag to reorder, loads automatically in sequence
+- Countdown to a wall-clock time (defaults to the next :00 or :30)
+- Clock/watch mode: shows current time while the timer runs in the background
+- Remote control pad: open on any device, control the timer from across the room
+- Two configurable warning thresholds with flash sync
+- Bell synthesis (no samples) — end-of-session or once per overtime minute
+- Five configurable presets
+- Kiosk mode: hides all chrome, enters fullscreen, enables WakeLock on desktop
+- Share URLs that restore exact timer state
+- Dark and light themes
 
-### Touch controls
+![The same timer in the light theme](./screenshots/ticker-screenshot_02.png)
+- Works offline, installable as a PWA
 
-- *Tap* once on the timer or label to start, if not already started. *Tap* again to pause or un-pause.
-- *Tap* once to reset and stop the timer, if overtime.
-- *Double Tap* anywhere to go into fullscreen.
-- *Swipe up* 👆 to add 10 minutes to the timer.
-- *Swipe down* 👇 to subtract 5 minutes from the timer.
-- *Swipe left* 👈 to add 1 minute.
-- *Swipe right* 👉 to subtract 1 minute.
+---
 
-### Mouse controls
+## Layout
 
-- *Click* once on the timer or label to start, if not already started. *Click* again to pause or un-pause.
-- *Click* once to reset and stop the timer, if overtime.
-- *Double Click* anywhere to go into fullscreen.
-- *Scroll up* to add 1 minute.
-- *Scroll down* to subtract 1 minute.
+```
+┌─────────────────────────────────────────────────────┐
+│  00:00 (session elapsed)       HH:MM:SS (clock)     │
+│                                                     │
+│              STATUS / HINT                          │
+│              25:00                                  │
+│              Session Title                          │
+│              NEXT                                   │
+│              ▶ 10:00  Talk                          │
+│                                                     │
+│  [?]                                          [⋮]  │
+└─────────────────────────────────────────────────────┘
+```
 
-### Keyboard shortcuts
+- **`?`** bottom-left — opens the manual
+- **`⋮`** bottom-right — opens the toolbar menu
+- Top-bar always visible: session elapsed time (left), wall clock with seconds (right)
 
-- <kbd>Enter</kbd> to start at 10 minutes. Will subsequently restart the timer.
-- <kbd>Space</kbd> to start at 10 minutes, or pause if started, or restart at 10 minutes if into overtime.
-- *Up arrow* <kbd>↑</kbd> to add 10 minutes to the timer.
-- *Down arrow* <kbd>↓</kbd> to subtract 5 minutes from the timer.
-- *Left arrow* <kbd>←</kbd> to add 1 minute.
-- *Right arrow* <kbd>→</kbd> to subtract 1 minute.
-- <kbd>Page Up</kbd> to go into fullscreen mode. <kbd>Page Up</kbd> or <kbd>Esc</kbd> to exit fullscreen. 
-- <kbd>Page Down</kbd> to toggle the theme between dark (default) and light.
-- <kbd>End</kbd> to reset and stop the timer.
-- <kbd>Insert</kbd> to toggle sound mode: automatically play a bell sound when the timer goes into overtime. Off by default.
-- <kbd>`</kbd> to play a bell sound on demand.
-- <kbd>Delete</kbd> or <kbd>Backspace</kbd> to delete the current label and replace with text input. The label is dimmed when in edit more. <kbd>Enter</kbd> or <kbd>Esc</kbd> to confirm and exit edit mode.
-- <kbd>Home</kbd> to display the manual. <kbd>Home</kbd> or <kbd>Esc</kbd> when the manual is open to hide it.
+---
 
-### URL parameters
+## Controls
 
-Define a custom default timer, by specifying the `mins` [URL parameter](https://developer.mozilla.org/en-US/docs/Learn/Common_questions/What_is_a_URL#parameters). For example, `…/tick.html?mins=25` will make the timer start at 25 minutes ([pomodoro](https://en.wikipedia.org/wiki/Pomodoro_Technique)).
+### Mouse / touch
 
+| Action | Effect |
+|---|---|
+| Click / tap | Start → pause → unpause |
+| Tap in overtime | Advance to next session, or reset |
+| Double-click / double-tap | Toggle kiosk mode |
+| Scroll (while running) | ±1 min |
+| Swipe up / down / left / right | +10 / −5 / +1 / −1 min |
 
-## Future improvements (maybe)
+### Keyboard
 
-- [x] [Screen Wake](https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API) on fullscreen mode.
-- [ ] Simple webworker and Manifest to allow saving as an app on mobile devices.
-- [ ] Add an [inline](https://dev.to/ezzabuzaid/using-inline-web-workers-to-improve-ui-performance-540n) [Web Worker timer](https://hackwild.com/article/web-worker-timers/) to increase accuracy.
-- [x] No option to add or remove minutes in touch devices.
-	+ [x] a) Add [simple gestures](https://stackoverflow.com/a/62825217) left/right and up/down.
-	+ [ ] b) Add ◀ buttons ▶ on either side of the timer, only on hover.
-- [x] Split minutes over 60 into hours.
-- [ ] URL Get params `URLSearchParams(window.location.search)`
-	+ [x] a) to define initial timer (defaults at 10 minutes)
-	+ [ ] b) modify theme colors.
-	+ [ ] c) text label
-- [ ] Sound option (three-state toggle) to ring bell every minute, if overtime.
-- [ ] Display (bottom left) an overall timer that doesn’t reset.
-- [ ] Code comments.
-- [ ] Long-click or long-press to play bell sound on demand.
-- [ ] Key buffer (numerals only) to modify timer minutes directly.
-- [ ] Keep seconds intact when adding or subtracting minutes from or into overtime. Keeps the visual flow undisturbed.
-- [ ] Control panel or sync to other windows with `BroadcastChannel` (such as [Speech Countdown Timer](https://obsproject.com/forum/resources/speech-countdown-timer.1179/))
-- [ ] Local storage to remember theme and sound options.
-- [ ] Implement theming settings compatible with [/valgrind](https://heracl.es/valgrind).
-- [ ] Considering [hundredrabbits / Themes](https://github.com/hundredrabbits/Themes) simple theme framework; convert current themes.
+| Key | Action |
+|---|---|
+| `Enter` | Start / restart |
+| `Space` | Start / pause |
+| `0–9` | Type minutes, confirm with Enter |
+| `Ctrl+Enter` | Skip to next queued session immediately |
+| `↑ ↓ ← →` | +10 / −5 / +1 / −1 min |
+| `Ctrl+↑ / ↓` | Load previous / next preset |
+| `N` | Open queue modal |
+| `U` | Open target (countdown-to-clock) modal |
+| `W` | Open warning thresholds |
+| `Del` / `Backspace` | Edit session label |
+| `` ` `` | Ring bell on demand |
+| `Insert` | Cycle sound mode |
+| `Page Up` | Toggle kiosk |
+| `Page Down` | Toggle theme |
+| `End` | Reset |
+| `Home` | Toggle manual |
+| `Tab` | Open toolbar menu |
+| `Escape` | Close menu → close modal → exit mode |
 
+---
 
-## Point of view
+## Session queue
 
-Single page; no external assets; no build systems; functional vanilla JavaScript.
-Pull requests welcome if they don’t deviate from these principles or alter coding style.
+Open with **N** or click any queue row below the timer.
 
+- **Current session** — sets the label shown below the timer
+- **Up next** — a list of named slots (label + minutes); drag to reorder
+- When a timer ends, the next slot loads automatically and starts running
+- `Ctrl+Enter` skips immediately with a ping
+- The label and queue are saved to localStorage
 
-## Etymology
+---
 
-A tick is an atomic unit used to define system time in computing. It is also a hematophagous parasitic insect that affects humans and other animals.
+## Target mode
 
-## Credits
+Click **target** in the toolbar (or press **U**). Enter a wall-clock time (24h). The timer counts down to that moment. Defaults to the next :00 or :30.
 
-- Code based on [njallam / stream-pomodoro](https://github.com/njallam/stream-pomodoro).
-- Bell sounds via [oshreiss / Working-with-the-Web-Audio-API](https://github.com/joshreiss/Working-with-the-Web-Audio-API/).
-- Touch gestures based on code from [StackOverflow @Rob](https://stackoverflow.com/a/69617795).
-- The font used in the screenshots above is [Lekton](https://fonts.google.com/specimen/Lekton) designed at ISIA Urbino, Italy. Specifically the [Lekton Greek](https://www.roleplay.gr/blog/greekifying-lekton-font) version designed by Manon Photopoulos, autohinted by the author.
+---
 
-* * *
+## Presets
 
-© 2022 [Heracles Papatheodorou](https://heracl.es) a.k.a [@Arty2](https://www.twitter.com/Arty2), MIT Licence
+Five slots in the toolbar. Click to load. Long-press (or right-click) to edit label and duration. Cycle with `Ctrl+↑/↓`.
+
+---
+
+## Remote control
+
+Click **remote** in the toolbar.
+
+A 6-character code and QR code appear. Share the URL or scan the QR on any device to open the remote pad.
+
+The remote pad mirrors the live timer state and provides: start, pause, reset, bell, skip next, ±1/5 min, and a queue editor. Buttons vibrate on mobile.
+
+**Operator message:** type in the host's message field and press Enter. The text flashes on the presenter's screen for 6 seconds.
+
+**Transport note:** same-browser tabs connect instantly via BroadcastChannel. Cross-device requires internet access — the connection is brokered by [peerjs.com](https://peerjs.com) using WebRTC. This may not work on restrictive networks.
+
+---
+
+## URL parameters
+
+All parameters are optional and override saved preferences without overwriting them.
+
+| Param | Values | Effect |
+|---|---|---|
+| `mins` | `1–999` | Starting duration in minutes |
+| `label` | text | Session label (URL-encoded) |
+| `next` | `Title:25,10` | Queue — `Label:mins` or plain `mins`, comma-separated |
+| `theme` | `dark` \| `light` | Force theme |
+| `sound` | `0` \| `1` \| `2` | Off / end-bell / per-minute bell |
+| `rc` | `XXXXXX` | Open as remote pad for this room code |
+
+Example:
+```
+tick.html?mins=25&label=Keynote&next=Break:5,QA:10&theme=dark&sound=1
+```
+
+---
+
+## Kiosk mode
+
+Double-click, double-tap, or press `Page Up`. On desktop, enters real fullscreen and enables WakeLock (screen stays on). On iOS the browser bar remains — this is a platform limitation.
+
+The top-bar stays visible in kiosk with session elapsed time and the current clock. All other chrome is hidden.
+
+Exit: double-click, double-tap, or `Escape`.
+
+---
+
+## Sound
+
+Three modes cycled with the **sound** button or `Insert`:
+
+- **Off**
+- **End bell** — one bell when the timer hits zero
+- **Per minute** — one bell each overtime minute
+
+Bells are synthesised from additive harmonics — no audio samples, works offline.
+
+Ring on demand with `` ` `` or long-press the sound button.
+
+---
+
+## Colours
+
+| Colour | Meaning |
+|---|---|
+| Grey | Idle |
+| White | Running |
+| Orange | Warning (flashes at second threshold) |
+| Amber | Paused |
+| Red | Overtime |
+| Green | Reset |
+| Purple | Next session loaded / queue |
+| Blue | Target (countdown to clock time) |
+| Teal | Clock / watch mode |
+
+---
+
+## Offline / PWA
+
+The app works from `file://` with no network. On HTTPS hosts, an inline service worker caches it for offline use. It can be installed as a PWA from the browser.
+
+---
+
+## Limitations
+
+- **iOS fullscreen**: not available in Safari; kiosk is CSS-only
+- **Remote cross-device**: requires internet and peerjs.com to be reachable
+- **QR code**: fetched from api.qrserver.com; falls back to plain text URL when offline
+
+---
+
+## Files
+
+| File | Purpose |
+|---|---|
+| `tick.html` | The entire app |
+| `README.md` | This file |
+| `PLAN.md` | Architecture, feature backlog, protocol reference |

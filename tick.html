@@ -1,840 +1,2042 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-	<title>/tick</title>
-	<style type="text/css">
-		:root {
-			--page-color: 0, 0, 0;
-			--text-color: 250, 250, 250;
-			--hyperlink-color: 255, 255, 0;
-			--accent-color: 255, 0, 0;
-			--text-color-inverted: 20, 20, 20;
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="/tick">
+<title>/tick</title>
+<link rel="manifest" href="data:application/json,{%22name%22:%22/tick%22,%22short_name%22:%22/tick%22,%22display%22:%22standalone%22,%22background_color%22:%22%230a0a0a%22,%22theme_color%22:%22%230a0a0a%22,%22start_url%22:%22.%22,%22icons%22:[{%22src%22:%22data:image/svg+xml,%253Csvg%20xmlns%3D'http%3A//www.w3.org/2000/svg'%20viewBox%3D'0%200%20512%20512'%253E%253Crect%20width%3D'512'%20height%3D'512'%20fill%3D'%230a0a0a'/%253E%253Ctext%20x%3D'50%25'%20y%3D'58%25'%20text-anchor%3D'middle'%20font-family%3D'monospace'%20font-size%3D'260'%20fill%3D'%23e8e8e8'%253E%25E2%2596%25B6%253C/text%253E%253C/svg%253E%22,%22sizes%22:%22512x512%22,%22type%22:%22image/svg+xml%22}]}">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
-			--line-height: 1.4em;  /* units used implicitely, but could be removed if multiplied with s00 later */
-			--gutter-height: 2rem;
-			--gutter-width: 2rem;
+:root{
+  --bg:#0a0a0a;--fg:#e8e8e8;--dim:#484848;--panel:rgba(14,14,14,0.98);
+  --c-idle:#484848;--c-run:#e8e8e8;--c-warn:#e06a10;--c-pause:#d48f00;
+  --c-ot:#d63030;--c-reset:#28924a;--c-next:#7a52c8;--c-until:#3a7fbf;--c-watch:#3a9a7a;
+  --btn-bg:rgba(10,10,10,0.82);
+  --font:ui-monospace,'Cascadia Code','SF Mono','Segoe UI Mono',Menlo,Consolas,monospace;
+}
+body.light{
+  --bg:#f2efe9;--fg:#111;--dim:#aaa;--panel:rgba(228,225,218,0.98);
+  --c-idle:#aaa;--c-run:#111;--c-warn:#c85800;--c-pause:#b87800;
+  --c-ot:#c02828;--c-reset:#1e7a3c;--c-next:#6040b0;--c-until:#2a6aaa;--c-watch:#1a7a5a;
+  --btn-bg:rgba(242,239,233,0.82);
+}
+html,body{
+  width:100%;height:100%;background:var(--bg);color:var(--fg);font-family:var(--font);
+  overflow:hidden;-webkit-tap-highlight-color:transparent;
+  touch-action:none;user-select:none;-webkit-user-select:none;
+}
+#app{width:100vw;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer}
 
-			--font: Input, Lekton, Consolas, monospace;
+#label-wrap{
+  font-size:clamp(16px,13vw,180px);font-weight:800;letter-spacing:0.06em;
+  text-transform:uppercase;color:var(--c-idle);
+  width:calc(100vw - 4rem);text-align:center;margin-bottom:0.5rem;min-height:1em;
+  transition:color 0.2s;white-space:normal;line-height:1.05;
+}
+:is(#label-wrap.s-idle,#label-wrap.s-run,#label-wrap.s-reset,#label-wrap.s-warn){
+  font-size:clamp(11px,1.8vw,17px);font-weight:500;letter-spacing:0.35em;
+}
+#label-wrap.editing{opacity:0.3}
+#label-text{
+  outline:none;background:transparent;border:none;color:inherit;font:inherit;
+  text-align:center;min-width:2em;caret-color:var(--fg);
+  user-select:text;-webkit-user-select:text;
+}
+#label-wrap.s-idle {color:var(--c-idle)} #label-wrap.s-run  {color:var(--c-idle)}
+#label-wrap.s-warn {color:var(--c-warn)} #label-wrap.s-warn2{color:var(--c-warn)}
+#label-wrap.s-pause{color:var(--c-pause)}#label-wrap.s-ot   {color:var(--c-ot)}
+#label-wrap.s-reset{color:var(--c-reset)}#label-wrap.s-next {color:var(--c-next)}
+#label-wrap.s-until{color:var(--c-until);font-size:clamp(14px,5vw,60px)}
+#label-wrap.s-watch{color:var(--c-watch);font-size:clamp(11px,1.8vw,17px);font-weight:500;letter-spacing:0.35em}
 
-			--sratio: 1.15;
-			--s00: 1em; /* always 1em = 1rem */
-			--s-3: calc(var(--s-2) / var(--sratio));
-			--s-2: calc(var(--s-1) / var(--sratio));
-			--s-1: calc(var(--s00) / var(--sratio));
-			--s01: calc(var(--s00) * var(--sratio));
-			--s02: calc(var(--s01) * var(--sratio));
-			--s03: calc(var(--s02) * var(--sratio));
-			--s04: calc(var(--s03) * var(--sratio));
+#label-sub{
+  display:block;font-size:clamp(11px,1.8vw,17px);font-weight:500;letter-spacing:0.35em;
+  color:inherit;margin-top:0.4em;opacity:0;transition:opacity 0.2s;
+}
+:is(#label-wrap.s-next,#label-wrap.s-until,#label-wrap.s-pause,#label-wrap.s-ot) #label-sub{opacity:1}
 
-			--page-color-transparency: 0.89;
-		}
+#session-label{
+  font-size:12px;font-weight:500;letter-spacing:0.12em;
+  text-transform:uppercase;text-align:center;margin-top:0.3em;
+  transition:color 0.2s;pointer-events:none;min-height:0;
+}
+#session-label:empty{display:none}
+#timer-display.s-idle  ~ #session-label{color:var(--c-idle)}
+#timer-display.s-run   ~ #session-label{color:var(--c-idle)}
+#timer-display.s-warn  ~ #session-label,
+#timer-display.s-warn2 ~ #session-label{color:var(--c-warn)}
+#timer-display.s-pause ~ #session-label{color:var(--c-pause)}
+#timer-display.s-ot    ~ #session-label{color:var(--c-ot)}
+#timer-display.s-next  ~ #session-label{color:var(--c-next)}
+#timer-display.s-until ~ #session-label{color:var(--c-until)}
+#timer-display.s-watch ~ #session-label{color:var(--c-watch)}
 
-		:root.theme-white {
-			--page-color: 255, 255, 255;
-			--text-color: 20, 20, 20;
-			--hyperlink-color: 255, 0, 255;
-			--accent-color: 255, 0, 0;
-		}
+#timer-display{
+  font-size:clamp(80px,19vw,240px);font-weight:900;letter-spacing:-0.04em;
+  line-height:1;color:var(--c-run);transition:color 0.3s;font-variant-numeric:tabular-nums;
+}
+#timer-display .colon{display:inline-block;position:relative;top:-0.07em;letter-spacing:0}
+/* Hour-mode: small top-aligned hours + full-size minutes:seconds */
+#timer-display .disp-h{
+  font-size:0.44em;display:inline-block;vertical-align:top;
+  line-height:1;margin-right:0.15em;letter-spacing:0;
+}
+#timer-display .disp-h-suf{font-size:0.72em;letter-spacing:0}
+#timer-display .disp-ms{display:inline-block;vertical-align:top;line-height:1}
+/* Watch-mode colon blink via class toggle instead of per-frame style writes */
+#timer-display.colon-off .colon{color:transparent}
+#timer-display.s-idle {color:var(--c-idle);opacity:0.65} #timer-display.s-warn {color:var(--c-warn)}
+#timer-display.s-pause{color:var(--c-pause);opacity:0.5} #timer-display.s-ot   {color:var(--c-ot)}
+#timer-display.s-reset{color:var(--c-reset)}             #timer-display.s-next {color:var(--c-next)}
+#timer-display.s-until{color:var(--c-until)}             #timer-display.s-watch{color:var(--c-watch)}
+#timer-display.s-warn2{color:var(--c-warn)}
 
-		:focus {
-			outline: 0;
-		}
+#key-buffer{
+  position:fixed;top:1.5rem;left:50%;transform:translateX(-50%);
+  font-size:clamp(16px,2.5vw,26px);letter-spacing:0.2em;color:var(--dim);
+  pointer-events:none;opacity:0;transition:opacity 0.2s;
+}
+#key-buffer.show{opacity:1}
 
-		html, * {
-			box-sizing: border-box;
-			font-family: var(--font);
-		}
+#top-bar{
+  position:fixed;top:0;left:0;right:0;height:3rem;z-index:150;
+  display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;pointer-events:none;
+}
+#session-timer{font-size:12px;letter-spacing:0.12em;color:var(--dim);text-transform:uppercase}
 
-		body {
-			height: 100%;
-			margin: 0;
+#status-hint{
+  position:fixed;top:3.2rem;left:1.5rem;font-size:clamp(22px,3.5vw,36px);font-weight:700;
+  letter-spacing:0.08em;color:var(--fg);text-transform:uppercase;
+  pointer-events:none;opacity:0;transition:opacity 0.25s;
+}
+#status-hint.show{opacity:1}
 
-			background-color: rgb(var(--page-color));
-			color: rgb(var(--text-color));
-			font-size: var(--s00);
-			text-align: center;
-			overflow: hidden;
-		}
+#swipe-hint{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  font-size:clamp(36px,7vw,70px);pointer-events:none;z-index:50;opacity:0;transition:opacity 0.15s;
+}
+#swipe-hint.show{opacity:0.88}
 
-		kbd {
-			display: inline-block;
-			padding: 0 0.5em;
-			line-height: 1.4;
+/* Corner buttons */
+.corner-btn{
+  position:fixed;bottom:1.5rem;z-index:200;
+  background:var(--btn-bg);border:1px solid var(--dim);color:var(--dim);
+  font-family:var(--font);line-height:1;width:2.2rem;height:2.2rem;
+  text-align:center;padding:0;cursor:pointer;
+  transition:color 0.12s,border-color 0.12s;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+  display:flex;align-items:center;justify-content:center;
+}
+.corner-btn:hover{color:var(--fg);border-color:var(--fg)}
+#btn-tick{left:1.5rem;font-size:14px}
+#btn-menu{right:1.5rem;font-size:18px}
 
-			border: 1.5px solid;
-			border-radius: 3px;
-		}
+/* Manual floating close — sits at ? position (bottom-left) when manual is open */
+#manual-close-float{
+  display:none;position:fixed;bottom:1.5rem;left:1.5rem;z-index:420;
+  background:var(--btn-bg);border:1px solid var(--dim);color:var(--dim);
+  font-family:var(--font);font-size:11px;letter-spacing:0.12em;
+  width:2.2rem;height:2.2rem;cursor:pointer;text-transform:uppercase;
+  -webkit-tap-highlight-color:transparent;
+  align-items:center;justify-content:center;
+}
+#manual-close-float:hover{color:var(--fg);border-color:var(--fg)}
+#manual.open ~ #manual-close-float{display:flex}
 
-		a {
-			color: rgb(--text-color);
-			text-decoration: underline;
-			transition: color 0.3s;
-			-webkit-tap-highlight-color: transparent;
-		}
+body.kiosk #btn-tick,body.kiosk #btn-menu,body.kiosk #manual-close-float{display:none}
 
-			a:link, a:visited {
-				color: inherit;
-			}
+/* Wall clock — always shown top-right */
+#wall-clock{
+  font-size:12px;letter-spacing:0.12em;color:var(--dim);text-transform:uppercase;
+  pointer-events:none;
+}
+body.kiosk #top-bar{pointer-events:none}
 
-			a:hover, a:focus {
-				color: rgba(var(--hyperlink-color));
-				transition: color 0s;
-			}
+/* Menu backdrop — closes menu on outside click */
+#menu-backdrop{
+  display:none;position:fixed;inset:0;z-index:99;
+}
+#menu-backdrop.open{display:block}
 
-			a:focus {
-				text-decoration: underline;
-			}
+#toolbar{
+  position:fixed;bottom:0;right:1.5rem;display:flex;flex-wrap:wrap;gap:0.4rem;
+  justify-content:flex-end;font-size:12px;letter-spacing:0.05em;
+  opacity:0;pointer-events:none;transition:opacity 0.35s;
+  z-index:100;max-width:calc(100vw - 3rem);touch-action:manipulation;
+  padding-bottom:1.5rem;
+}
+#toolbar.visible{opacity:1;pointer-events:auto}
 
-		hr {
-			border: none;
-			color: inherit;
-			border-top: 1px solid currentColor;
-		}
+.tb-group{
+  display:flex;flex-wrap:nowrap;gap:0.15rem;align-items:center;
+  background:var(--btn-bg);border:1px solid var(--dim);padding:0.35rem 0.45rem;
+}
+.tb-btn{
+  background:none;border:1px solid transparent;color:var(--fg);font-family:var(--font);
+  font-size:12px;letter-spacing:0.07em;padding:0.26rem 0.52rem;cursor:pointer;
+  white-space:nowrap;text-transform:uppercase;
+  transition:border-color 0.12s,background 0.12s,color 0.12s;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+}
+.tb-btn:hover{border-color:var(--dim);background:rgba(128,128,128,0.12)}
+.tb-btn:active{background:rgba(128,128,128,0.22)}
+.tb-btn.dim{color:var(--dim)} .tb-btn.dim:hover{color:var(--fg)}
+.tb-btn.sound-on{color:var(--c-ot);border-color:var(--c-ot)}
+.tb-btn.next-set{color:var(--c-next);border-color:var(--c-next)}
+.tb-btn.until-set{color:var(--c-until);border-color:var(--c-until)}
+.tb-btn.watch-on{color:var(--c-watch);border-color:var(--c-watch)}
+.tb-btn.preset-btn{color:var(--dim)} .tb-btn.preset-btn.filled{color:var(--fg)}
 
-		#progress-container {
-			width: 100vw;
-			position: fixed;
-			top: 0;
-			bottom: 0;
+/* Flash sync — JS class-toggled, locked to countdown second ticks */
+#timer-display.flash-dim  {opacity:0.75}
+#timer-display.flash-dim2 {opacity:0.5}
+#label-wrap.flash-off     {opacity:0}
 
-			pointer-events: none;
-		}
+/* Kiosk mode — hides toolbar/chrome, keeps top-bar with wall clock */
+body.kiosk #toolbar{display:none!important}
+body.kiosk #key-buffer{display:none}
+body.kiosk #status-hint{display:none}
+body.kiosk #swipe-hint{display:none}
 
-		#progress-bar {
-			width: 100%;
-			height: 100%;
-			background-color: none;
-			border: currentColor solid;
-			border-width: 10vh 0;
-			transform: scaleX(0);
-			transform-origin: 0 0;
-			transition: transform 0.3s ease-out, opacity 0.3s ease-out;
-		}
+/* Session queue — list of upcoming sessions below timer */
+#session-queue{
+  display:flex;flex-direction:column;align-items:center;gap:0.18rem;
+  margin-top:0.55rem;cursor:pointer;min-height:1em;
+}
+#sq-queue-block{
+  display:inline-flex;flex-direction:column;align-items:flex-start;gap:0.18rem;
+}
+.sq-item{
+  font-size:12px;letter-spacing:0.12em;color:var(--c-next);
+  text-transform:uppercase;white-space:nowrap;opacity:0.8;transition:opacity 0.15s;
+  font-variant-numeric:tabular-nums;
+}
+.sq-item:hover{opacity:1}
+.sq-empty{color:var(--dim);opacity:0.35;font-size:12px}
+.sq-next-header{color:var(--dim);opacity:0.5;font-size:12px;letter-spacing:0.12em;cursor:pointer}
+.sq-current-label{font-size:clamp(10px,1.3vw,13px);letter-spacing:0.24em;text-transform:uppercase;color:inherit;opacity:0.7;cursor:pointer;white-space:nowrap}
 
-		#ticker, #label, #tools {
-			-webkit-touch-callout: none;
-			-webkit-user-select: none;
-			user-select: none;
+/* Queue modal rows */
+#queue-list{display:flex;flex-direction:column;gap:0.3rem;max-height:240px;overflow-y:auto;padding:0.05rem 0}
+.qr-row{
+  display:flex;align-items:center;gap:0.35rem;padding:0.3rem 0.4rem;
+  border:1px solid transparent;background:rgba(128,128,128,0.06);
+  transition:border-color 0.1s;touch-action:none;
+}
+.qr-row.drag-over{border-color:var(--fg)!important}
+.qr-row.dragging{opacity:0.25}
+.qr-handle{color:var(--dim);cursor:grab;padding:0 0.15rem;user-select:none;font-size:14px;flex-shrink:0;line-height:1}
+.qr-label{flex:1;min-width:0}
+.qr-mins{width:46px!important;flex-shrink:0;text-align:center}
+.qr-del{background:none;border:none;color:var(--dim);cursor:pointer;font-size:16px;
+        padding:0 0.25rem;line-height:1;flex-shrink:0;font-family:var(--font);transition:color 0.1s}
+.qr-del:hover{color:var(--c-ot)}
+.qr-row .modal-input{font-size:13px;padding:0.35rem 0.5rem}
+#queue-add{margin-top:0.3rem;align-self:flex-start}
 
-			cursor: pointer;
-		}
+@media(max-width:600px){
+  #toolbar{right:0;bottom:0;left:0;max-width:100vw;flex-direction:column;align-items:stretch;gap:0;border-top:1px solid var(--dim);background:var(--panel);padding-bottom:0}
+  .tb-group{border:none;border-bottom:1px solid var(--dim);width:100%;justify-content:flex-end;flex-wrap:nowrap;padding:0.4rem 0.8rem;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .tb-group::-webkit-scrollbar{display:none}
+  .tb-group:last-child{border-bottom:none}
+  .tb-btn{flex-shrink:0}
+  .corner-btn{bottom:1rem}
+  #btn-tick,#manual-close-float{left:1rem}
+  #btn-menu{right:1rem}
+}
 
-		#ticker, #label  {
-			position: fixed;
-			top: 50%;
-			left: 50%;
-			width: 100%;
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:300;align-items:center;justify-content:center;touch-action:auto}
+.modal-overlay.open{display:flex}
+body.light .modal-overlay{background:rgba(0,0,0,0.42)}
 
-			text-align: center;
+.modal-box{
+  background:var(--panel);border:1px solid var(--dim);padding:1.8rem 2rem;
+  width:min(360px,calc(100vw - 3rem));display:flex;flex-direction:column;gap:1.1rem;position:relative;
+}
+.modal-title{font-size:11px;letter-spacing:0.3em;text-transform:uppercase;color:var(--dim)}
+.modal-preview{
+  font-size:clamp(36px,10vw,64px);font-weight:900;letter-spacing:-0.03em;
+  text-align:center;font-variant-numeric:tabular-nums;min-height:1em;transition:color 0.15s;
+}
+.modal-preview.next-col{color:var(--c-next)}
+.modal-preview.until-col{color:var(--c-until);font-size:clamp(28px,7vw,52px);letter-spacing:0.04em}
+.modal-preview.dim{color:var(--dim)}
 
-			-webkit-tap-highlight-color: transparent;
-		}
+.digit-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem}
+.digit-btn{
+  background:rgba(128,128,128,0.1);border:1px solid var(--dim);color:var(--fg);
+  font-family:var(--font);font-size:20px;font-weight:700;padding:0.7rem 0;
+  cursor:pointer;text-align:center;transition:background 0.1s;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+}
+.digit-btn:active{background:rgba(128,128,128,0.32)}
+.digit-btn.del-btn{font-size:16px;color:var(--dim)}
+.digit-btn.wide{grid-column:span 2}
 
-		#ticker {
-			transform: translate(-50%, calc(-50% - 3vw));
+.modal-input{
+  width:100%;background:rgba(128,128,128,0.1);border:1px solid var(--dim);
+  color:var(--fg);font-family:var(--font);font-size:15px;letter-spacing:0.05em;
+  padding:0.6rem 0.8rem;outline:none;transition:border-color 0.15s;
+  user-select:text;-webkit-user-select:text;
+}
+.modal-input:focus{border-color:var(--fg)}
+input[type=time].modal-input{font-size:20px;text-align:center;cursor:pointer}
+input[type=time].modal-input::-webkit-calendar-picker-indicator{filter:invert(0.7);cursor:pointer}
+.modal-row{display:flex;gap:1rem}
+.modal-row label{font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:var(--dim);display:block;margin-bottom:0.3rem}
+.modal-actions{display:flex;gap:0.5rem}
+.modal-btn{
+  flex:1;background:none;border:1px solid var(--dim);color:var(--fg);font-family:var(--font);
+  font-size:12px;letter-spacing:0.1em;padding:0.5rem;cursor:pointer;text-transform:uppercase;
+  transition:background 0.12s,border-color 0.12s,color 0.12s;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+}
+.modal-btn:hover{background:rgba(128,128,128,0.12)} .modal-btn:active{background:rgba(128,128,128,0.26)}
+.modal-btn.primary-next{color:var(--c-next);border-color:var(--c-next)}
+.modal-btn.primary-until{color:var(--c-until);border-color:var(--c-until)}
+.modal-btn.danger{color:var(--c-ot)}
+.modal-kb-trap{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px;top:50%;left:50%}
 
-			font-size: 30vw;
-			line-height: 23vw;
-		}
+#manual{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:400;overflow-y:auto;padding:0 1rem 5rem;cursor:default;touch-action:auto}
+body.light #manual{background:rgba(170,165,158,0.92)}
+#manual.open{display:block}
 
-		#hours {
-			position: absolute;
-			margin-left: -2ch;
+#manual-h1-fixed{
+  position:fixed;top:0;left:0;right:0;height:3rem;z-index:415;display:flex;align-items:center;
+  padding:0 1.5rem;pointer-events:none;border-bottom:1px solid var(--dim);background:rgba(0,0,0,0.82);
+}
+body.light #manual-h1-fixed{background:rgba(150,145,138,0.92)}
+#manual-h1-fixed h1{font-size:1.1em;letter-spacing:0.3em;text-transform:uppercase;color:var(--fg);margin:0}
 
-			font-size: 10vw;
-			line-height: 10vw;
-		}
+#manual-close{
+  position:fixed;top:0;right:1.5rem;height:3rem;display:flex;align-items:center;
+  background:none;border:none;border-left:1px solid var(--dim);padding:0 0.8rem;
+  color:var(--fg);font-family:var(--font);font-size:11px;letter-spacing:0.12em;
+  cursor:pointer;text-transform:uppercase;z-index:420;-webkit-tap-highlight-color:transparent;
+}
+#manual-close:hover{opacity:0.7}
 
-		#minutes::after {
-			content: '∶'; /* use ∶ ratio character for vertical centering */
-		}
+#manual-inner{max-width:620px;width:100%;margin:0 auto;padding-top:4rem;font-size:13px;line-height:1.78;user-select:text;-webkit-user-select:text}
+#manual-inner h2{font-size:0.78em;letter-spacing:0.28em;text-transform:uppercase;color:var(--fg);margin-top:1.6rem;margin-bottom:0.5rem;padding-bottom:0.3rem;border-bottom:1px solid rgba(255,255,255,0.2)}
+#manual-inner ul{padding-left:1.35rem;margin-bottom:0.5rem}
+#manual-inner li{margin-bottom:0.3rem}
+#manual-inner p{margin-bottom:0.5rem;color:var(--fg);font-size:0.9em}
+code{background:rgba(128,128,128,0.16);padding:0.08em 0.33em;font-family:var(--font);font-size:0.92em}
 
-		#label {
-			transform: translate(-50%, calc(-50% + 13vw));
+/* ── Remote control ── */
+#remote-modal .modal-box{width:min(400px,calc(100vw - 2rem))}
+#remote-code-display{
+  font-size:clamp(32px,9vw,56px);font-weight:900;letter-spacing:0.18em;
+  text-align:center;font-variant-numeric:tabular-nums;color:var(--c-next);
+  padding:0.4rem 0;
+}
+#remote-qr{display:flex;justify-content:center;margin:0.2rem 0}
+#remote-qr canvas,#remote-qr img{width:160px;height:160px}
+#remote-status{font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:var(--dim);text-align:center}
+#remote-status.connected{color:var(--c-watch)}
 
-			font-size: 10vw;
-			line-height: 10vw;
-		}
+/* Operator message overlay (host→presenter) */
+#op-msg-overlay{
+  display:none;position:fixed;inset:0;z-index:450;
+  align-items:center;justify-content:center;pointer-events:none;
+}
+#op-msg-overlay.show{display:flex}
+#op-msg-box{
+  background:rgba(0,0,0,0.85);border:2px solid var(--c-warn);
+  color:var(--c-warn);font-size:clamp(28px,6vw,72px);font-weight:900;
+  letter-spacing:0.08em;text-transform:uppercase;padding:0.6em 1.2em;
+  text-align:center;animation:op-flash 0.6s ease-in-out infinite alternate;
+  max-width:90vw;word-break:break-word;
+}
+@keyframes op-flash{from{opacity:1}to{opacity:0.55}}
+body.light #op-msg-box{background:rgba(255,255,255,0.9)}
 
-		#label:focus {
-			text-decoration: underline;
-		}
-
-			#label:focus-within:not(:hover) {
-				opacity: 0.1 !important;
-			}
-
-
-		.hidable {
-			opacity: 1;
-			transition: opacity 0.3s, top 0.15s, bottom 0.15s;
-		}
-
-		.hidable.hidden {
-			height: 0;
-			opacity: 0;
-			visibility: hidden;
-		}
-
-		.btn {
-			display: block;
-			width: auto;
-			height: var(--line-height);
-			margin: 0 0 0 auto;
-			padding: 0 0.3em;
-			
-			background-color: rgba(var(--page-color),var(--page-color-transparency));
-			border: none;
-			color: rgb(var(--text-color));
-			cursor: pointer;
-			font-size: var(--s02);
-			text-align: right;
-			text-transform: uppercase;
-			text-decoration: none;
-
-			transition: opacity 0s ease-in, height 0s ease-in;
-			transition-delay: 1s;
-		}
-
-		.btn:hover, .btn:focus {
-			color: rgb(var(--hyperlink-color));
-			text-decoration: underline;
-		}
-
-		#tools {
-					display: block;
-					position: fixed;
-					bottom: var(--gutter-height);
-					right: var(--gutter-width);
-					z-index: 1000;
-
-
-					animation: 3s ease 1s fadeout;
-					animation-fill-mode: forwards;
-				}
-
-				#tools:hover,
-				#tools:focus-within {
-					animation: none;
-				}
-
-				#tools:hover .btn.hidden,
-				#tools:focus-within .btn.hidden {
-					height: var(--line-height);
-					opacity: 1;
-					visibility: visible;
-					transition-delay: 0s;
-				}
-
-		#manual {
-			position: fixed;
-			top: 0;
-			bottom: 0;
-			width: 100%;
-			height: 100vh;
-			padding: calc(var(--gutter-height) + var(--line-height)) var(--gutter-width);
-
-			background: rgba(var(--page-color),var(--page-color-transparency));
-			color: rgb(var(--text-color));
-			overflow: auto;
-			text-align: left;
-		}
-
-			#manual.hidden {
-				bottom: -100vh;
-
-				pointer-events: none !important;
-				user-select: none !important;
-			}
-
-			#manual .btn {
-				display: block;
-				position: fixed;
-				top: var(--gutter-height);
-				right: var(--gutter-width);
-				height: var(--line-height);
-			}
-		h1 {
-			position: fixed;
-			top: 0;
-			left: 0;
-			width: 100%;
-			margin: 0;
-			padding: var(--gutter-height) var(--gutter-width) 0;
-
-			background: rgba(var(--page-color),var(--page-color-transparency));
-			font-size: var(--s02);
-		}
-
-		body.overtimed {
-			color: rgb(var(--accent-color));
-		}
-			body.overtimed #progress-bar {
-				opacity: 0;
-			}
-			body.overtimed #label {
-				animation: 3s ease infinite blink;
-				animation-fill-mode: forwards;
-			}
-
-		body.paused {
-			color: rgb(var(--hyperlink-color));
-		}
-			body.paused #label {
-				animation: 3s ease infinite blink;
-				animation-fill-mode: forwards;
-			}
-
-		@keyframes blink {
-			0%   { opacity: 0; }
-			50%  { opacity: 1; }
-			100% { opacity: 0; }
-		}
-
-		@keyframes fadeout {
-			0%   { opacity: 1; }
-			100% { opacity: 0; }
-		}
-	</style>
+/* Remote pad — shown when ?rc=CODE */
+#remote-pad{
+  display:none;position:fixed;inset:0;
+  background:var(--bg);z-index:500;flex-direction:column;
+  align-items:center;justify-content:center;gap:1.2rem;padding:1.5rem;
+}
+#remote-pad.open{display:flex}
+#remote-state-display{
+  font-size:clamp(48px,16vw,120px);font-weight:900;letter-spacing:-0.03em;
+  font-variant-numeric:tabular-nums;color:var(--c-idle);transition:color 0.25s;
+  line-height:1;
+}
+#remote-label-display{
+  font-size:clamp(11px,2.5vw,18px);letter-spacing:0.3em;text-transform:uppercase;
+  color:var(--dim);min-height:1.2em;text-align:center;
+}
+#remote-status-bar{
+  font-size:11px;letter-spacing:0.2em;text-transform:uppercase;
+  color:var(--dim);min-height:1.2em;
+}
+#remote-status-bar.conn{color:var(--c-watch)}
+#remote-status-bar.err {color:var(--c-ot)}
+.rc-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem;
+  width:100%;max-width:480px;
+}
+.rc-btn{
+  background:rgba(128,128,128,0.1);border:1px solid var(--dim);
+  color:var(--fg);font-family:var(--font);font-size:clamp(12px,2.5vw,16px);
+  letter-spacing:0.08em;padding:0.8rem 0.4rem;cursor:pointer;text-align:center;
+  text-transform:uppercase;transition:background 0.1s,border-color 0.1s,color 0.1s;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+}
+.rc-btn:hover {border-color:var(--fg);background:rgba(128,128,128,0.18)}
+.rc-btn:active{background:rgba(128,128,128,0.35)}
+.rc-btn.wide{grid-column:span 2}
+.rc-btn.full{grid-column:span 4}
+.rc-btn.hi-start{color:var(--c-run);border-color:var(--c-run)}
+.rc-btn.hi-pause{color:var(--c-pause);border-color:var(--c-pause)}
+.rc-btn.hi-reset{color:var(--c-reset);border-color:var(--c-reset)}
+.rc-btn.hi-ot   {color:var(--c-ot);border-color:var(--c-ot)}
+.rc-btn.hi-warn {color:var(--c-warn);border-color:var(--c-warn)}
+</style>
 </head>
 <body>
-<div id="tools">
-	<button class="btn hidable hidden" tabindex="8" onclick="ticker_reset();ticker_start(25);" title="25 minutes">25&nbsp;MIN</button>
-	<button class="btn hidable hidden" tabindex="7" onclick="ticker_reset();ticker_start(10);" title="10 minutes">10&nbsp;MIN</button>
-	<button class="btn hidable hidden" tabindex="6" onclick="ticker_reset();ticker_start(5);" title="5 minutes">5&nbsp;MIN</button>
-	<button class="btn hidable hidden" tabindex="5" onclick="ticker_reset();" title="reset">reset</button>
-	<button class="btn hidable hidden" tabindex="4" onclick="toggle_fullscreen();" title="fullscreen">fullscreen</button>
-	<button class="btn hidable hidden" tabindex="3" onclick="toggle_theme();" title="theme">theme</button>
-	<button class="btn hidable hidden" tabindex="2" onclick="toggle_sound();" title="sound">sound</button>
-	<button class="btn" tabindex="1" onclick="toggle_manual();" title="manual">info</button>
+
+<div id="app">
+  <div id="label-wrap" class="s-idle">
+    <span id="label-text" spellcheck="false"></span>
+    <span id="label-sub"></span>
+  </div>
+  <div id="timer-display" class="s-idle">10:00</div>
+  <div id="session-label"></div>
+  <div id="session-queue"></div>
 </div>
-<div id="progress-container">
-	<div id="progress-bar"></div>
+
+<div id="key-buffer"></div>
+<div id="swipe-hint"></div>
+<div id="top-bar">
+  <div id="session-timer">00:00</div>
+  <div id="wall-clock"></div>
 </div>
-<div id="ticker">
-	<span id="hours"></span><span id="minutes"></span><span id="seconds"></div>
+<div id="status-hint"></div>
+
+<div id="menu-backdrop"></div>
+<div id="toolbar">
+  <div class="tb-group" id="preset-buttons"></div>
+  <div class="tb-group">
+    <button class="tb-btn" id="btn-reset">reset</button>
+    <button class="tb-btn until-set" id="btn-until-active" style="display:none">target: &#x2014;</button>
+    <button class="tb-btn" id="btn-until-open">target</button>
+    <button class="tb-btn" id="btn-clock-watch">clock</button>
+    <button class="tb-btn" id="btn-next">&#9654; queue: &#x2014;</button>
+  </div>
+  <div class="tb-group">
+    <button class="tb-btn" id="btn-theme">theme</button>
+    <button class="tb-btn" id="btn-warn">warn</button>
+    <button class="tb-btn" id="btn-sound">sound: off</button>
+  </div>
+  <div class="tb-group">
+    <button class="tb-btn" id="btn-remote">remote</button>
+    <button class="tb-btn" id="btn-share">share</button>
+    <button class="tb-btn" id="btn-fullscreen">kiosk</button>
+  </div>
 </div>
-<div id="label" spellcheck="false"></div>
-<noscript>JavaScript is required for this app to work.</noscript>
-<div id="manual" class="hidable hidden">
-	<h1>/tick</h1>
-	<p><em>/tick</em> is shortcut-first countdown timer for your streams (e.g. <a href="https://obsproject.com/kb/browser-source" rel="nofollow">OBS browser source</a>), webinars (e.g. <a href="https://support.zoom.us/hc/en-us/articles/201362153-Sharing-your-screen-or-desktop-on-Zoom" rel="nofollow">Zoom’s screen share</a>), or any reverse time-keeping needs.</p>
-	<ul>
-	<li><a href="https://rawcdn.githack.com/Arty2/tick/master/tick.html" rel="nofollow">Live Demo</a></li>
-	<li><a href="https://heracl.es/tick" rel="nofollow">Project website</a></li>
-	<li>Current version: <code class="notranslate">1.8</code> (2023-03-24)</li>
-	</ul>
-	<h2>How to use</h2>
-	<p>This is a single HTML file with no depedencies other than requiring JavaScript to be enabled, so if you wish to use this tool offline, then simply save it (Windows: <kbd>Ctrl</kbd> + <kbd>S</kbd>, MacOS: <kbd>Command</kbd> + <kbd>S</kbd>) to your device, and open it with your browser (Firefox, Chrome etc).</p>
-	<p>Always be cautious of scripts you find available online: open them in a text editor and inspect what they do.</p>
-	<h2>Options</h2>
-	<p>The toolbar provides access to the manual for quick reference to mouse and keyboard shortcuts, and quick access to important toggles (sound, theme, fullscreen), timer reset, and three presets (5, 10, 25 minutes). It first appears at the bottom-right and hides itself after a few moments. Tap or hover your mouse over this area to reveal it. You may not add or subtract from the timer when paused.</p>
-	<h3>Touch controls</h3>
-	<ul>
-	<li><em>Tap</em> once on the timer or label to start, if not already started. <em>Tap</em> again to pause or un-pause.</li>
-	<li><em>Tap</em> once to reset and stop the timer, if overtime.</li>
-	<li><em>Double Tap</em> anywhere to go into fullscreen.</li>
-	<li><em>Swipe up</em> 👆 to add 10 minutes to the timer.</li>
-	<li><em>Swipe down</em> 👇 to subtract 5 minutes from the timer.</li>
-	<li><em>Swipe left</em> 👈 to add 1 minute.</li>
-	<li><em>Swipe right</em> 👉 to subtract 1 minute.</li>
-	</ul>
-	<h3>Mouse controls</h3>
-	<ul>
-	<li><em>Click</em> once on the timer or label to start, if not already started. <em>Click</em> again to pause or un-pause.</li>
-	<li><em>Click</em> once to reset and stop the timer, if overtime.</li>
-	<li><em>Double Click</em> anywhere to go into fullscreen.</li>
-	<li><em>Scroll up</em> to add 1 minute.</li>
-	<li><em>Scroll down</em> to subtract 1 minute.</li>
-	</ul>
-	<h3>Keyboard shortcuts</h3>
-	<ul>
-	<li><kbd>Enter</kbd> to start at 10 minutes. Will subsequently restart the timer.</li>
-	<li><kbd>Space</kbd> to start at 10 minutes, or pause if started, or restart at 10 minutes if into overtime.</li>
-	<li><em>Up arrow</em> <kbd>↑</kbd> to add 10 minutes to the timer.</li>
-	<li><em>Down arrow</em> <kbd>↓</kbd> to subtract 5 minutes from the timer.</li>
-	<li><em>Left arrow</em> <kbd>←</kbd> to add 1 minute.</li>
-	<li><em>Right arrow</em> <kbd>→</kbd> to subtract 1 minute.</li>
-	<li><kbd>Page Up</kbd> to go into fullscreen mode. <kbd>Page Up</kbd> or <kbd>Esc</kbd> to exit fullscreen.</li>
-	<li><kbd>Page Down</kbd> to toggle the theme between dark (default) and light.</li>
-	<li><kbd>End</kbd> to reset and stop the timer.</li>
-	<li><kbd>Insert</kbd> to toggle sound mode: automatically play a bell sound when the timer goes into overtime. Off by default.</li>
-	<li><kbd>`</kbd> to play a bell sound on demand.</li>
-	<li><kbd>Delete</kbd> or <kbd>Backspace</kbd> to delete the current label and replace with text input. The label is dimmed when in edit more. <kbd>Enter</kbd> or <kbd>Esc</kbd> to confirm and exit edit mode.</li>
-	<li><kbd>Home</kbd> to display the manual. <kbd>Home</kbd> or <kbd>Esc</kbd> when the manual is open to hide it.</li>
-	</ul>
-	<h3>URL parameters</h3>
-	<p>Define a custom default timer, by specifying the <code class="notranslate">mins</code> <a href="https://developer.mozilla.org/en-US/docs/Learn/Common_questions/What_is_a_URL#parameters" rel="nofollow">URL parameter</a>. For example, <code class="notranslate">…/tick.html?mins=25</code> will make the timer start at 25 minutes (<a href="https://en.wikipedia.org/wiki/Pomodoro_Technique" rel="nofollow">pomodoro</a>).</p>
-	<h2>Point of view</h2>
-	<p>Single page; no external assets; no build systems; functional vanilla JavaScript.<br>
-	Pull requests welcome if they don’t deviate from these principles or alter coding style.</p>
-	<h2>Etymology</h2>
-	<p>A tick is an atomic unit used to define system time in computing. It is also a hematophagous parasitic insect that affects humans and other animals.</p>
-	<h2>Credits</h1>
-	<ul>
-	<li>Code based on <a href="https://github.com/njallam/stream-pomodoro">njallam / stream-pomodoro</a>.</li>
-	<li>Bell sounds via <a href="https://github.com/joshreiss/Working-with-the-Web-Audio-API/">oshreiss / Working-with-the-Web-Audio-API</a>.</li>
-	<li>The font used in the screenshots above is <a href="https://fonts.google.com/specimen/Lekton" rel="nofollow">Lekton</a> designed at ISIA Urbino, Italy. Specifically the <a href="https://www.roleplay.gr/blog/greekifying-lekton-font" rel="nofollow">Lekton Greek</a> version designed by Manon Photopoulos, autohinted by the author.</li>
-	</ul>
-	<hr>
-	<p>© 2022 <a href="https://heracl.es" rel="nofollow">Heracles Papatheodorou</a> a.k.a <a href="https://www.twitter.com/Arty2" rel="nofollow">@Arty2</a>, MIT Licence</p>
-	<button class="btn" tabindex="0" onclick="toggle_manual();" title="Manual">CLOSE</button>
+
+<button id="btn-tick" class="corner-btn" tabindex="2" aria-label="Help">?</button>
+<button id="btn-menu" class="corner-btn" tabindex="1" aria-label="Menu">&#x22EE;</button>
+<button id="manual-close-float" aria-label="Close manual">&#x2715;</button>
+
+<div id="next-modal" class="modal-overlay">
+  <div class="modal-box" style="gap:0.7rem">
+    <div class="modal-title">Queue</div>
+    <div>
+      <label style="font-size:10px;letter-spacing:0.22em;color:var(--dim);text-transform:uppercase;display:block;margin-bottom:0.3rem">Current session</label>
+      <input type="text" id="queue-current-label" class="modal-input" placeholder="Label" maxlength="32" style="width:100%">
+    </div>
+    <div>
+      <label style="font-size:10px;letter-spacing:0.22em;color:var(--dim);text-transform:uppercase;display:block;margin-bottom:0.3rem">Up next</label>
+      <div id="queue-list"></div>
+      <button class="modal-btn" id="queue-add" style="margin-top:0.4rem">+ Add</button>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn" id="next-cancel">Cancel</button>
+      <button class="modal-btn primary-next" id="next-set">Done</button>
+    </div>
+  </div>
 </div>
+
+<div id="until-modal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title">Countdown to time</div>
+    <div id="until-preview" class="modal-preview until-col dim">&#x2014;</div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:0.3rem">
+      <input type="number" id="until-hour" class="modal-input" min="0" max="23" placeholder="HH"
+        style="width:72px;text-align:center;font-size:28px;font-weight:700;padding:0.4rem 0.3rem;letter-spacing:0">
+      <span style="font-size:32px;font-weight:900;color:var(--dim);line-height:1;margin-bottom:0.1rem">:</span>
+      <input type="number" id="until-min" class="modal-input" min="0" max="59" placeholder="MM"
+        style="width:72px;text-align:center;font-size:28px;font-weight:700;padding:0.4rem 0.3rem;letter-spacing:0">
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn danger" id="until-clear">Clear</button>
+      <button class="modal-btn" id="until-cancel">Cancel</button>
+      <button class="modal-btn primary-until" id="until-set">Set</button>
+    </div>
+  </div>
+</div>
+
+<div id="preset-modal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title">Edit preset</div>
+    <div class="modal-row">
+      <div style="flex:1"><label>Label</label><input type="text" id="preset-label-input" class="modal-input" placeholder="e.g. Break" maxlength="12"></div>
+      <div style="width:90px"><label>Minutes</label><input type="number" id="preset-mins-input" class="modal-input" min="1" max="999" placeholder="10"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn danger" id="preset-delete">Delete</button>
+      <button class="modal-btn" id="preset-cancel">Cancel</button>
+      <button class="modal-btn primary-next" id="preset-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="warn-modal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title">Warning thresholds</div>
+    <div class="modal-row">
+      <div style="flex:1">
+        <label>First warning (sec)</label>
+        <input type="number" id="warn1-input" class="modal-input" min="0" max="7200" placeholder="300">
+      </div>
+      <div style="flex:1">
+        <label>Second warning (sec)</label>
+        <input type="number" id="warn2-input" class="modal-input" min="0" max="7200" placeholder="60">
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--dim);text-align:center;letter-spacing:0.08em">
+      e.g. 300 = 5 min &nbsp;&#xB7;&nbsp; 60 = 1 min &nbsp;&#xB7;&nbsp; 0 = disabled
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn" id="warn-cancel">Cancel</button>
+      <button class="modal-btn primary-next" id="warn-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="manual">
+  <div id="manual-h1-fixed"><h1>/tick manual</h1></div>
+  <button id="manual-close">close</button>
+  <div id="manual-inner">
+    <p>/tick is a shortcut-first countdown timer for streams, webinars, or any reverse time-keeping needs.</p>
+    <h2>Mouse &amp; Touch</h2>
+    <ul>
+      <li>Click or tap to start. Again to pause / unpause.</li>
+      <li>Click or tap to reset after overtime.</li>
+      <li>Double-click / double-tap for kiosk (fullscreen). Double again to exit.</li>
+      <li>Scroll &#x00B1;1 min (mouse, while running).</li>
+      <li>Swipe &#x1F446;+10 &#x1F447;&#x2212;5 &#x1F448;+1 &#x1F449;&#x2212;1 min (touch, while running).</li>
+    </ul>
+    <h2>Keyboard</h2>
+    <ul>
+      <li><code>Enter</code> &#x2014; Start / restart &nbsp; <code>Space</code> &#x2014; Start / pause</li>
+      <li><code>Ctrl+Enter</code> &#x2014; Load next queued timer immediately</li>
+      <li><code>0&#x2013;9</code> &#x2014; Type minutes, confirm with <code>Enter</code></li>
+      <li><code>N</code> &#x2014; Queue next timer(s) &nbsp; <code>U</code> &#x2014; Countdown mode</li>
+      <li><code>W</code> &#x2014; Warning thresholds</li>
+      <li><code>&#x2191;</code>+10 <code>&#x2193;</code>&#x2212;5 <code>&#x2190;</code>+1 <code>&#x2192;</code>&#x2212;1 min</li>
+      <li><code>Ctrl+&#x2191;</code> / <code>Ctrl+&#x2193;</code> &#x2014; Previous / next preset</li>
+      <li><code>Page Up</code> &#x2014; Kiosk / fullscreen &nbsp; <code>Page Down</code> &#x2014; Theme</li>
+      <li><code>End</code> &#x2014; Reset &nbsp; <code>Esc</code> &#x2014; Close / exit kiosk</li>
+      <li><code>Insert</code> &#x2014; Cycle sound &nbsp; <code>`</code> &#x2014; Bell on demand</li>
+      <li><code>Del</code> / <code>Backspace</code> &#x2014; Edit label &nbsp; <code>Home</code> &#x2014; Manual</li>
+    </ul>
+    <h2>Timer Status</h2>
+    <ul>
+      <li><strong style="color:var(--c-idle)">Grey</strong> &#x2014; Idle.</li>
+      <li><strong style="color:var(--c-run)">White</strong> &#x2014; Running.</li>
+      <li><strong style="color:var(--c-warn)">Orange</strong> &#x2014; First warning (default: 5 min remaining).</li>
+      <li><strong style="color:var(--c-warn)">Orange flash</strong> &#x2014; Second warning (default: 1 min remaining).</li>
+      <li><strong style="color:var(--c-pause)">Amber</strong> &#x2014; Paused.</li>
+      <li><strong style="color:var(--c-ot)">Red</strong> &#x2014; Overtime. Timer counts up.</li>
+      <li><strong style="color:var(--c-reset)">Green</strong> &#x2014; Reset flash.</li>
+      <li><strong style="color:var(--c-next)">Purple</strong> &#x2014; Next timer loaded.</li>
+      <li><strong style="color:var(--c-until)">Blue</strong> &#x2014; Countdown to wall-clock time.</li>
+      <li><strong style="color:var(--c-watch)">Teal</strong> &#x2014; Clock mode.</li>
+    </ul>
+    <h2>Warning Thresholds</h2>
+    <ul>
+      <li>Click <strong>warn</strong> or press <code>W</code> to set two configurable thresholds.</li>
+      <li><strong>First warning</strong> — colour changes to orange (default 120 sec = 2 min).</li>
+      <li><strong>Second warning</strong> — orange + flashing digits (default 60 sec = 1 min).</li>
+      <li>Set either to 0 to disable that level. Settings saved across sessions.</li>
+    </ul>
+    <h2>Kiosk Mode</h2>
+    <ul>
+      <li>Click <strong>kiosk</strong>, press <code>Page Up</code>, or double-click to enter. Hides all UI chrome.</li>
+      <li>On desktop: enters fullscreen. Press <code>Esc</code> or double-click to exit.</li>
+      <li>On mobile: hides toolbar and top bar without requiring fullscreen. Double-tap to exit.</li>
+    </ul>
+    <h2>Presets</h2>
+    <ul>
+      <li>Up to 5 presets. Click to load. <strong>Long-press</strong> or right-click to edit.</li>
+      <li>Empty slots show <strong>+</strong> &#x2014; click to configure.</li>
+      <li><strong>Long-press Reset</strong> to clear all saved data.</li>
+    </ul>
+    <h2>Next Timer Queue</h2>
+    <ul>
+      <li>Click <strong>&#x25B6; next</strong> or press <code>N</code>. Enter comma-separated minutes: <code>10,5,2</code>.</li>
+      <li>Auto-loads after current timer ends. <code>Ctrl+Enter</code> to skip immediately.</li>
+    </ul>
+    <h2>Countdown Mode</h2>
+    <ul>
+      <li>Click <strong>target</strong> or press <code>U</code>. Targets tomorrow if time has passed.</li>
+    </ul>
+    <h2>Clock / Watch Mode</h2>
+    <ul>
+      <li>Toggle <strong>timer &#x2194; clock</strong> in toolbar. Countdown keeps running in background.</li>
+      <li>Exiting clock mode resumes the current timer; the queue is not advanced.</li>
+    </ul>
+    <h2>Remote Control</h2>
+    <ul>
+      <li>Click <strong>remote</strong> to generate a 6-character code + QR. Open on any device via the URL or scan.</li>
+      <li>Same browser: works instantly via BroadcastChannel. Cross-device: uses WebRTC via a third-party broker (peerjs.com) — requires internet; may not work on restrictive networks.</li>
+      <li>Remote pad shows live timer state. Buttons vibrate on mobile.</li>
+      <li><strong>Operator message</strong> — type in the message field and press <code>Enter</code> or Send. Text flashes on the presenter&rsquo;s screen for 6 seconds. Send empty (Clear) to dismiss immediately.</li>
+    </ul>
+    <h2>Share</h2>
+    <p>Click <strong>share</strong> to copy the current state as a URL. Opening it restores the timer exactly as configured. Parameters override saved preferences but do not overwrite them.</p>
+    <table style="width:100%;border-collapse:collapse;font-size:0.82em;margin-top:0.4rem">
+      <thead>
+        <tr style="border-bottom:1px solid var(--dim)">
+          <th style="text-align:left;padding:0.3rem 0.5rem 0.3rem 0;letter-spacing:0.15em;color:var(--dim)">Param</th>
+          <th style="text-align:left;padding:0.3rem 0.5rem;letter-spacing:0.15em;color:var(--dim)">Value</th>
+          <th style="text-align:left;padding:0.3rem 0 0.3rem 0.5rem;letter-spacing:0.15em;color:var(--dim)">Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid rgba(128,128,128,0.15)">
+          <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>mins</code></td>
+          <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>1&ndash;999</code></td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem">Starting duration in whole minutes.</td>
+        </tr>
+        <tr style="border-bottom:1px solid rgba(128,128,128,0.15)">
+          <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>label</code></td>
+          <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>text</code></td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem">Current session title shown above the timer. URL-encoded if it contains spaces or special characters.</td>
+        </tr>
+        <tr style="border-bottom:1px solid rgba(128,128,128,0.15)">
+          <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>next</code></td>
+          <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>Title:25,10</code></td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem">Comma-separated queue. Each entry is either plain minutes (<code>25</code>) or a labelled slot (<code>Talk:25</code>). Mixed formats are fine: <code>Keynote:40,Break:5,10</code>. Loaded in order when each timer ends.</td>
+        </tr>
+        <tr style="border-bottom:1px solid rgba(128,128,128,0.15)">
+          <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>theme</code></td>
+          <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>dark&nbsp;|&nbsp;light</code></td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem">Force dark or light theme regardless of saved preference.</td>
+        </tr>
+        <tr style="border-bottom:1px solid rgba(128,128,128,0.15)">
+          <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>sound</code></td>
+          <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>0&nbsp;|&nbsp;1&nbsp;|&nbsp;2</code></td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem"><code>0</code> off &middot; <code>1</code> bell at end &middot; <code>2</code> bell every minute.</td>
+        </tr>
+        <tr>
+          <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>rc</code></td>
+          <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>XXXXXX</code></td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem">6-character room code. When present, the page opens as a remote control pad instead of a timer. Generated automatically by the <strong>remote</strong> button; do not set manually.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="margin-top:0.6rem">Full example:<br><code>?mins=25&amp;label=Keynote&amp;next=Break:5,QA:10&amp;theme=dark&amp;sound=1</code></p>
+  </div>
+</div>
+
+<!-- Remote host modal -->
+<div id="remote-modal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title">Remote control &#x2014; share this code</div>
+    <div id="remote-code-display">&#x2014;</div>
+    <div id="remote-qr"></div>
+    <div id="remote-url-text" style="display:none;font-size:10px;word-break:break-all;text-align:center;padding:0.4rem 0;color:var(--dim)"></div>
+    <div id="remote-status">waiting for connection&#x2026;</div>
+    <div style="display:flex;gap:0.5rem;margin-top:0.2rem">
+      <input type="text" id="op-msg-input" class="modal-input" placeholder="Operator message…" maxlength="40" style="flex:1;font-size:13px;padding:0.4rem 0.6rem">
+      <button class="modal-btn" id="op-msg-send" style="flex-shrink:0">Send</button>
+      <button class="modal-btn" id="op-msg-clear" style="flex-shrink:0">Clear</button>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn" id="remote-open-tab">Open remote</button>
+      <button class="modal-btn" id="remote-copy-url">Copy URL</button>
+      <button class="modal-btn danger" id="remote-stop">Stop</button>
+      <button class="modal-btn" id="remote-modal-close">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Remote pad (shown when ?rc=CODE) -->
+<div id="remote-pad">
+  <div id="remote-status-bar">connecting&#x2026;</div>
+  <div id="remote-label-display"></div>
+  <div id="remote-state-display">&#x2014;</div>
+  <div class="rc-grid">
+    <button class="rc-btn hi-start wide" data-rc="start">&#x25B6; Start</button>
+    <button class="rc-btn hi-pause wide" data-rc="pause">&#x23F8; Pause</button>
+    <button class="rc-btn" data-rc="adj:-1">&#x2212;1m</button>
+    <button class="rc-btn" data-rc="adj:1">+1m</button>
+    <button class="rc-btn" data-rc="adj:-5">&#x2212;5m</button>
+    <button class="rc-btn" data-rc="adj:10">+10m</button>
+    <button class="rc-btn hi-reset wide" data-rc="reset">&#x23F9; Reset</button>
+    <button class="rc-btn wide" data-rc="next">&#x23ED; Skip next</button>
+    <button class="rc-btn full" data-rc="bell">&#x1F514; Bell</button>
+  </div>
+  <div style="width:100%;max-width:480px;display:flex;flex-direction:column;gap:0.4rem">
+    <div id="rc-queue-display" style="font-size:11px;letter-spacing:0.18em;color:var(--dim);text-transform:uppercase;min-height:1.2em;text-align:center"></div>
+    <div style="display:flex;gap:0.4rem">
+      <input type="text" id="rc-queue-input" placeholder="Queue: Talk:25,QA:10 …" autocomplete="off"
+        style="flex:1;background:rgba(128,128,128,0.1);border:1px solid var(--dim);color:var(--fg);
+               font-family:var(--font);font-size:11px;letter-spacing:0.1em;padding:0.5rem 0.6rem;
+               outline:none;text-transform:uppercase">
+      <button class="rc-btn" id="rc-queue-send" style="width:auto;padding:0.5rem 0.8rem;flex-shrink:0">Set</button>
+    </div>
+  </div>
+</div>
+
+<div id="op-msg-overlay"><div id="op-msg-box"></div></div>
+
 <script>
-	const urlParams = new URLSearchParams(window.location.search);
+'use strict';
+{
+// ── URL params ────────────────────────────────────────
+const usp          = new URLSearchParams(location.search);
+const DEFAULT_MINS = Math.max(1, +usp.get('mins') || 10);
+const URL_LABEL    = usp.get('label') ?? '';
+// nextQueue: {label:string, mins:number}[]  — label may be ''
+const parseNextStr = str => str.split(',').map(s => {
+  s = s.trim(); if (!s) return null;
+  const col = s.indexOf(':');
+  if (col > 0) { const mins = +s.slice(col+1); return mins > 0 ? {label: s.slice(0,col).trim(), mins} : null; }
+  const mins = +s; return mins > 0 ? {label:'', mins} : null;
+}).filter(Boolean);
+const URL_NEXT_ITEMS = parseNextStr(usp.get('next') ?? '');
+const URL_THEME    = usp.get('theme') ?? '';
+const URL_SOUND    = usp.has('sound') ? +usp.get('sound') : -1;
 
-	let paused;
-	let overtimed;
-	let interval;
-	let length;
-	let remainingTime;
-	let endTime;
-	let sound;
+// ── DOM refs ──────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const app          = $('app'),
+      display      = $('timer-display'),
+      labelWrap    = $('label-wrap'),
+      labelEl      = $('label-text'),
+      labelSub     = $('label-sub'),
+      sessionQueue = $('session-queue'),
+      sessionLabelEl = $('session-label'),
+      wallClock    = $('wall-clock'),
+      toolbar      = $('toolbar'),
+      manual       = $('manual'),
+      statusHint   = $('status-hint'),
+      sessionEl    = $('session-timer'),
+      keyBufEl     = $('key-buffer'),
+      swipeEl      = $('swipe-hint'),
+      btnSound     = $('btn-sound'),
+      btnNext      = $('btn-next'),
+      btnUntilOpen = $('btn-until-open'),
+      btnUntilAct  = $('btn-until-active'),
+      btnCW        = $('btn-clock-watch');
 
-	/* functions --------------------------------------------------*/
+// ── State ─────────────────────────────────────────────
+let warnSecs1 = 120, warnSecs2 = 60;  // configurable warning thresholds
+let totalSecs = DEFAULT_MINS * 60, remaining = totalSecs;
+let running = false, editingLabel = false;
+let customLabel = URL_LABEL, uiState = 'idle';
+let resumeAbsSec = 0, resumeVal = remaining, lastRenderedSec = -1;
+let T0_ABSSEC = null;
+let soundMode = 0, bellRecord = null;
+let nextQueue = URL_NEXT_ITEMS.length ? URL_NEXT_ITEMS.slice() : [{label:'', mins:10}];
+let untilTarget = null, untilLabel = '';
+let watchMode = false;
+let kioskMode = false;
+const DEFAULT_PRESETS = [
+  {label:'5 min',mins:5},{label:'10 min',mins:10},{label:'25 min',mins:25},
+  {label:'',mins:0},{label:'',mins:0},
+];
+let presets = DEFAULT_PRESETS.map(p => ({...p}));
+let activePresetIdx = -1;
+let isTouching = false, hasTouched = false;
+let touchX0 = 0, touchY0 = 0, touchT0 = 0, lastTapT = 0;
+let longPressTid = null, wakeLock = null;
 
-	function $() {
-		var elements = [];
-		for (var i=0, j=arguments.length; i < j; i++) {
-			var element = arguments[i];
-			if (typeof element == 'string')
-				element = document.getElementById(element);
-			if (j == 1)
-				return element;
-			elements.push(element);
-		}
-		return elements;
-	}
+// ── Prefs ─────────────────────────────────────────────
+try {
+  const p = JSON.parse(localStorage.getItem('tick_prefs') ?? '{}');
+  if (URL_THEME === 'light' || (!URL_THEME && p.theme === 'light'))
+    document.body.classList.add('light');
+  soundMode = URL_SOUND >= 0 ? URL_SOUND : (p.sound ?? 0);
+  if (!URL_NEXT_ITEMS.length && Array.isArray(p.nextQueue) && p.nextQueue.length) {
+    // Migrate old format (number[]) or load new object format
+    nextQueue = p.nextQueue.map(e => typeof e === 'number' ? {label:'', mins:e} : e).filter(e => e.mins > 0);
+    if (!nextQueue.length) nextQueue = [{label:'', mins:10}];
+  }
+  if (Array.isArray(p.presets) && p.presets.length === 5) presets = p.presets;
+  if (typeof p.warnSecs1 === 'number') warnSecs1 = p.warnSecs1;
+  if (typeof p.warnSecs2 === 'number') warnSecs2 = p.warnSecs2;
+  if (!URL_LABEL && typeof p.customLabel === 'string') customLabel = p.customLabel;
+} catch {}
 
-	function textselect(el, win = window) {
-			var doc = win.document, sel, range;
-			if (win.getSelection && doc.createRange) {
-					sel = win.getSelection();
-					range = doc.createRange();
-					range.selectNodeContents(el);
-					sel.removeAllRanges();
-					sel.addRange(range);
-			} else if (doc.body.createTextRange) {
-					range = doc.body.createTextRange();
-					range.moveToElementText(el);
-					range.select();
-			}
-	}
+const savePrefs = () => { try { localStorage.setItem('tick_prefs', JSON.stringify({
+  theme: document.body.classList.contains('light') ? 'light' : 'dark',
+  sound: soundMode, nextQueue, presets, warnSecs1, warnSecs2, customLabel,
+})); } catch {} };
 
+const hardReset = () => { try { localStorage.removeItem('tick_prefs'); } catch {} location.search = ''; };
 
-	function label_update(text) {
-		if (length > 0) {
-			text = Math.floor(length / 60) +' MIN';
-		}
+// ── Audio ─────────────────────────────────────────────
+let audioCtx = null;
+const getCtx = () => {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext ?? window.webkitAudioContext)();
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+    });
+  }
+  return audioCtx;
+};
+document.addEventListener('pointerdown', () => {
+  audioCtx?.state !== 'running' && audioCtx?.resume().catch(() => {});
+}, {passive:true, capture:true});
 
-		if (paused) {
-			text = 'PAUSED';
-		}
+function playBell(freq=440, dur=3.0, vol=0.5, parts) {
+  try {
+    const ctx = getCtx();
+    const go = () => {
+      const t = ctx.currentTime, master = ctx.createGain();
+      master.gain.setValueAtTime(vol, t); master.connect(ctx.destination);
+      (parts ?? [[0.5,0.12,1.8],[1.0,0.35,1.0],[1.19,0.25,0.7],
+        [1.56,0.20,0.55],[2.0,0.18,0.4],[2.75,0.10,0.3],[3.36,0.06,0.22]]
+      ).forEach(([r,a,dm]) => {
+        const osc = ctx.createOscillator(), g = ctx.createGain();
+        osc.connect(g); g.connect(master); osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq * r, t);
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(a, t + 0.004);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dur * dm);
+        osc.start(t); osc.stop(t + dur * dm + 0.05);
+      });
+    };
+    ctx.state === 'running' ? go() : ctx.resume().then(go).catch(() => {});
+  } catch {}
+}
+const playDampBell = () => playBell(440, 0.7, 0.28);
+const playOTBell   = () => playBell(220, 4.0, 0.55);
+const playMinBell  = () => playBell(330, 2.5, 0.45);
+const playPing     = () => playBell(1047, 1.2, 0.35);
 
-		if (overtimed) {
-			text = 'OVERTIME';
-		}
+// ── Utilities ─────────────────────────────────────────
+const pad      = n => String(n).padStart(2, '0');
+const absSec   = () => Math.floor(Date.now() / 1000);
+const COLON_RE = /:/g;
+const withColons = s => s.replace(COLON_RE, '<span class="colon">:</span>');
+const isTouchDev = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+const startHint  = () => (isTouchDev || hasTouched) ? 'tap to start' : 'click or enter to start';
+const stateFor = rem => rem < 0 ? 'ot' : (warnSecs2 > 0 && rem <= warnSecs2) ? 'warn2' : (warnSecs1 > 0 && rem <= warnSecs1) ? 'warn' : 'run';
 
-		if (!text) {
-			text = '/tick';
-		}
+function fmt(secs) {
+  const sign = secs < 0 ? '+' : '', abs = Math.abs(secs);
+  const h = Math.floor(abs/3600), m = Math.floor((abs%3600)/60), s = abs%60;
+  return h > 0 ? `${sign}${h}:${pad(m)}:${pad(s)}` : `${sign}${pad(m)}:${pad(s)}`;
+}
 
-		$('label').textContent = text;
-		document.title = text;
-		// console.log(text); // DEBUG
-	}
+// ── UI state machine ──────────────────────────────────
+function applyState(s, transientMs) {
+  uiState = s;
+  labelWrap.className = 's-' + s + (editingLabel ? ' editing' : '');
+  display.className   = 's-' + s;
+  // Clear flash classes so they re-sync on next tick (not left over from previous state)
+  display.classList.remove('flash-dim', 'flash-dim2');
+  labelWrap.classList.remove('flash-off');
+  if (!editingLabel) {
+    labelSub.textContent = '';
+    switch(s) {
+      case 'idle': case 'reset': labelEl.textContent = startHint(); break;
+      case 'run':  case 'warn': case 'warn2': labelEl.textContent = ''; break;
+      case 'pause': labelEl.textContent = 'PAUSED'; break;
+      case 'ot':    labelEl.textContent = 'OVERTIME'; break;
+      case 'next':  labelEl.textContent = `\u25B6 NEXT: ${fmt(totalSecs)}`; labelSub.textContent = startHint(); break;
+      case 'until': labelEl.textContent = untilLabel; labelSub.textContent = startHint(); break;
+      case 'watch': labelEl.textContent = ''; break;
+    }
+  }
+  if (transientMs) setTimeout(() => { if (uiState === s) applyState('idle'); }, transientMs);
+  sessionLabelEl.textContent = (s !== 'watch') ? customLabel : '';
+}
 
-	function ticker_update() {
-		remainingTime = (endTime - Date.now()) / 1000;
+function renderSessionQueue() {
+  if (watchMode) { sessionQueue.innerHTML = ''; return; }
+  sessionQueue.innerHTML = '';
+  // Queued items — grouped block, left-aligned within a centred container
+  if (nextQueue.length) {
+    const fmtQ = m => pad(m) + ':00';
+    // "NEXT" header row — clickable, opens queue modal
+    const header = document.createElement('div');
+    header.className = 'sq-item sq-next-header';
+    header.textContent = 'NEXT';
+    header.addEventListener('click', e => { e.stopPropagation(); openNextModal(); });
+    sessionQueue.appendChild(header);
+    const block = document.createElement('div');
+    block.id = 'sq-queue-block';
+    nextQueue.forEach(entry => {
+      const row = document.createElement('div');
+      row.className = 'sq-item sq-queued';
+      row.textContent = '\u25B6 ' + fmtQ(entry.mins) + (entry.label ? '\u2002' + entry.label : '');
+      row.addEventListener('click', e => { e.stopPropagation(); openNextModal(); });
+      block.appendChild(row);
+    });
+    block.addEventListener('click', e => { e.stopPropagation(); openNextModal(); });
+    sessionQueue.appendChild(block);
+    btnNext.textContent = '\u25B6 queue: ' + nextQueue.map(e => fmtQ(e.mins)).join(',');
+  } else {
+    btnNext.textContent = '\u25B6 queue: \u2014';
+  }
+  btnNext.classList.toggle('next-set', nextQueue.length > 0);
+}
 
-		let remainingSeconds = Math.round(remainingTime);
-		let hours = Math.abs(remainingSeconds > 0 ?
-						Math.floor(remainingSeconds / 3600) :
-						Math.ceil(remainingSeconds / 3600)
-					)
-		let minutes = Math.abs(remainingSeconds > 0 ?
-						Math.floor(remainingSeconds % 3600 / 60) :
-						Math.ceil(remainingSeconds % 3600 / 60)
-					).toString().padStart(2, '0');
-		let seconds = Math.abs(remainingSeconds % 60).toString().padStart(2, '0');
-		$('seconds').textContent = seconds;
-		$('minutes').textContent = minutes;
-		$('hours').textContent = (hours > 0 ? `${hours}H` : '');
+function renderUntilBtn() {
+  const on = !!untilTarget;
+  btnUntilAct.style.display  = on ? '' : 'none';
+  btnUntilOpen.style.display = on ? 'none' : '';
+  if (on) btnUntilAct.textContent = 'target: ' + untilLabel;
+}
 
-		if (remainingTime <= 0) {
-			if (!overtimed) {
-				document.body.classList.add('overtimed');
-				overtimed = true;
-				label_update();
-				if (sound) { bell(); }
-			}
-		} else if (overtimed) {
-			document.body.classList.remove('overtimed');
-			overtimed = false;
-			label_update();
-		}
+function renderPresets() {
+  const c = $('preset-buttons'); c.innerHTML = '';
+  presets.forEach((p, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'tb-btn preset-btn' + (p.mins > 0 ? ' filled dim' : '');
+    btn.textContent = p.mins > 0 ? (p.label || p.mins+'m') : '+';
+    if (i === activePresetIdx) btn.style.borderColor = 'var(--fg)';
+    const onLoad = e => {
+      e.stopPropagation();
+      if (p.mins > 0) {
+        activePresetIdx = i; exitUntilMode(); exitWatchMode(); fullReset(p.mins);
+        if (p.label) { customLabel = p.label; applyState(uiState); }
+        renderPresets();
+      } else openPresetModal(i);
+    };
+    btn.addEventListener('click', onLoad);
+    btn.addEventListener('contextmenu', e => { e.preventDefault(); e.stopPropagation(); openPresetModal(i); });
+    btn.addEventListener('touchstart', e => {
+      e.stopPropagation();
+      longPressTid = setTimeout(() => { longPressTid = null; openPresetModal(i); }, 500);
+    }, {passive:true});
+    btn.addEventListener('touchend', e => {
+      e.stopPropagation();
+      if (longPressTid !== null) { clearTimeout(longPressTid); longPressTid = null; e.preventDefault(); onLoad(e); }
+    }, {passive:false});
+    btn.addEventListener('touchmove', () => { clearTimeout(longPressTid); longPressTid = null; }, {passive:true});
+    c.appendChild(btn);
+  });
+}
 
-		document.title = (remainingSeconds >= 0 ? '' : '+') + (hours > 0 ? `${hours}∶${minutes}∶${seconds}` : `${minutes}∶${seconds}`);
+// ── RAF loop ──────────────────────────────────────────
+let lastSessionSec = -1, lastWallSec = -1, lastWatchMin = '', lastColonBit = -1;
+;(function loop() {
+  const now = absSec();
 
-		let progress = length < 0 ? 1 : ((length - remainingTime) / length)
+  // Session timer — write textContent only when the second changes (was: every frame)
+  if (T0_ABSSEC !== null && now !== lastSessionSec) {
+    lastSessionSec = now;
+    sessionEl.textContent = fmt(now - T0_ABSSEC);
+  }
 
-		if (progress < 1) {
-			$('progress-bar').style.transform = `scaleX(${Math.floor(progress * 1000)/1000})`;
-		} else {
-			$('progress-bar').style.transform = 'scaleX(1)';
-		}
-	}
+  // Wall clock — shares Date-based clock with absSec(), ticks in sync
+  if (now !== lastWallSec) {
+    lastWallSec = now;
+    const d = new Date(), ks = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    wallClock.textContent = ks;
+  }
 
-	function ticker_run() {
-		console.log('run');
-		clearInterval(interval);
-		paused = null;
-		interval = setInterval(ticker_update, 100);
-		label_update(Math.floor(length / 60) +' MIN');
-	}
+  if (watchMode) {
+    if (running) {
+      const rem = untilTarget ? Math.round((untilTarget - Date.now())/1000) : resumeVal - (now - resumeAbsSec);
+      remaining = lastRenderedSec = rem;
+    }
+    // Clock face — only rebuild innerHTML when the displayed minute changes
+    const d = new Date();
+    const watchMin = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    if (watchMin !== lastWatchMin) {
+      lastWatchMin = watchMin;
+      display.innerHTML = withColons(watchMin);
+    }
+    // Colon blink — CSS class toggle instead of querySelectorAll + style writes
+    const bit = now % 2;
+    if (bit !== lastColonBit) {
+      lastColonBit = bit;
+      display.classList.toggle('colon-off', bit !== 0);
+    }
+    display.style.color = 'var(--c-watch)'; display.style.opacity = '';
+    requestAnimationFrame(loop); return;
+  }
 
-	function ticker_pause(mins) {
-		if (remainingTime > 0) {
-			if (paused) {
-				console.log('un-paused');
-				document.body.classList.remove('paused');
-				endTime = Date.now() + remainingTime * 1000;
-				ticker_run();
-			} else if (interval) {
-				console.log('paused');
-				document.body.classList.add('paused');
-				clearInterval(interval);
-				interval = null;
-				paused = true;
-				label_update();
-			}
-		} else if (!remainingTime) {
-			ticker_start(mins);
-		} else {
-			ticker_reset();
-		}
-	}
+  if (running) {
+    const rem = untilTarget ? Math.round((untilTarget - Date.now())/1000) : resumeVal - (now - resumeAbsSec);
+    if (rem !== lastRenderedSec) {
+      lastRenderedSec = rem; remaining = rem;
+      const st = stateFor(rem); if (st !== uiState) {
+        applyState(st);
+        // On first OT transition, auto-advance to next queued session
+        if (st === 'ot' && nextQueue.length) {
+          loadNextTimer(); startTimer(); return;
+        }
+      }
+      checkAutoSound(); renderDigits(rem); renderSessionQueue();
+      // Sync flash to countdown second — toggled on each tick so perfectly aligned
+      const bit = Math.abs(rem) % 2;
+      if (uiState === 'ot')    { labelWrap.classList.toggle('flash-off',  bit === 1); }
+      if (uiState === 'warn2') { display.classList.toggle('flash-dim2', bit === 1); }
+      if (uiState === 'warn')  { display.classList.toggle('flash-dim',  bit === 1); }
+    }
+  }
+  requestAnimationFrame(loop);
+})();
 
-	function ticker_start(mins = (parseInt(urlParams.get('mins')) || 10)) {
-		if (!paused) {
-			length = (length > 0 ? length : 60 * mins);
-			endTime = Date.now() + length * 1000;
-			ticker_run();
-		}
-	}
+let renderDigits = rem => {
+  if (watchMode) return;
+  const sign = rem < 0 ? '+' : '', abs = Math.abs(rem);
+  const h = Math.floor(abs/3600), m = Math.floor((abs%3600)/60), s = abs%60;
+  if (h > 0) {
+    display.innerHTML =
+      `<span class="disp-h">${sign}${h}<span class="disp-h-suf">H</span></span>` +
+      `<span class="disp-ms">${withColons(pad(m)+':'+pad(s))}</span>`;
+  } else {
+    display.innerHTML = withColons(fmt(rem));
+  }
+};
 
-	function ticker_zero() {
-		console.log('zero');
-		endTime = Date.now();
-		remainingTime = 0;
-		length = 0;
-		$('hours').textContent = '';
-		$('minutes').textContent = '00';
-		$('seconds').textContent = '00';
-	}
+function checkAutoSound() {
+  if (!soundMode) return;
+  if (soundMode === 1) { if (remaining <= 0 && bellRecord === null) { playOTBell(); bellRecord = 0; } }
+  else if (remaining < 0) {
+    const min = Math.floor(-remaining/60); if (bellRecord !== min) { playMinBell(); bellRecord = min; }
+  } else bellRecord = null;
+}
 
-	function ticker_reset() {
-		console.log('reset');
-		// location.reload(); // DEBUG
-		clearInterval(interval);
-		interval = null;
-		paused = false;
-		overtimed = false;
-		document.body.classList.remove('paused');
-		document.body.classList.remove('overtimed');
-		$('progress-bar').style.transform = 'scaleX(0)';
-		ticker_zero();
-		label_update();
-	}
+// ── Timer controls ────────────────────────────────────
+function startTimer() {
+  if (running) return; running = true;
+  if (T0_ABSSEC === null) T0_ABSSEC = absSec();
+  resumeAbsSec = absSec(); resumeVal = remaining; lastRenderedSec = -1;
+  applyState(stateFor(remaining)); renderSessionQueue(); renderDigits(remaining); hideToolbar();
+}
+function pauseTimer() {
+  if (!running) return; running = false;
+  if (!untilTarget) { remaining = resumeVal - (absSec() - resumeAbsSec); resumeVal = remaining; }
+  lastRenderedSec = -1;
+  applyState('pause'); renderDigits(remaining); renderSessionQueue();
+}
 
-	function ticker_add(mins = 1) {
-		if (interval) {
-			console.log('add');
-			length += 60 * mins;
-			endTime += 60000 * mins;
-			if (endTime < Date.now()) {
-				ticker_reset();
-			} else {
-				label_update();
-			}
-			label_update();
-		} else if (!remainingTime) {
-			length = 60 * mins;
-			ticker_start(mins);
-		}
-	}
+let tbTid;
+const btnMenu     = $('btn-menu');
+const btnTick     = $('btn-tick');
+const menuBackdrop= $('menu-backdrop');
 
-	function ticker_subtract(mins = 1) {
-		if (interval && length > 0) {
-			console.log('subtract');
-			length -= 60 * mins;
-			endTime -= 60000 * mins; 
-			if (endTime < Date.now()) {
-				ticker_zero();
-			} else {
-				label_update();
-			}
-			ticker_update();
-		} else if (remainingTime < 0) {
-			console.log('subzero');
-			length -= 60 * mins;
-			endTime -= 60000 * mins;
-		}
-	}
+const hideToolbar = () => {
+  clearTimeout(tbTid);
+  toolbar.classList.remove('visible');
+  menuBackdrop.classList.remove('open');
+  btnMenu.style.display = '';
+};
+const showToolbar = () => {
+  toolbar.classList.add('visible');
+  menuBackdrop.classList.add('open');
+  btnMenu.style.display = 'none';
+  clearTimeout(tbTid);
+  tbTid = setTimeout(hideToolbar, 5000);
+};
+const toggleMenu = () => toolbar.classList.contains('visible') ? hideToolbar() : showToolbar();
 
-	function toggle_theme() {
-		document.documentElement.classList.toggle('theme-white');
-	}
+btnMenu.addEventListener('click', e => { e.stopPropagation(); toggleMenu(); });
+menuBackdrop.addEventListener('click', () => hideToolbar());
+btnTick.addEventListener('click', e => { e.stopPropagation(); isManualOpen() ? closeManual() : openManual(); });
 
-	function toggle_manual() {
-		$('manual').classList.toggle('hidden');
-	}
+// Reset hide timer whenever pointer moves within the toolbar
+toolbar.addEventListener('pointermove', () => { clearTimeout(tbTid); tbTid = setTimeout(hideToolbar, 5000); });
 
-	function request_fullscreen(el) {
-		if (el.requestFullscreen) {
-			el.requestFullscreen().catch((err) => {
-				alert('Click anywhere on the page, or press any key first!');
-			});
-		} else if (el.webkitRequestFullScreen) {
-			el.webkitRequestFullScreen(el.ALLOW_KEYBOARD_INPUT);
-		}
-	}
+function loadNextTimer(silent) {
+  if (!nextQueue.length) return false;
+  exitUntilMode(); const entry = nextQueue.shift(); savePrefs();
+  totalSecs = entry.mins*60; remaining = resumeVal = totalSecs; bellRecord = null;
+  customLabel = entry.label || '';
+  applyState('next'); renderSessionQueue(); renderDigits(remaining);
+  if (!silent) playPing();
+  return true;
+}
 
-	function exit_fullscreen(el) {
-		if (el.exitFullscreen) {
-			el.exitFullscreen();
-		} else if (el.webkitExitFullscreen) {
-			el.webkitExitFullscreen;
-		}
-	}
+function fullReset(mins) {
+  running = false; lastRenderedSec = -1;
+  exitUntilMode();
+  totalSecs = (mins||DEFAULT_MINS)*60; remaining = resumeVal = totalSecs;
+  resumeAbsSec = 0; bellRecord = null; customLabel = URL_LABEL;
+  T0_ABSSEC = null; sessionEl.textContent = '00:00';
+  applyState('reset', 700); renderSessionQueue(); renderDigits(remaining);
+}
 
-	async function toggle_fullscreen() {
-		document.fullscreenEnabled =
-			document.fullscreenEnabled ||
-			document.documentElement.webkitRequestFullScreen;
+function adjustMinutes(delta) {
+  if (!running || untilTarget) return;
+  remaining = Math.max(-(99*60+59), remaining + delta*60);
+  resumeVal = remaining; resumeAbsSec = absSec(); lastRenderedSec = -1;
+  const d = stateFor(remaining); if (d !== uiState) applyState(d);
+  if (remaining >= 0) bellRecord = null;
+  renderDigits(remaining); showHint((delta>0?'+':'')+delta+' min');
+}
 
-		if (document.fullscreenEnabled) {
-			request_fullscreen(document.documentElement);
-			let wakeLock = null;
-			try {
-				wakeLock = await navigator.wakeLock.request("screen");
-			} catch (err) {
-				console.log(`${err.name}, ${err.message}`);
-			}
-		} else {
-			exit_fullscreen(document.documentElement);
-			wakeLock.release().then(() => {
-				wakeLock = null;
-			});
-		}
-	}
+// ── Until mode ────────────────────────────────────────
+function enterUntilMode(targetMs, label) {
+  untilTarget = targetMs; untilLabel = label; running = false; lastRenderedSec = -1;
+  remaining = resumeVal = Math.round((targetMs - Date.now())/1000); bellRecord = null;
+  applyState('until'); renderUntilBtn(); renderSessionQueue(); renderDigits(remaining); startTimer();
+}
+function exitUntilMode() {
+  if (!untilTarget) return; untilTarget = null; untilLabel = ''; renderUntilBtn();
+}
 
-	function toggle_sound() {
-		sound = sound ? false : true;
-		if (sound) { 
-			bell();
-		} else {
-			bell(0.5,0.2);
-		}
-	}
+// ── Watch mode ────────────────────────────────────────
+let preWatchRunning = false;
+function toggleWatchMode() {
+  watchMode = !watchMode;
+  btnCW.classList.toggle('watch-on', watchMode); btnCW.textContent = watchMode ? 'timer' : 'clock';
+  if (watchMode) {
+    preWatchRunning = running;
+    display.style.color = 'var(--c-watch)'; display.className = 's-watch';
+    sessionQueue.innerHTML = ''; labelEl.textContent = ''; labelSub.textContent = '';
+    lastWatchMin = ''; lastColonBit = -1;
+    const d = new Date(); display.innerHTML = withColons(`${pad(d.getHours())}:${pad(d.getMinutes())}`);
+  } else {
+    display.style.color = '';
+    display.classList.remove('colon-off');
+    display.className = 's-' + uiState;
+    renderDigits(remaining); applyState(uiState); renderSessionQueue();
+    // Restore running state — don't touch the queue or start anything new
+    if (preWatchRunning && !running) startTimer();
+  }
+}
+function exitWatchMode() {
+  if (!watchMode) return;
+  // Delegate to toggle (handles all cleanup); skip the auto-load-next-timer behaviour
+  watchMode = true; // toggle will flip it
+  btnCW.classList.add('watch-on'); // toggle will remove
+  toggleWatchMode();
+  // toggleWatchMode would also call loadNextTimer+startTimer — undo that for Esc-key exit
+  // Actually we do want the same behaviour on Esc (exit clock, load next if queued).
+  // So full delegation is correct.
+}
 
-	/* sound generator -----------------------------------------------*/
-	// via https://github.com/joshreiss/Working-with-the-Web-Audio-API/
-	// min. duration 0.07
-	var audioCtx;
-	function bell(pitch = 8, duration = 0.1) {
-		if (audioCtx) { audioCtx.close(); }
-		audioCtx  = new (window.AudioContext || window.webkitAudioContext)();
-		var DBToAmp = function(db) { return Math.pow(10, db / 20); }
-		var Params= {
-			nOsc:13,
-			F:[97.0362,155.7461,200.6708,291.5601,335.2872,401.6002,500.6919,
-				599.8203,679.0558,704.6314,850.3987,1016.353,1169.165,1343.452],
-			Slope:[-0.71286,-1.08551,-2.68134,-0.80383,-5.88471,-1.06387,-3.419,
-				-3.69923,-6.71634,-3.57097,-6.85307,-7.04044,-5.6755,-7.25273],
-			Amp0:[ -55.7976,-44.8857,-33.3415,-70.8675,-24.9633,-75.653,-27.2338,
-				-66.8294,-23.635,-57.3287,-43.0425,-50.9267,-55.1784,-46.6498]
-		}
-		var gNode=[],osc=[],FinalAmp;
-		for (i=0;i<Params.nOsc;i++) {
-			gNode[i]=audioCtx.createGain();
-			osc[i]= audioCtx.createOscillator();
-			osc[i].start();
-			osc[i].connect(gNode[i]).connect(audioCtx.destination);
-		}
-		var now = audioCtx.currentTime;
-		for (i=0;i<Params.nOsc;i++) {
-			osc[i].frequency.setValueAtTime(pitch*Params.F[i],now);
-			gNode[i].gain.setValueAtTime(DBToAmp(Params.Amp0[i]), now);
-			FinalAmp=DBToAmp(Params.Amp0[i]+Params.Slope[i]*8/duration);
-			gNode[i].gain.exponentialRampToValueAtTime(FinalAmp,now+8);
-			gNode[i].gain.linearRampToValueAtTime(0, now + 12);
-		}		
-	}
+// ── Preset cycling ────────────────────────────────────
+function loadPresetByDirection(dir) {
+  const filled = presets.map((p,i) => ({...p,idx:i})).filter(p => p.mins>0);
+  if (!filled.length) return;
+  const cur = filled.findIndex(p => p.idx === activePresetIdx);
+  const p = filled[(cur + dir + filled.length) % filled.length];
+  activePresetIdx = p.idx; exitUntilMode(); exitWatchMode(); fullReset(p.mins);
+  if (p.label) { customLabel = p.label; applyState(uiState); }
+  renderPresets(); showHint(p.label || p.mins+' min');
+}
 
-	/* touch gestures -------------------------------------------------*/
-	// based on https://stackoverflow.com/a/69617795
-	class TouchEvent {
-		static SWIPE_THRESHOLD = 50;
+// ── Main action ───────────────────────────────────────
+function doMainAction() {
+  if (watchMode) { toggleWatchMode(); return; }
+  if (uiState === 'next' || (uiState === 'until' && !running)) { startTimer(); return; }
+  if (uiState === 'ot' || (remaining < 0 && !running)) {
+    if (nextQueue.length) { loadNextTimer(); startTimer(); } else { fullReset(); }
+    return;
+  }
+  running ? pauseTimer() : startTimer();
+}
 
-		static SWIPE_LEFT   = 1;
-		static SWIPE_RIGHT  = 2;
-		static SWIPE_UP     = 3;
-		static SWIPE_DOWN   = 4;
+// ── Label edit ────────────────────────────────────────
+function startLabelEdit() {
+  if (editingLabel) return;
+  editingLabel = true; labelWrap.classList.add('editing');
+  labelEl.contentEditable = 'true'; labelEl.textContent = customLabel; labelEl.focus();
+  try { const sel = getSelection(), r = document.createRange(); r.selectNodeContents(labelEl); sel.removeAllRanges(); sel.addRange(r); } catch {}
+}
+function endLabelEdit() {
+  if (!editingLabel) return; editingLabel = false; labelWrap.classList.remove('editing');
+  labelEl.contentEditable = 'false'; customLabel = labelEl.textContent.trim();
+  sessionLabelEl.textContent = customLabel;
+  savePrefs(); applyState(uiState);
+}
 
-		constructor(startEvent, endEvent) {
-			this.startEvent = startEvent;
-			this.endEvent = endEvent || null;
-		}
+// ── Keyboard digit buffer ─────────────────────────────
+let keyBuf = '', keyBufTid = null;
+const clearKeyBuf = () => { keyBuf = ''; keyBufEl.textContent = ''; keyBufEl.classList.remove('show'); clearTimeout(keyBufTid); };
+function kbPushDigit(d) {
+  keyBuf = (keyBuf + d).slice(-3);
+  keyBufEl.textContent = keyBuf + '\u00a0min'; keyBufEl.classList.add('show');
+  clearTimeout(keyBufTid); keyBufTid = setTimeout(clearKeyBuf, 2500);
+}
+function kbCommit() {
+  const mins = parseInt(keyBuf, 10); clearKeyBuf(); if (isNaN(mins)||mins<=0) return;
+  const was = running; if (running) pauseTimer(); exitUntilMode();
+  totalSecs = mins*60; remaining = resumeVal = totalSecs; bellRecord = null;
+  renderDigits(remaining); if (was) startTimer();
+}
 
-		swipe_left()  { return this.swipe_direction() == TouchEvent.SWIPE_LEFT;  }
-		swipe_right() { return this.swipe_direction() == TouchEvent.SWIPE_RIGHT; }
-		swipe_up()    { return this.swipe_direction() == TouchEvent.SWIPE_UP;    }
-		swipe_down()  { return this.swipe_direction() == TouchEvent.SWIPE_DOWN;  }
+// ── Share URL ─────────────────────────────────────────
+function copyShareUrl() {
+  const p = new URLSearchParams();
+  p.set('mins', Math.max(1, Math.round(totalSecs/60)));
+  if (customLabel) p.set('label', customLabel);
+  if (nextQueue.length) {
+    const nextStr = nextQueue.map(e => e.label ? `${e.label}:${e.mins}` : e.mins).join(',');
+    p.set('next', nextStr);
+  }
+  p.set('theme', document.body.classList.contains('light') ? 'light' : 'dark');
+  p.set('sound', soundMode);
+  const url = `${location.origin}${location.pathname}?${p}`;
+  (navigator.clipboard?.writeText(url) ?? Promise.reject())
+    .then(() => showHint('URL copied'))
+    .catch(() => {
+      const inp = Object.assign(document.createElement('input'), {value:url});
+      document.body.append(inp); inp.select(); document.execCommand('copy'); inp.remove();
+      showHint('URL copied');
+    });
+}
 
-		swipe_direction() {
-			let start = this.startEvent.changedTouches[0];
-			let end = this.endEvent.changedTouches[0];
+// ── Modals ────────────────────────────────────────────
+const openModal  = id => $(id).classList.add('open');
+const closeModal = id => $(id).classList.remove('open');
+const isAnyModalOpen = () => !!document.querySelector('.modal-overlay.open');
+const wireBtn = (id, fn) => $(id)?.addEventListener('click', e => { e.stopPropagation(); fn(); });
+const backdropClose = (id, fn) => $(id).addEventListener('click', e => { if (e.target === $(id)) fn(); });
 
-			if (!start || !end) { return null; }
+// ── Queue modal ───────────────────────────────────────
+let queueEditRows = []; // working copy during modal session
+let dragSrcIdx = null;
 
-			let h_diff = start.screenX - end.screenX;
-			let v_diff = start.screenY - end.screenY;
+function buildQueueRow(entry, idx) {
+  const row = document.createElement('div');
+  row.className = 'qr-row';
+  row.draggable = true;
+  row.dataset.idx = idx;
 
-			if (Math.abs(h_diff) > Math.abs(v_diff)) {
-				if (h_diff >= TouchEvent.SWIPE_THRESHOLD) {
-					return TouchEvent.SWIPE_LEFT;
-				} else if (h_diff <= -TouchEvent.SWIPE_THRESHOLD) {
-					return TouchEvent.SWIPE_RIGHT;
-				}
-			} else {
-				if (v_diff >= TouchEvent.SWIPE_THRESHOLD) {
-					return TouchEvent.SWIPE_UP;
-				} else if (v_diff <= -TouchEvent.SWIPE_THRESHOLD) {
-					return TouchEvent.SWIPE_DOWN;
-				}
-			}
-			return null;
-		}
+  const handle = document.createElement('span');
+  handle.className = 'qr-handle'; handle.textContent = '⠿';
 
-		setEndEvent(endEvent) {
-			this.endEvent = endEvent;
-		}
-	}
+  const labelInp = document.createElement('input');
+  labelInp.type = 'text'; labelInp.className = 'modal-input qr-label';
+  labelInp.placeholder = 'Label'; labelInp.maxLength = 32;
+  labelInp.value = entry.label;
 
-	/* onload start --------------------------------------------------*/
-	window.onload=function() {
-		ticker_zero();
-		label_update();
+  const minsInp = document.createElement('input');
+  minsInp.type = 'number'; minsInp.className = 'modal-input qr-mins';
+  minsInp.placeholder = 'min'; minsInp.min = 1; minsInp.max = 999;
+  minsInp.value = entry.mins || '';
 
-		window.addEventListener('keydown', function(e) {
-			// console.log(document.activeElement) // DEBUG
-			// console.log(e.keyCode); // DEBUG
-			if (document.activeElement !== $('label')) {
-				// Enter (13) to start at 10 minutes, if not already paused
-				if (e.keyCode == 13) {
-					// but not when a button is focused?
-					if (!document.activeElement.classList.contains('btn')) {
-						ticker_start();
-					}
-				}
-				// Space (32) to start at 10 minutes or pause if already started
-				else if (e.keyCode == 32) { ticker_pause(); }
-				// Right (39) to subtract 1 minute
-				else if (e.keyCode == 39) { ticker_subtract(); }
-				// Left (37) to add 1 minute
-				else if (e.keyCode == 37) { ticker_add(); }
-				// Down (40) to subtract 5 minutes
-				else if (e.keyCode == 40) { ticker_subtract(5); }
-				// Up (38) to add 10 minutes
-				else if (e.keyCode == 38) { ticker_add(10); }
-				// ` (192) to ring bell
-				else if (e.keyCode == 192) { bell(); e.preventDefault(); }
-				// Delete (46) or Backspace (8) to focus label
-				else if (e.keyCode == 8 || e.keyCode == 46) {
-					$('label').contentEditable = true;
-					$('label').focus();
-					textselect($('label'));
-				}
-			} else {
-				// Enter (13) or Esc (27) to exit edit label
-				if (e.keyCode == 13 || e.keyCode == 27 ) {
-					$('label').blur();
-					$('label').contentEditable = false;
-				}
-			}
-			// PageUp (33) to fullscreen
-			if (e.keyCode == 33) { toggle_fullscreen(); }
-			// PageDown (34) toggle theme
-			else if (e.keyCode == 34) { toggle_theme(); }
-			// End (35) to reset
-			else if (e.keyCode == 35) { ticker_reset(); }
-			// Home (36) to toggle manual
-			else if (e.keyCode == 36) { toggle_manual(); }
-			// Esc (27) to exit info
-			else if (e.keyCode == 27) {
-				if ($('tools').contains(document.activeElement)) {
-					document.activeElement.blur(); // tab on the only tabindex element (visible) will not fire again after blur
-				} else if (!$('manual').classList.contains('hidden')) {
-					toggle_manual();
-				}
-			}
-			// Insert (45) to toggle sound
-			else if (e.keyCode == 45) { toggle_sound(); }
+  const del = document.createElement('button');
+  del.className = 'qr-del'; del.textContent = '×';
+  del.addEventListener('click', e => {
+    e.stopPropagation();
+    queueEditRows.splice(idx, 1);
+    rebuildQueueList();
+  });
 
-		});
+  // Drag events
+  row.addEventListener('dragstart', e => {
+    dragSrcIdx = idx;
+    row.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  });
+  row.addEventListener('dragend', () => row.classList.remove('dragging'));
+  row.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; row.classList.add('drag-over'); });
+  row.addEventListener('dragleave', () => row.classList.remove('drag-over'));
+  row.addEventListener('drop', e => {
+    e.preventDefault(); row.classList.remove('drag-over');
+    if (dragSrcIdx === null || dragSrcIdx === idx) return;
+    const moved = queueEditRows.splice(dragSrcIdx, 1)[0];
+    queueEditRows.splice(idx, 0, moved);
+    dragSrcIdx = null;
+    rebuildQueueList();
+  });
 
-		$('label').addEventListener('click', function (event) {
-			ticker_pause();
-			this.blur();
-		});
+  // Touch drag (pointer events)
+  let ptSrcY = 0, ptDragTid = null, ptActive = false;
+  row.addEventListener('pointerdown', e => {
+    if (e.target === del || e.target === labelInp || e.target === minsInp) return;
+    ptSrcY = e.clientY; ptActive = false;
+    ptDragTid = setTimeout(() => { ptActive = true; row.classList.add('dragging'); dragSrcIdx = idx; }, 300);
+  }, {passive:true});
+  row.addEventListener('pointermove', e => {
+    if (!ptActive) return;
+    const list = $('queue-list');
+    const rows = [...list.querySelectorAll('.qr-row')];
+    rows.forEach(r => r.classList.remove('drag-over'));
+    const target = rows.find(r => {
+      const b = r.getBoundingClientRect();
+      return e.clientY >= b.top && e.clientY <= b.bottom;
+    });
+    if (target) target.classList.add('drag-over');
+  });
+  row.addEventListener('pointerup', e => {
+    clearTimeout(ptDragTid);
+    if (!ptActive) { row.classList.remove('dragging'); return; }
+    ptActive = false; row.classList.remove('dragging');
+    const list = $('queue-list');
+    const rows = [...list.querySelectorAll('.qr-row')];
+    rows.forEach(r => r.classList.remove('drag-over'));
+    const target = rows.find(r => {
+      const b = r.getBoundingClientRect();
+      return e.clientY >= b.top && e.clientY <= b.bottom;
+    });
+    if (target && dragSrcIdx !== null) {
+      const destIdx = +target.dataset.idx;
+      if (destIdx !== dragSrcIdx) {
+        const moved = queueEditRows.splice(dragSrcIdx, 1)[0];
+        queueEditRows.splice(destIdx, 0, moved);
+      }
+    }
+    dragSrcIdx = null;
+    rebuildQueueList();
+  });
 
-		$('ticker').addEventListener('click', function (event) {
-			ticker_pause();
-		});
+  row.append(handle, labelInp, minsInp, del);
+  return row;
+}
 
-		window.addEventListener('click', function (event) {
-			if (event.detail === 2) {
-				toggle_fullscreen(window);
-			}
-		});
+function rebuildQueueList() {
+  const list = $('queue-list');
+  list.innerHTML = '';
+  queueEditRows.forEach((entry, i) => list.appendChild(buildQueueRow(entry, i)));
+}
 
-		let touchEvent = null;	
-		function gestures() {
-			if (!touchEvent) { return; }
+function collectQueueRows() {
+  return [...$('queue-list').querySelectorAll('.qr-row')].map(row => ({
+    label: row.querySelector('.qr-label').value.trim(),
+    mins:  Math.max(1, parseInt(row.querySelector('.qr-mins').value, 10) || 1),
+  }));
+}
 
-			touchEvent.setEndEvent(event);
+const openNextModal = () => {
+  $('queue-current-label').value = customLabel;
+  queueEditRows = nextQueue.map(e => ({...e}));
+  rebuildQueueList();
+  openModal('next-modal');
+  $('queue-current-label').focus();
+};
+const closeNextModal = () => closeModal('next-modal');
 
-			if (touchEvent.swipe_right())     { ticker_subtract(); }
-			else if (touchEvent.swipe_left()) { ticker_add(); }
-			else if (touchEvent.swipe_up())   { ticker_add(10); }
-			else if (touchEvent.swipe_down()) { ticker_subtract(5); }
+function nextCommit() {
+  customLabel = $('queue-current-label').value.trim();
+  nextQueue = collectQueueRows().filter(e => e.mins > 0);
+  closeNextModal(); savePrefs(); renderSessionQueue(); applyState(uiState);
+  showHint(customLabel || (nextQueue.length ? `next: ${nextQueue.map(e=>e.label||e.mins+'m').join(', ')}` : 'queue set'));
+}
 
-			touchEvent = null;
-		}
+wireBtn('queue-add', () => {
+  queueEditRows = collectQueueRows();
+  queueEditRows.push({label:'', mins:10});
+  rebuildQueueList();
+  // Focus the new row's label input
+  const rows = $('queue-list').querySelectorAll('.qr-label');
+  rows[rows.length-1]?.focus();
+});
+wireBtn('next-set', nextCommit);
+wireBtn('next-cancel', closeNextModal);
+$('queue-current-label').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); nextCommit(); }
+  if (e.key === 'Escape') { e.preventDefault(); closeNextModal(); }
+});
+backdropClose('next-modal', closeNextModal);
 
-		window.addEventListener('touchstart', (event) => {
-			if ($('manual').classList.contains('hidden')) {
-				touchEvent = new TouchEvent(event);
-			}
-		});
+// ── Until modal ───────────────────────────────────────
+const untilHour = $('until-hour'), untilMin = $('until-min');
+const nextUntilMs = (h,m) => { const t=new Date(); t.setHours(h,m,0,0); if(t<=new Date()) t.setDate(t.getDate()+1); return t.getTime(); };
+function getUntilHM() {
+  const h = parseInt(untilHour.value, 10), m = parseInt(untilMin.value, 10);
+  return (isNaN(h)||isNaN(m)) ? null : [Math.min(23,Math.max(0,h)), Math.min(59,Math.max(0,m))];
+}
+function updateUntilPreview() {
+  const el = $('until-preview'), hm = getUntilHM();
+  if (!hm) { el.textContent = '\u2014'; el.classList.add('dim'); return; }
+  const [h,m] = hm;
+  el.textContent = `${fmt(Math.round((nextUntilMs(h,m)-Date.now())/1000))} > ${pad(h)}:${pad(m)}`;
+  el.classList.remove('dim');
+}
+function openUntilModal() {
+  let h, m;
+  if (untilTarget) {
+    const d = new Date(untilTarget); h = d.getHours(); m = d.getMinutes();
+  } else {
+    // Default to next solid half-hour (:00 or :30)
+    const now = new Date();
+    const totalMins = now.getHours() * 60 + now.getMinutes() + 1; // +1 so current :00/:30 counts as past
+    const nextHalf = Math.ceil(totalMins / 30) * 30;
+    h = Math.floor(nextHalf / 60) % 24; m = nextHalf % 60;
+  }
+  untilHour.value = h; untilMin.value = m;
+  updateUntilPreview(); openModal('until-modal'); untilHour.focus(); untilHour.select();
+}
+const closeUntilModal = () => closeModal('until-modal');
+function untilCommit() {
+  const hm = getUntilHM(); if (!hm) { closeUntilModal(); return; }
+  const [h,m] = hm; closeUntilModal();
+  enterUntilMode(nextUntilMs(h,m), `\u25B6 ${pad(h)}:${pad(m)}`);
+}
+const untilClear = () => { closeUntilModal(); exitUntilMode(); running=false; applyState('idle'); showHint('until cleared'); };
+[untilHour, untilMin].forEach(inp => {
+  inp.addEventListener('input', updateUntilPreview);
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter')  { e.preventDefault(); untilCommit(); }
+    if (e.key === 'Escape') { e.preventDefault(); closeUntilModal(); }
+  });
+});
+// Tab from hour → min
+untilHour.addEventListener('keydown', e => { if (e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); untilMin.focus(); untilMin.select(); } });
+wireBtn('until-set', untilCommit); wireBtn('until-cancel', closeUntilModal); wireBtn('until-clear', untilClear);
+backdropClose('until-modal', closeUntilModal);
 
-		window.addEventListener('touchend', gestures);
+// ── Preset modal ──────────────────────────────────────
+let presetEditIdx = -1;
+function openPresetModal(idx) {
+  presetEditIdx = idx;
+  $('preset-label-input').value = presets[idx].label ?? '';
+  $('preset-mins-input').value  = presets[idx].mins || '';
+  openModal('preset-modal'); $('preset-label-input').focus();
+}
+const closePresetModal = () => { closeModal('preset-modal'); presetEditIdx = -1; };
+function presetSave() {
+  const label=$('preset-label-input').value.trim(), mins=parseInt($('preset-mins-input').value,10);
+  if (isNaN(mins)||mins<=0) { closePresetModal(); return; }
+  presets[presetEditIdx]={label,mins}; closePresetModal(); savePrefs(); renderPresets(); showHint('preset saved');
+}
+function presetDelete() {
+  presets[presetEditIdx]={label:'',mins:0};
+  if (activePresetIdx===presetEditIdx) activePresetIdx=-1;
+  closePresetModal(); savePrefs(); renderPresets(); showHint('preset deleted');
+}
+wireBtn('preset-save', presetSave); wireBtn('preset-cancel', closePresetModal); wireBtn('preset-delete', presetDelete);
+backdropClose('preset-modal', closePresetModal);
+$('preset-label-input').addEventListener('keydown', e => {
+  if (e.key==='Enter')  { e.preventDefault(); $('preset-mins-input').focus(); }
+  if (e.key==='Escape') { e.preventDefault(); closePresetModal(); }
+});
+$('preset-mins-input').addEventListener('keydown', e => {
+  if (e.key==='Enter')  { e.preventDefault(); presetSave(); }
+  if (e.key==='Escape') { e.preventDefault(); closePresetModal(); }
+});
 
-		function scrollwheel(e) {
-			if ($('manual').classList.contains('hidden')) {
-				if (e.deltaY > 0) {
-					ticker_subtract(1);
-				} else {
-					ticker_add(1);
-				}
-			}
-		}
-		window.addEventListener('wheel', scrollwheel);
-	} // end onload
+// ── Manual ────────────────────────────────────────────
+const openManual   = () => { manual.classList.add('open'); manual.scrollTop=0; };
+const closeManual  = () => manual.classList.remove('open');
+const isManualOpen = () => manual.classList.contains('open');
+
+// ── Kiosk / Fullscreen ────────────────────────────────
+const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+const fsEl    = () => document.fullscreenElement ?? document.webkitFullscreenElement ?? null;
+const fsEnter = el => (el.requestFullscreen ?? el.webkitRequestFullscreen)?.call(el)?.catch(()=>{});
+const fsLeave = ()  => fsEl() && (document.exitFullscreen ?? document.webkitExitFullscreen)?.call(document)?.catch(()=>{});
+
+const onFsChange = () => {
+  if (fsEl()) navigator.wakeLock?.request('screen').then(wl => { wakeLock=wl; }).catch(()=>{});
+  else { wakeLock?.release(); wakeLock=null; }
+};
+document.addEventListener('fullscreenchange',       onFsChange);
+document.addEventListener('webkitfullscreenchange', onFsChange);
+
+function enterKiosk() {
+  kioskMode = true;
+  document.body.classList.add('kiosk');
+  if (!isIOS) fsEnter(document.documentElement);
+  $('btn-fullscreen').textContent = 'exit';
+}
+function exitKiosk() {
+  kioskMode = false;
+  document.body.classList.remove('kiosk');
+  if (fsEl()) fsLeave();
+  $('btn-fullscreen').textContent = 'kiosk';
+}
+const toggleKiosk = () => kioskMode ? exitKiosk() : enterKiosk();
+
+// ── Theme & Sound ─────────────────────────────────────
+const toggleTheme = () => { document.body.classList.toggle('light'); savePrefs(); showHint(document.body.classList.contains('light') ? 'light' : 'dark'); };
+
+const SOUND_LABELS = ['sound: off','sound: end','sound: min'];
+const updateSoundBtn = () => { btnSound.textContent=SOUND_LABELS[soundMode]; btnSound.classList.toggle('sound-on', soundMode>0); };
+updateSoundBtn();
+function cycleSoundMode() {
+  soundMode = (soundMode+1)%3; updateSoundBtn(); savePrefs();
+  showHint(['SOUND: OFF','SOUND: END','SOUND: MIN'][soundMode]);
+  const preview = soundMode===0 ? playDampBell : [null,playOTBell,playMinBell][soundMode];
+  const ctx = getCtx(), fire = () => { try { preview(); } catch {} };
+  ctx.state==='running' ? fire() : ctx.resume().then(fire).catch(()=>{});
+}
+
+// ── UI helpers ────────────────────────────────────────
+let hintTid, swipeTid;
+const showHint  = msg => { statusHint.textContent=msg; statusHint.classList.add('show'); clearTimeout(hintTid); hintTid=setTimeout(()=>statusHint.classList.remove('show'),1800); };
+const showSwipe = icon => { swipeEl.textContent=icon; swipeEl.classList.add('show'); clearTimeout(swipeTid); swipeTid=setTimeout(()=>swipeEl.classList.remove('show'),700); };
+
+// ── Touch ─────────────────────────────────────────────
+const isUIChrome = el => !!(el.closest('#toolbar')||el.closest('#top-bar')||el.closest('#manual')||el.closest('.modal-overlay')||el.closest('#btn-menu')||el.closest('#btn-tick')||el.closest('#menu-backdrop'));
+
+document.addEventListener('touchstart', e => {
+  isTouching = true;
+  if (!hasTouched) { hasTouched=true; if (['idle','reset'].includes(uiState)) applyState(uiState); }
+  try { audioCtx?.resume().catch(()=>{}); } catch {}
+  if (isUIChrome(e.target)) return;
+  touchX0=e.touches[0].clientX; touchY0=e.touches[0].clientY; touchT0=Date.now();
+  if (toolbar.classList.contains('visible')) { hideToolbar(); return; }
+}, {passive:true});
+
+document.addEventListener('touchend', e => {
+  // Reset isTouching after the synthetic mouse-click window (~300 ms) so real
+  // mouse users on hybrid devices aren't locked out permanently.
+  setTimeout(() => { isTouching = false; }, 400);
+  if (isUIChrome(e.target)) return;
+  e.preventDefault();
+  const x=e.changedTouches[0].clientX, y=e.changedTouches[0].clientY;
+  const dx=x-touchX0, dy=y-touchY0, dt=Date.now()-touchT0;
+  if (Math.abs(dx)<22 && Math.abs(dy)<22 && dt<450) {
+    const now=Date.now();
+    if (now-lastTapT<380) { lastTapT=0; toggleKiosk(); return; }
+    lastTapT=now; setTimeout(()=>{ if(lastTapT!==now) return; doMainAction(); }, 280);
+    return;
+  }
+  if (!running||dt>700||untilTarget) return;
+  const ax=Math.abs(dx), ay=Math.abs(dy);
+  if (ay>ax&&ay>30)      dy<0 ? (adjustMinutes(10),showSwipe('\uD83D\uDC46')) : (adjustMinutes(-5),showSwipe('\uD83D\uDC47'));
+  else if (ax>ay&&ax>30) dx<0 ? (adjustMinutes(1), showSwipe('\uD83D\uDC48')) : (adjustMinutes(-1),showSwipe('\uD83D\uDC49'));
+}, {passive:false});
+
+// ── Mouse ─────────────────────────────────────────────
+const isStageTarget = e => !isTouching && !editingLabel && !isUIChrome(e.target);
+let clickTid=null;
+app.addEventListener('click', e => {
+  if (!isStageTarget(e)) return;
+  if (toolbar.classList.contains('visible')) { hideToolbar(); return; }
+  clearTimeout(clickTid);
+  running ? (clickTid=setTimeout(doMainAction,160)) : doMainAction();
+});
+document.addEventListener('wheel', e => { e.preventDefault(); if (!running||untilTarget) return; adjustMinutes(e.deltaY<0?1:-1); }, {passive:false});
+
+// ── Keyboard ──────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (isAnyModalOpen()) { if (e.key==='Escape') { e.preventDefault(); document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open')); } return; }
+  if (editingLabel) { if (e.key==='Enter'||e.key==='Escape') { e.preventDefault(); endLabelEdit(); } return; }
+  if (isManualOpen()) { if (e.key==='Escape') { e.preventDefault(); closeManual(); } return; }
+  if (e.ctrlKey||e.metaKey) {
+    if (e.key==='Enter')                         { e.preventDefault(); if(nextQueue.length){running=false;loadNextTimer();} return; }
+    if (e.key==='ArrowUp')                       { e.preventDefault(); loadPresetByDirection(-1); return; }
+    if (e.key==='ArrowDown'||e.key==='PageDown') { e.preventDefault(); loadPresetByDirection(1);  return; }
+    return;
+  }
+  if (/^[nN]$/.test(e.key)&&!e.altKey) { e.preventDefault(); openNextModal();  return; }
+  if (/^[uU]$/.test(e.key)&&!e.altKey) { e.preventDefault(); openUntilModal(); return; }
+  if (/^[wW]$/.test(e.key)&&!e.altKey) { e.preventDefault(); openWarnModal();  return; }
+  if (/^[0-9]$/.test(e.key)&&!e.altKey){ e.preventDefault(); kbPushDigit(e.key); return; }
+  switch(e.key) {
+    case 'Enter':     e.preventDefault(); keyBuf ? kbCommit() : (fullReset(DEFAULT_MINS),startTimer()); break;
+    case ' ':         e.preventDefault(); clearKeyBuf(); remaining<0 ? (fullReset(DEFAULT_MINS),startTimer()) : running ? pauseTimer() : startTimer(); break;
+    case 'Escape':    clearKeyBuf();
+      if (toolbar.classList.contains('visible')) { hideToolbar(); break; }
+      untilTarget ? (exitUntilMode(),running=false,applyState('idle')) : watchMode ? exitWatchMode() : kioskMode ? exitKiosk() : fsEl()&&fsLeave(); break;
+    case 'ArrowUp':   e.preventDefault(); adjustMinutes(10);  break;
+    case 'ArrowDown': e.preventDefault(); adjustMinutes(-5);  break;
+    case 'ArrowLeft': e.preventDefault(); adjustMinutes(1);   break;
+    case 'ArrowRight':e.preventDefault(); adjustMinutes(-1);  break;
+    case 'PageUp':    e.preventDefault(); toggleKiosk(); break;
+    case 'PageDown':  e.preventDefault(); toggleTheme();      break;
+    case 'End':       e.preventDefault(); clearKeyBuf(); fullReset(); break;
+    case 'Insert':    e.preventDefault(); cycleSoundMode(); break;
+    case '`':         e.preventDefault(); playOTBell(); break;
+    case 'Delete': case 'Backspace': e.preventDefault(); clearKeyBuf(); startLabelEdit(); break;
+    case 'Tab':       e.preventDefault(); btnMenu.focus(); showToolbar(); break;
+    case 'Home':      e.preventDefault(); clearKeyBuf(); isManualOpen() ? closeManual() : openManual(); break;
+  }
+});
+
+// ── Toolbar buttons ───────────────────────────────────
+function tbBtn(id, fn, longFn) {
+  const el=$(id); if (!el) return;
+  el.addEventListener('touchstart', e=>e.stopPropagation(), {passive:true});
+  el.addEventListener('click', e => { e.stopPropagation(); fn(); });
+  if (!longFn) return;
+  let tid=null, fired=false;
+  const start  = () => { fired=false; tid=setTimeout(()=>{tid=null;fired=true;longFn();},800); };
+  const cancel = () => { clearTimeout(tid); tid=null; };
+  el.addEventListener('mousedown',  start); el.addEventListener('mouseup',    cancel);
+  el.addEventListener('mouseleave', cancel); el.addEventListener('touchstart', start, {passive:true});
+  el.addEventListener('touchend',   cancel, {passive:true});
+  el.addEventListener('click', e => { if(fired){fired=false;e.stopImmediatePropagation();} });
+}
+
+tbBtn('btn-next',         openNextModal);
+tbBtn('btn-until-open',   openUntilModal);
+tbBtn('btn-until-active', openUntilModal);
+tbBtn('btn-reset',        ()=>fullReset(), ()=>{ showHint('full reset'); setTimeout(hardReset,600); });
+tbBtn('btn-share',        copyShareUrl);
+tbBtn('btn-fullscreen',   toggleKiosk);
+tbBtn('btn-theme',        toggleTheme);
+tbBtn('btn-warn',         openWarnModal);
+tbBtn('btn-sound',        cycleSoundMode);
+tbBtn('btn-clock-watch',  toggleWatchMode);
+
+// Double-click on app also toggles kiosk (mouse equivalent of double-tap)
+app.addEventListener('dblclick', e => { if (!isUIChrome(e.target)) toggleKiosk(); });
+
+;(()=>{
+  const el=$('btn-sound'); let tid=null, fired=false;
+  const start  = ()=>{fired=false;tid=setTimeout(()=>{tid=null;fired=true;playOTBell();},600);};
+  const cancel = ()=>{clearTimeout(tid);tid=null;};
+  el.addEventListener('touchstart',start,{passive:true}); el.addEventListener('mousedown',start);
+  el.addEventListener('touchend',cancel,{passive:true});  el.addEventListener('mouseup',cancel);
+  el.addEventListener('mouseleave',cancel);
+  el.addEventListener('click',e=>{if(fired){fired=false;e.stopImmediatePropagation();}});
+})();
+
+toolbar.addEventListener('click',      e=>e.stopPropagation());
+toolbar.addEventListener('touchstart', e=>e.stopPropagation(), {passive:true});
+
+// btn-tick wired in showToolbar section above
+tbBtn('btn-remote', openRemoteModal);
+$('manual-close').addEventListener('click', closeManual);
+$('manual-close').addEventListener('touchend', e=>{e.preventDefault();closeManual();}, {passive:false});
+$('manual-close-float').addEventListener('click', e=>{e.stopPropagation();closeManual();});
+manual.addEventListener('click', e=>{ if(e.target===manual) closeManual(); });
+
+// ── Warn modal ────────────────────────────────────────
+function openWarnModal() {
+  $('warn1-input').value = warnSecs1;
+  $('warn2-input').value = warnSecs2;
+  openModal('warn-modal');
+  $('warn1-input').focus();
+}
+function saveWarnModal() {
+  const v1 = parseInt($('warn1-input').value) || 0;
+  const v2 = parseInt($('warn2-input').value) || 0;
+  warnSecs1 = Math.max(0, Math.min(7200, v1));
+  warnSecs2 = Math.max(0, Math.min(7200, v2));
+  savePrefs();
+  closeModal('warn-modal');
+  showHint('WARN SAVED');
+}
+wireBtn('warn-save',   saveWarnModal);
+wireBtn('warn-cancel', () => closeModal('warn-modal'));
+backdropClose('warn-modal', () => closeModal('warn-modal'));
+['warn1-input','warn2-input'].forEach(id => {
+  $(id).addEventListener('keydown', e => {
+    if (e.key === 'Enter')  { e.preventDefault(); saveWarnModal(); }
+    if (e.key === 'Escape') { e.preventDefault(); closeModal('warn-modal'); }
+  });
+});
+
+// ── Haptic on remote pad ──────────────────────────────
+// Applied after remote pad is created (in connectRemote)
+const haptic = () => { try { navigator.vibrate?.(50); } catch {} };
+
+// ── REMOTE CONTROL ────────────────────────────────────
+// Two transports in priority order:
+//   1. WebRTC via PeerJS  — works cross-computer / cross-network
+//   2. BroadcastChannel   — same-browser fallback (no network needed)
+//
+// Roles:
+//   HOST  — the timer page; accepts commands, broadcasts state
+//   REMOTE— opened with ?rc=CODE; shows control pad, sends commands
+
+const RC_PARAM  = usp.get('rc');         // present → remote pad mode
+const IS_REMOTE = !!RC_PARAM;
+
+// ── QR code — online only (uses external API) ─────────────────────
+function renderQR(rcUrl) {
+  const qrEl  = $('remote-qr');
+  const urlEl = $('remote-url-text');
+  urlEl.textContent = rcUrl;
+  if (navigator.onLine) {
+    qrEl.style.display  = ''; urlEl.style.display = 'none'; qrEl.innerHTML = '';
+    const img = document.createElement('img');
+    img.width = 160; img.height = 160; img.alt = 'QR';
+    img.style.cssText = 'image-rendering:pixelated;border:4px solid #fff;display:block';
+    img.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(rcUrl)}`;
+    img.onerror = () => { qrEl.style.display='none'; urlEl.style.display=''; };
+    qrEl.appendChild(img);
+  } else {
+    qrEl.style.display = 'none'; urlEl.style.display = '';
+  }
+}
+
+// ── Generate a short room code ─────────────────────────────────────
+function makeCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s = ''; for (let i=0; i<6; i++) s += chars[Math.floor(Math.random()*chars.length)];
+  return s;
+}
+
+// ── State snapshot sent host→remote ───────────────────────────────
+function stateSnap() {
+  return { type:'state', uiState, remaining, totalSecs, customLabel, running, nextQueue: nextQueue.slice() };
+}
+
+// ── Remote transport abstraction ───────────────────────────────────
+// Both transports expose the same interface:
+//   .send(msg)     — send to peer(s)
+//   .onmessage     — callback(msg)
+//   .connected     — bool
+//   .close()
+
+let remoteTransport = null;   // active transport on host
+let rcHostCode = '';          // code host is advertising
+
+// ── BroadcastChannel transport ─────────────────────────────────────
+function makeBCTransport(code, isRemote) {
+  const ch = new BroadcastChannel('tick-rc-' + code);
+  const t = { connected: false, onmessage: null,
+    send(msg) { try { ch.postMessage(msg); } catch {} },
+    close() { ch.close(); }
+  };
+  ch.onmessage = e => {
+    const msg = e.data;
+    if (!t.connected && (msg.type === 'hello' || msg.type === 'state')) {
+      t.connected = true;
+    }
+    t.onmessage?.(msg);
+  };
+  // Remote sends hello to trigger state push
+  if (isRemote) setTimeout(() => t.send({type:'hello'}), 100);
+  return t;
+}
+
+// ── PeerJS WebRTC transport ────────────────────────────────────────
+function makePeerTransport(code, isRemote, onReady, onFail) {
+  const script = document.createElement('script');
+  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js';
+  script.onerror = () => onFail('PeerJS load failed');
+  script.onload = () => {
+    try {
+      const peerId = isRemote ? undefined : ('tick-' + code);
+      const peer   = new Peer(isRemote ? undefined : peerId, {
+        config: { iceServers: [{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}] }
+      });
+      const t = { connected: false, onmessage: null, _conns: [],
+        send(msg) { t._conns.forEach(c => { try { c.send(msg); } catch {} }); },
+        close() { peer.destroy(); }
+      };
+      const wireConn = conn => {
+        conn.on('open', () => { t._conns.push(conn); t.connected = true; t.onmessage?.({type:'_peerOpen'}); });
+        conn.on('data', msg => { t.onmessage?.(msg); });
+        conn.on('close', () => { t._conns = t._conns.filter(c=>c!==conn); t.connected = t._conns.length > 0; });
+      };
+      if (isRemote) {
+        peer.on('open', () => { const conn = peer.connect('tick-' + code, {reliable:true}); wireConn(conn); });
+      } else {
+        peer.on('connection', wireConn);
+      }
+      peer.on('error', e => { if (!t.connected) onFail(String(e)); });
+      peer.on('open', () => onReady(t));
+    } catch(e) { onFail(String(e)); }
+  };
+  document.head.appendChild(script);
+}
+
+// ── HOST SIDE ──────────────────────────────────────────────────────
+function broadcastState() {
+  remoteTransport?.send(stateSnap());
+}
+
+function openRemoteModal() {
+  if (IS_REMOTE) return;
+  if (!rcHostCode) rcHostCode = makeCode();
+  const rcUrl = `${location.origin}${location.pathname}?rc=${rcHostCode}`;
+
+  $('remote-code-display').textContent = rcHostCode;
+  renderQR(rcUrl);
+
+  // Re-render QR on connectivity change while modal is open
+  const onNet = () => renderQR(rcUrl);
+  window.addEventListener('online',  onNet);
+  window.addEventListener('offline', onNet);
+  const cleanupNet = () => {
+    window.removeEventListener('online',  onNet);
+    window.removeEventListener('offline', onNet);
+  };
+  $('remote-modal')._cleanupNet = cleanupNet;
+
+  updateRemoteStatus('waiting');
+  openModal('remote-modal');
+  startHostTransports();
+}
+
+function updateRemoteStatus(state, extra) {
+  const el = $('remote-status');
+  el.className = state === 'connected' ? 'connected' : '';
+  el.textContent = {
+    waiting: 'waiting for remote\u2026',
+    connected: '\u2713 remote connected',
+    error: 'connection error \u2014 ' + (extra||''),
+  }[state] ?? state;
+}
+
+function startHostTransports() {
+  if (remoteTransport) return; // already running
+
+  // BroadcastChannel — assign immediately so hello messages get answered
+  const bc = makeBCTransport(rcHostCode, false);
+  bc.onmessage = msg => handleHostMessage(msg, bc);
+  remoteTransport = { send(m){bc.send(m);}, close(){bc.close();} };
+
+  // PeerJS (WebRTC) — cross-computer; upgrades to composite when peer connects
+  makePeerTransport(rcHostCode, false,
+    t => {
+      t.onmessage = msg => handleHostMessage(msg, t);
+      remoteTransport = {
+        send(m) { bc.send(m); t.send(m); },
+        close() { bc.close(); t.close(); },
+      };
+    },
+    _err => { /* PeerJS unavailable — BC-only mode continues */ }
+  );
+}
+
+function handleHostMessage(msg, _transport) {
+  if (msg.type === 'hello' || msg.type === '_peerOpen') {
+    updateRemoteStatus('connected');
+    remoteTransport?.send(stateSnap());
+    return;
+  }
+  if (msg.type === 'cmd') {
+    execRemoteCmd(msg.cmd);
+    setTimeout(() => remoteTransport?.send(stateSnap()), 50);
+  }
+  if (msg.type === 'opMsg') {
+    showOpMsg(msg.text);
+  }
+}
+
+function execRemoteCmd(cmd) {
+  if (cmd === 'start') { if (!running) doMainAction(); return; }
+  if (cmd === 'pause') { if (running) pauseTimer(); return; }
+  if (cmd === 'reset') { fullReset(); return; }
+  if (cmd === 'bell')  { playOTBell(); return; }
+  if (cmd === 'next')  { if (nextQueue.length) { running=false; loadNextTimer(); } return; }
+  if (cmd.startsWith('adj:')) { adjustMinutes(parseInt(cmd.slice(4))); return; }
+  if (cmd.startsWith('setQueue:')) {
+    const raw = cmd.slice(9);
+    // Format: "Current Title|Slot1:25,Slot2:10" — pipe separates current label from queue
+    const pipe = raw.indexOf('|');
+    if (pipe >= 0) {
+      customLabel = raw.slice(0, pipe).trim();
+      nextQueue = parseNextStr(raw.slice(pipe + 1));
+    } else {
+      nextQueue = parseNextStr(raw);
+    }
+    savePrefs(); renderSessionQueue(); applyState(uiState);
+    return;
+  }
+}
+
+function stopRemote() {
+  $('remote-modal')._cleanupNet?.();
+  remoteTransport?.close(); remoteTransport = null; rcHostCode = '';
+  closeModal('remote-modal');
+}
+
+// ── Operator message ───────────────────────────────────────────────
+let opMsgTid = null;
+function showOpMsg(text) {
+  const el = $('op-msg-overlay');
+  clearTimeout(opMsgTid);
+  if (!text) { el.classList.remove('show'); return; }
+  $('op-msg-box').textContent = text;
+  el.classList.add('show');
+  opMsgTid = setTimeout(() => el.classList.remove('show'), 6000);
+}
+function sendOpMsg(text) {
+  remoteTransport?.send({type:'opMsg', text: text.trim()});
+  if (text.trim()) showOpMsg(text.trim()); // also show locally? No — host sends to remote only
+}
+
+wireBtn('op-msg-send', () => {
+  const inp = $('op-msg-input');
+  const text = inp.value.trim();
+  if (!text) return;
+  remoteTransport?.send({type:'opMsg', text});
+  inp.value = '';
+  inp.focus();
+  showHint('MSG SENT');
+});
+wireBtn('op-msg-clear', () => {
+  $('op-msg-input').value = '';
+  remoteTransport?.send({type:'opMsg', text:''});
+});
+$('op-msg-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); $('op-msg-send').click(); }
+});
+
+wireBtn('remote-stop',        stopRemote);
+wireBtn('remote-modal-close', () => closeModal('remote-modal'));
+wireBtn('remote-open-tab',    () => window.open(`${location.origin}${location.pathname}?rc=${rcHostCode}`, '_blank'));
+wireBtn('remote-copy-url',    () => {
+  const url = `${location.origin}${location.pathname}?rc=${rcHostCode}`;
+  (navigator.clipboard?.writeText(url) ?? Promise.reject())
+    .then(() => showHint('Remote URL copied'))
+    .catch(() => {
+      const inp = Object.assign(document.createElement('input'),{value:url});
+      document.body.append(inp); inp.select(); document.execCommand('copy'); inp.remove();
+      showHint('Remote URL copied');
+    });
+});
+backdropClose('remote-modal', () => closeModal('remote-modal'));
+
+// Wrap renderDigits to broadcast state on each tick (throttled ~2/s)
+const _origRenderDigits = renderDigits;
+renderDigits = rem => {
+  _origRenderDigits(rem);
+  if (!renderDigits._throttle) {
+    renderDigits._throttle = setTimeout(() => { renderDigits._throttle = null; broadcastState(); }, 500);
+  }
+};
+
+// ── REMOTE PAD SIDE ────────────────────────────────────────────────
+if (IS_REMOTE) {
+  $('remote-pad').classList.add('open');
+  // Hide main UI
+  app.style.display         = 'none';
+  toolbar.style.display     = 'none';
+  $('top-bar').style.display = 'none';
+
+  const statusBar  = $('remote-status-bar');
+  const stateDisp  = $('remote-state-display');
+  const labelDisp  = $('remote-label-display');
+
+  const STATE_COLORS = {
+    idle:'var(--c-idle)',run:'var(--c-run)',warn:'var(--c-warn)',warn2:'var(--c-warn)',
+    pause:'var(--c-pause)',ot:'var(--c-ot)',reset:'var(--c-reset)',
+    next:'var(--c-next)',until:'var(--c-until)',watch:'var(--c-watch)'
+  };
+
+  function rcApplyState(snap) {
+    stateDisp.textContent = fmt(snap.remaining);
+    stateDisp.style.color = STATE_COLORS[snap.uiState] ?? 'var(--c-fg)';
+    labelDisp.textContent = snap.customLabel || snap.uiState.toUpperCase();
+    // Show queue on remote pad
+    const qd = $('rc-queue-display');
+    if (qd && snap.nextQueue?.length) {
+      qd.textContent = snap.nextQueue.map(e => e.label || fmt(e.mins*60)).join(' › ');
+    } else if (qd) { qd.textContent = ''; }
+    // Highlight action buttons based on state
+    document.querySelectorAll('.rc-btn[data-rc="start"]').forEach(b => {
+      b.className = b.className.replace(/hi-\w+/,'') + ' hi-' + (snap.running ? 'run' : 'start');
+    });
+  }
+
+  function rcSetStatus(s, msg) {
+    statusBar.textContent = msg;
+    statusBar.className   = s === 'conn' ? 'conn' : s === 'err' ? 'err' : '';
+  }
+
+  let rcOpMsgTid = null;
+  function rcShowOpMsg(text) {
+    const el = $('op-msg-overlay');
+    clearTimeout(rcOpMsgTid);
+    if (!text) { el.classList.remove('show'); return; }
+    $('op-msg-box').textContent = text;
+    el.classList.add('show');
+    rcOpMsgTid = setTimeout(() => el.classList.remove('show'), 6000);
+  }
+
+  let rcTransport = null;
+
+  function sendCmd(cmd) {
+    rcTransport?.send({type:'cmd', cmd});
+  }
+
+  document.querySelectorAll('.rc-btn[data-rc]').forEach(btn => {
+    btn.addEventListener('click', () => { haptic(); sendCmd(btn.dataset.rc); });
+  });
+
+  // Queue edit from remote
+  const rcQueueSend = $('rc-queue-send'), rcQueueInput = $('rc-queue-input');
+  if (rcQueueSend && rcQueueInput) {
+    const sendQueue = () => {
+      const raw = rcQueueInput.value.trim(); if (!raw) return;
+      haptic(); sendCmd('setQueue:' + raw); rcQueueInput.value = '';
+      showHint('QUEUE SENT');
+    };
+    rcQueueSend.addEventListener('click', sendQueue);
+    rcQueueInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendQueue(); } });
+  }
+
+  function connectRemote() {
+    const code = RC_PARAM.toUpperCase();
+    rcSetStatus('', 'connecting\u2026');
+
+    // Start BC immediately (same-browser)
+    const bc = makeBCTransport(code, true);
+    bc.onmessage = msg => {
+      if (msg.type === 'state')  { rcSetStatus('conn', '\u2713 connected (local)'); rcApplyState(msg); }
+      if (msg.type === 'opMsg') { rcShowOpMsg(msg.text); }
+    };
+
+    // Try PeerJS for cross-computer
+    makePeerTransport(code, true,
+      t => {
+        t.onmessage = msg => {
+          if (msg.type === 'state')    { rcSetStatus('conn', '\u2713 connected'); rcApplyState(msg); }
+          if (msg.type === '_peerOpen'){ rcSetStatus('conn', '\u2713 connected'); }
+          if (msg.type === 'opMsg')   { rcShowOpMsg(msg.text); }
+        };
+        // Prefer WebRTC when available; BC is still active as backup
+        const old = rcTransport;
+        rcTransport = {
+          send(msg) { t.send(msg); bc.send(msg); },
+          close() { t.close(); bc.close(); }
+        };
+        old?.close();
+        t.send({type:'hello'});
+      },
+      err => {
+        // PeerJS failed — stick with BC only
+        if (!rcTransport) rcSetStatus('', 'local mode (same browser)');
+      }
+    );
+
+    // Start with BC as default transport
+    rcTransport = { send(msg){bc.send(msg);}, close(){bc.close();} };
+    setTimeout(() => { if (!rcTransport) rcSetStatus('err','no connection'); }, 8000);
+  }
+
+  connectRemote();
+}
+
+// ── Service worker (offline / PWA) ───────────────────────────────────
+// Registers an inline SW via blob URL. Works when served over HTTPS;
+// silently skipped on file:// (which is fine — the file is already self-contained).
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  const swSrc = `
+    const CACHE = 'tick-v1';
+    self.addEventListener('install', e => {
+      self.skipWaiting();
+      e.waitUntil(caches.open(CACHE).then(c => c.add('.')));
+    });
+    self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
+    self.addEventListener('fetch', e => {
+      if (e.request.method !== 'GET') return;
+      e.respondWith(caches.open(CACHE).then(cache =>
+        cache.match(e.request).then(cached => {
+          const net = fetch(e.request).then(res => {
+            if (res.ok) cache.put(e.request, res.clone());
+            return res;
+          }).catch(() => cached);
+          return cached ?? net;
+        })
+      ));
+    });
+  `;
+  try {
+    const blob = new Blob([swSrc], {type: 'text/javascript'});
+    navigator.serviceWorker.register(URL.createObjectURL(blob), {scope: '/'})
+      .catch(() => {}); // silently ignore scope/security errors
+  } catch {}
+}
+
+// ── Init ──────────────────────────────────────────────
+sessionQueue.addEventListener('click', e => { if (!isUIChrome(e.target)) openNextModal(); });
+renderPresets(); renderSessionQueue(); renderUntilBtn(); applyState('idle'); showToolbar(); renderDigits(remaining);
+}
 </script>
 </body>
-
 </html>
