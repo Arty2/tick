@@ -3,7 +3,7 @@
 // Loaded by main.js instead of timer.js.
 import { $, pad, fmt, nextUntilMs, codeParam, remoteUrl, kioskUrl, go, copyText, haptic,
   openModal, closeModal, wireBtn, backdropClose, CODE_RE } from './util.js';
-import { parseQueue, queueStr, entryTime } from './queue.js';
+import { parseQueue, queueStr, queueRow } from './queue.js';
 import { clientLink, LOST_MS } from './transport.js';
 import { qrSvg } from './qr.js';
 
@@ -18,7 +18,7 @@ $('toolbar').style.display = 'none';
 // moved into the pad under its status bar. The clock is this device's; the
 // elapsed time is the kiosk's, from its snapshots.
 const topBar = $('top-bar'), sessionEl = $('session-timer'), wallClock = $('wall-clock');
-$('remote-pad').insertBefore(topBar, $('rc-top').nextSibling);
+$('rc-preview').prepend(topBar);
 topBar.classList.add('in-pad');
 const tickClock = () => { const d = new Date(); wallClock.textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; };
 tickClock(); setInterval(tickClock, 250);
@@ -50,9 +50,7 @@ function rcApplyState(snap) {
     const head = document.createElement('div'); head.className = 'rc-q-head'; head.textContent = 'Next';
     qd.append(head);
     for (const e of snap.nextQueue) {
-      const row = document.createElement('div'); row.className = 'rc-q-row';
-      row.textContent = '\u25B6\uFE0E ' + entryTime(e) + (e.label ? '\u2002' + e.label : '');
-      qd.append(row);
+      qd.append(queueRow(e, 'rc-q-row'));
     }
   }
   // The queue box: written in the same form the box reads (and a share
@@ -119,12 +117,34 @@ rcQueueInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preve
 
 // Operator message: typed here, shown on the kiosk for the presenter.
 const rcMsgInput = $('rc-msg-input');
+const rcMsgSend = $('rc-msg-send'), rcMsgClear = $('rc-msg-clear'), rcMsgPreview = $('rc-msg-preview');
 const sendMsg = text => { haptic(); link?.send({type:'opMsg', text}); };
-$('rc-msg-send').addEventListener('click', () => {
+// Send has something to send only with text in the box, and then takes the
+// message band's orange. Clear has something to clear with text in the box
+// or a message still up on the kiosk.
+const msgButtons = () => {
+  const typed = !!rcMsgInput.value.trim();
+  rcMsgSend.disabled = !typed;
+  rcMsgSend.classList.toggle('hi-warn', typed);
+  rcMsgClear.disabled = !typed && rcMsgPreview.hidden;
+};
+// The message as the kiosk shows it, for as long as it shows it there. The
+// kiosk says when it puts one up (to every pad, so all of them see it).
+let msgTid = null;
+const MSG_MS = 6000; // as long as the kiosk shows it
+function previewMsg(text) {
+  clearTimeout(msgTid);
+  rcMsgPreview.textContent = text; rcMsgPreview.hidden = !text;
+  if (text) msgTid = setTimeout(() => previewMsg(''), MSG_MS);
+  msgButtons();
+}
+rcMsgInput.addEventListener('input', msgButtons);
+rcMsgSend.addEventListener('click', () => {
   const text = rcMsgInput.value.trim(); if (!text) return;
-  sendMsg(text); rcMsgInput.value = '';
+  sendMsg(text); rcMsgInput.value = ''; msgButtons();
 });
-$('rc-msg-clear').addEventListener('click', () => { rcMsgInput.value = ''; sendMsg(''); });
+rcMsgClear.addEventListener('click', () => { rcMsgInput.value = ''; sendMsg(''); msgButtons(); });
+msgButtons();
 rcMsgInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('rc-msg-send').click(); } });
 
 // The code field: shows this pad's code; Enter on another code switches to
@@ -148,6 +168,7 @@ codeInput.addEventListener('keydown', e => {
 // lost and carries on with the timer this pad hands it.
 const newKioskUrl = kioskUrl(CODE);
 $('rc-new-kiosk').disabled = !CODE;
+if (CODE) { const mini = qrSvg(newKioskUrl); if (mini) $('rc-new-kiosk').append(mini); }
 $('rc-new-kiosk').addEventListener('click', () => {
   haptic();
   const svg = qrSvg(newKioskUrl);
@@ -261,6 +282,7 @@ function rcOnState(msg) {
 window.addEventListener('offline', () => { padWasOffline = true; rcSetStatus('err', '⚠️ Offline'); });
 function rcOnMessage(msg) {
   if (msg.type === 'state') rcOnState(msg);
+  if (msg.type === 'show') previewMsg(typeof msg.text === 'string' ? msg.text.slice(0, 40) : '');
   if (msg.type === '_peerOpen') { lastHeardAt = Date.now(); rcHeard = true; rcSetStatus('conn', 'Connected'); }
 }
 setInterval(() => {
@@ -268,6 +290,18 @@ setInterval(() => {
   rcSetStatus('err', padWasOffline ? '⚠️ Offline' : '⚠️ Kiosk lost');
   link?.reconnect();
 }, 1000);
+
+// A remote in the hand shouldn't go dark mid-session. The lock is dropped by
+// the browser whenever the page is hidden, so it is asked for again each time
+// the page comes back, and on a first touch where a gesture is needed.
+let wakeLock = null;
+const keepAwake = () => {
+  if (wakeLock || document.hidden) return;
+  navigator.wakeLock?.request('screen').then(wl => { wakeLock = wl; wl.addEventListener('release', () => { wakeLock = null; }); }).catch(() => {});
+};
+keepAwake();
+document.addEventListener('visibilitychange', keepAwake);
+document.addEventListener('pointerdown', keepAwake, {passive: true});
 
 if (CODE) {
   rcSetStatus('', 'connecting…');

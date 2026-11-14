@@ -108,7 +108,7 @@ The keys only change the timer when no text box is being typed in.
 The queue is a list of sessions that run one after another. To open it, press `N`, choose **queue** in the menu, or click the list under the timer.
 
 - **Current session** is the name shown under the timer.
-- **Up next** is the list of sessions. Each one has a name and a length in minutes, or a time of day written `@14:30`, which makes that session count down to 14:30. **+ Add** adds a session, **×** removes one, and dragging a row changes the order.
+- **Up next** is the list of sessions. Each one has a name and a length in minutes, or a time of day written `>14:30`, which makes that session count down to 14:30. **+ Add** adds a session, **×** removes one, and dragging a row changes the order.
 - When a session ends, the next one loads and starts by itself. A short sound plays.
 - The queue and the session name are saved in the browser. They are still there the next time Acari is opened.
 
@@ -118,12 +118,14 @@ A queue can also be written as text: in a link, or in the queue box on the remot
 
 | Written | Means |
 |---|---|
-| `Talk:25` | A session called Talk, 25 minutes long |
+| `Talk@25` | A session called Talk, 25 minutes long |
 | `25` | A 25-minute session with no name |
-| `Panel@14:30` | A session called Panel that counts down to 14:30 (the next 14:30, which may be tomorrow) |
-| `@14:30` | A countdown to 14:30 with no name |
+| `Panel>14:30` | A session called Panel that counts down to 14:30 (the next 14:30, which may be tomorrow) |
+| `>14:30` | A countdown to 14:30 with no name |
 
-For example, `Keynote:40|Break:5|Q&A, panel:15|Lunch@12:30`. Names may contain commas and colons. A `|` inside a name is written `\|`.
+For example, `Keynote@40|Break@5|Q&A, panel: part 2@15|Lunch>12:30`. Names may contain commas and colons. A `|` inside a name is written `\|`.
+
+In the list under the timer, a session with a length shows a triangle, its length and its name. A session that counts down to a time of day shows that time, a triangle with a bar, the time left until then, and its name.
 
 ---
 
@@ -164,7 +166,7 @@ While a session is on, the menu's button reads **remote: waiting** until a remot
 
 ### The remote pad
 
-The remote pad's top bar shows the connection, the timer's code and a small screen button (🖥️). Typing another code into the bar and pressing Enter switches the pad to that timer. Under the top bar, the remote pad shows the same line as the timer screen: the time since the session started on the left, and the time of day on the right. Below that it shows the time left, the session name and the queue.
+The remote pad's top bar shows the connection, the timer's code and a small QR code. Typing another code into the bar and pressing Enter switches the pad to that timer. Under the top bar, the remote pad shows the same line as the timer screen: the time since the session started on the left, and the time of day on the right. Below that it shows the time left, the session name and the queue. All of this sits in a frame, as a small picture of the timer screen. The pad keeps its own screen from going dark while it is open.
 
 Its buttons reset, start or pause (one button, which changes between the two), ring the bell, load the next or the previous session, and add or take away time.
 
@@ -172,19 +174,19 @@ Its buttons reset, start or pause (one button, which changes between the two), r
 - Before the timer has been started, the minute buttons (**−1m**, **+1m**, **−5m**, **+10m**) change the length it will count down from, and **Reset** is greyed out, because there is nothing to reset. While the timer runs, the minute buttons change the time left. While it is paused, they are greyed out.
 - **Prev** goes back to the session that ran before and puts the current one back at the front of the queue; it is greyed out until a session has handed over to the next.
 - **Black** covers the whole timer screen in the theme's background colour (black in the dark theme, white in the light one). The timer keeps running underneath, and changes made from the remote pad don't show until **Black** is pressed again. The button is lit while the screen is covered. On the timer screen itself, `Escape`, a double tap or a double-click also lifts the cover, so it can be lifted without the remote or a keyboard; single taps and clicks on the cover do nothing.
-- The queue box shows the current queue, written as described in [Writing a queue](#writing-a-queue), such as `Talk:25|QA@14:30`. Changing it and pressing **Set** changes the queue; emptying it and pressing **Set** clears the queue.
+- The queue box shows the current queue, written as described in [Writing a queue](#writing-a-queue), such as `Talk@25|QA>14:30`. Changing it and pressing **Set** changes the queue; emptying it and pressing **Set** clears the queue.
 
 On phones, the buttons vibrate when pressed.
 
-The remote pad has a message box. A message typed there appears on the timer screen for 6 seconds, in large dark letters on an orange band above the time. The time gets smaller while the message shows, so both can be read. It can tell the speaker, for example, to finish soon. **Clear** removes it sooner.
+The remote pad has a message box. A message typed there appears on the timer screen for 6 seconds, in large dark letters on an orange band above the time. The time gets smaller while the message shows, so both can be read. It can tell the speaker, for example, to finish soon. While the message is up, the pad shows it too, inside the frame above the time. **Send** is greyed out until something is typed, and then turns orange; **Clear** removes the message sooner, and is greyed out when there is nothing to clear.
 
 ### Several remotes
 
-Any number of remote pads can join the same code, and all of them control the timer. When there are others, a pad shows how many in its top bar: **+1** means one other remote pad is connected, **+2** two, and so on. The remote window on the timer screen counts them too.
+Any number of remote pads can join the same code, and all of them control the timer. When there are others, a pad shows how many right after **Connected** in its top bar: **+1** means one other remote pad is connected, **+2** two, and so on. The remote window on the timer screen counts them too.
 
 ### Several kiosks
 
-A timer can show on more than one screen. To add a screen, press the small screen button (🖥️) on a remote pad and open its link or QR code on the new screen. Or, on the new screen, open Acari, choose **remote**, then **Join**, type the code and choose **Kiosk**.
+A timer can show on more than one screen. To add a screen, press the small QR code at the top right of a remote pad and open its link, or scan the large QR code it shows, on the new screen. Or, on the new screen, open Acari, choose **remote**, then **Join**, type the code and choose **Kiosk**.
 
 The first kiosk holds the timer. Every other kiosk is **read only**: it shows the first kiosk's time, queue, messages and **Black**, counts by its own clock between updates, and takes no clicks or keys. Its top line says **read only**. This is the same for another tab in the same browser and for another device. On a read-only kiosk, a double-click or double tap fills the screen, and `Escape` stops following and makes the page an ordinary timer again.
 
@@ -193,7 +195,7 @@ The first kiosk holds the timer. Every other kiosk is **read only**: it shows th
 If the first kiosk stops answering for a few seconds, the remote pad says **Kiosk lost**. The timer does not stop:
 
 - A read-only kiosk, if there is one, takes over after a few more seconds and becomes the kiosk that holds the timer.
-- If there is none, the small screen button (🖥️) on the remote pad gives a link for a new kiosk, which takes over the same code.
+- If there is none, the small QR code on the remote pad gives a link for a new kiosk, which takes over the same code.
 - Meanwhile the remote pad keeps counting on its own, and its buttons (start, pause, the minute buttons, reset, Next and the queue box) work on the pad's copy; the time is underlined with dots while this is so. When a kiosk answers again, the pad's timer is sent to it and replaces the kiosk's, because the pad kept going while the kiosk was out of touch. There is one exception: if the remote pad itself went offline, it says **Offline**, and when it is back it takes the kiosk's timer instead.
 
 ### What needs the internet
@@ -210,16 +212,16 @@ A link to Acari can include settings after a `#`. These settings are used for th
 |---|---|---|
 | `mins` | `1`–`999` | The starting length in minutes. |
 | `label` | text | The session name. |
-| `next` | `Break:5\|QA@14:30` | The queue, written as described in [Writing a queue](#writing-a-queue): sessions separated by `\|`, each `name:minutes`, minutes alone, or `name@HH:MM`. |
+| `next` | `Break@5\|QA>14:30` | The queue, written as described in [Writing a queue](#writing-a-queue): sessions separated by `\|`, each `name@minutes`, minutes alone, or `name>HH:MM`. |
 | `theme` | `dark` or `light` | The theme. |
 | `sound` | `0` or `1` | The bell when the time runs out: off or on. |
 | `remote` | a six-letter code | Opens the remote pad for that code. The **remote** button makes these links. |
-| `kiosk` | a six-letter code | Opens a kiosk for that code. It is read only while another kiosk holds the timer, and takes the timer over if none does. The small screen button (🖥️) on the remote pad makes these links. |
+| `kiosk` | a six-letter code | Opens a kiosk for that code. It is read only while another kiosk holds the timer, and takes the timer over if none does. The small QR code on the remote pad makes these links. |
 
 For example, this link opens a 25-minute keynote with a break and questions after it:
 
 ```
-https://acari.vercel.app/#mins=25&label=Keynote&next=Break:5|QA:10&theme=dark&sound=1
+https://acari.vercel.app/#mins=25&label=Keynote&next=Break@5|QA@10&theme=dark&sound=1
 ```
 
 The **share** button opens the device's own share window with a link like this for the timer as it is now, so it can be sent with any app on the device. In a browser with no share window, the link is copied instead.
@@ -236,7 +238,7 @@ On computers, kiosk mode also fills the whole screen and stops the screen from g
 
 ## Sound
 
-The **sound** button (or `Insert`) turns the bell on or off. When it is on, one bell rings when the time runs out. The button shows a bell; the bell is struck through while the sound is off.
+The **sound** button (or `Insert`) turns the bell on or off. When it is on, one bell rings when the time runs out. The button shows a bell. It is amber while the sound is on, and the bell is struck through while it is off.
 
 `` ` `` rings the bell at any time, and so does holding down the **sound** button.
 

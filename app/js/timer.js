@@ -3,7 +3,7 @@
 // isn't a remote pad.
 import { $, pad, absSec, fmt, nextUntilMs, params, codeParam, makeCode, remoteUrl, kioskUrl, go, copyText,
   PREFS_KEY, loadPrefs, openModal, closeModal, isAnyModalOpen, wireBtn, backdropClose, CODE_RE } from './util.js';
-import { toMins, parseEntry, parseQueue, queueStr, entryTime, toEntry } from './queue.js';
+import { toMins, parseEntry, parseQueue, queueStr, entryTime, toEntry, queueRow, tickQueueRows } from './queue.js';
 import { bcTransport, peerTransport, clientLink, HEARTBEAT_MS, LOST_MS } from './transport.js';
 import { qrSvg } from './qr.js';
 
@@ -209,9 +209,7 @@ function renderSessionQueue() {
     const block = document.createElement('div');
     block.id = 'sq-queue-block';
     nextQueue.forEach(entry => {
-      const row = document.createElement('div');
-      row.className = 'sq-item sq-queued';
-      row.textContent = '\u25B6 ' + entryTime(entry) + (entry.label ? '\u2002' + entry.label : '');
+      const row = queueRow(entry, 'sq-item sq-queued');
       row.addEventListener('click', e => { e.stopPropagation(); openNextModal(); });
       block.appendChild(row);
     });
@@ -277,6 +275,7 @@ let lastSessionSec = -1, lastWallSec = -1, lastWatchMin = '', lastColonBit = -1;
     lastWallSec = now;
     const d = new Date(), ks = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
     wallClock.textContent = ks;
+    tickQueueRows(sessionQueue); // the time left to a queued time of day
   }
 
   // Clock mode only changes what the face shows. The countdown below runs
@@ -403,7 +402,7 @@ function loadNextTimer(silent) {
   exitUntilMode(); const entry = nextQueue.shift();
   customLabel = entry.label || '';
   if (entry.at) {
-    // "@HH:MM": a countdown to that time of day, which runs from the start.
+    // ">HH:MM": a countdown to that time of day, which runs from the start.
     const [h, m] = entry.at.split(':').map(Number);
     savePrefs(); enterUntilMode(nextUntilMs(h, m), '\u25B6 ' + entry.at);
     renderSessionQueue(); if (!silent) playPing();
@@ -596,11 +595,11 @@ function buildQueueRow(entry, idx) {
   labelInp.value = entry.label;
 
   const minsInp = document.createElement('input');
-  // Minutes, or "@HH:MM" for a countdown to a time of day.
+  // Minutes, or ">HH:MM" for a countdown to a time of day.
   minsInp.type = 'text'; minsInp.className = 'modal-input qr-mins';
-  minsInp.placeholder = 'min'; minsInp.title = 'Minutes, or @HH:MM for a time of day';
+  minsInp.placeholder = 'min'; minsInp.title = 'Minutes, or >HH:MM for a time of day';
   minsInp.autocomplete = 'off'; minsInp.spellcheck = false;
-  minsInp.value = entry.at ? '@' + entry.at : (entry.mins || '');
+  minsInp.value = entry.at ? '>' + entry.at : (entry.mins || '');
 
   const del = document.createElement('button');
   del.className = 'qr-del'; del.textContent = '×';
@@ -685,7 +684,7 @@ function collectQueueRows() {
   return [...$('queue-list').querySelectorAll('.qr-row')].map(row => {
     const label = row.querySelector('.qr-label').value.trim().slice(0, 32);
     const v = row.querySelector('.qr-mins').value.trim();
-    const at = /^@?\s*\d{1,2}:\d{2}$/.test(v) ? parseEntry('@' + v.replace('@', '')) : null;
+    const at = /^>?\s*\d{1,2}:\d{2}$/.test(v) ? parseEntry('>' + v.replace('>', '')) : null;
     return at ? {label, at: at.at}
       : {label, mins: Math.min(999, Math.max(1, parseInt(v, 10) || 1))};
   });

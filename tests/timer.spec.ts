@@ -52,13 +52,13 @@ test('warning colours at the two thresholds, then overtime counts up in red', as
 });
 
 test('the queue loads and starts the next slot when time runs out', async ({ page }) => {
-	await open(page, '#mins=1&label=Talk&next=Break:2|QA:5');
+	await open(page, '#mins=1&label=Talk&next=Break@2|QA@5');
 	await expect(page.locator('#session-label')).toHaveText('Talk');
-	await expect(page.locator('.sq-queued')).toHaveText(['▶ 02:00 Break', '▶ 05:00 QA']);
+	await expect(page.locator('.sq-queued')).toHaveText(['02:00 Break', '05:00 QA']);
 	await page.keyboard.press('Space');
 	await page.clock.fastForward(62_000);
 	await expect(page.locator('#session-label')).toHaveText('Break');
-	await expect(page.locator('.sq-queued')).toHaveText(['▶ 05:00 QA']);
+	await expect(page.locator('.sq-queued')).toHaveText(['05:00 QA']);
 	await page.clock.fastForward(2_000);
 	// Running, and already inside the 120 s default warning for a 2-minute slot.
 	await expect(digits(page)).toHaveClass(/s-warn\b/);
@@ -69,7 +69,7 @@ test('the queue loads and starts the next slot when time runs out', async ({ pag
 });
 
 test('enter in a modal saves the modal and leaves a running timer alone', async ({ page }) => {
-	await open(page, '#mins=20&next=Break:5');
+	await open(page, '#mins=20&next=Break@5');
 	await page.keyboard.press('Space');
 	await page.clock.runFor(2_000);
 	await page.keyboard.press('n');
@@ -84,7 +84,7 @@ test('enter in a modal saves the modal and leaves a running timer alone', async 
 });
 
 test('ctrl+enter skips to the next queued slot', async ({ page }) => {
-	await open(page, '#mins=25&next=Break:5');
+	await open(page, '#mins=25&next=Break@5');
 	await page.keyboard.press('Space');
 	await page.keyboard.press('Control+Enter');
 	await expect(digits(page)).toHaveText('05:00');
@@ -111,7 +111,7 @@ test('end resets to the starting duration', async ({ page }) => {
 });
 
 test('running past zero by hand hands over to the queue', async ({ page }) => {
-	await open(page, '#mins=1&label=Talk&next=Break:5');
+	await open(page, '#mins=1&label=Talk&next=Break@5');
 	await page.keyboard.press('Space');
 	await page.clock.fastForward(30_000);
 	await page.keyboard.press('ArrowRight'); // −1 min: 0:30 → −0:30
@@ -144,9 +144,9 @@ test('the mouse wheel scrolls the manual instead of changing the timer', async (
 });
 
 test('out-of-range minutes in the URL are ignored', async ({ page }) => {
-	await open(page, '#mins=Infinity&next=Talk:0.01|QA:1e9|Break:5.5');
+	await open(page, '#mins=Infinity&next=Talk@0.01|QA@1e9|Break@5.5');
 	await expect(digits(page)).toHaveText('10:00');
-	await expect(page.locator('.sq-queued')).toHaveText(['▶ 05:00 Break']);
+	await expect(page.locator('.sq-queued')).toHaveText(['05:00 Break']);
 });
 
 test('the queue keeps counting down, and hands over, behind clock mode', async ({ page }) => {
@@ -176,7 +176,7 @@ test('the queue keeps counting down, and hands over, behind clock mode', async (
 });
 
 test('the queue under a running timer is not rebuilt every second', async ({ page }) => {
-	await open(page, '#mins=20&next=Break:5');
+	await open(page, '#mins=20&next=Break@5');
 	await page.keyboard.press('Space');
 	const row = await page.locator('.sq-queued').elementHandle();
 	await page.clock.runFor(3_000);
@@ -199,7 +199,7 @@ test('the session label survives starting over', async ({ page }) => {
 test.describe('on a touch screen', () => {
 	test.use({ hasTouch: true });
 	test('tapping the queue opens it and leaves the timer running', async ({ page }) => {
-		await open(page, '#mins=20&next=Break:5');
+		await open(page, '#mins=20&next=Break@5');
 		await settle(page); // the menu opens on load; its backdrop would take the tap
 		await page.locator('#timer-display').tap();
 		await page.clock.runFor(500);

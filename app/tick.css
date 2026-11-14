@@ -55,6 +55,9 @@ html,body{
   font-size:var(--list-fs);font-weight:500;letter-spacing:0.12em;
   text-transform:uppercase;text-align:center;margin-top:0.3em;
   transition:color 0.2s;pointer-events:none;min-height:0;
+
+  /* One line, cut with an ellipsis: a long name must not push the time about. */
+  max-width:calc(100vw - 4rem);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 #session-label:empty{display:none}
 #timer-display.s-idle  ~ #session-label{color:var(--c-idle)}
@@ -195,7 +198,8 @@ body.kiosk #top-bar{pointer-events:none}
 .tb-btn:hover{border-color:var(--dim);background:rgba(128,128,128,0.12)}
 .tb-btn:active{background:rgba(128,128,128,0.22)}
 .tb-btn.dim{color:var(--dim)} .tb-btn.dim:hover{color:var(--fg)}
-.tb-btn.sound-on{color:var(--c-ot);border-color:var(--c-ot)}
+/* Sound on: the pause amber, label and bell alike. */
+.tb-btn.sound-on{color:var(--c-pause);border-color:var(--c-pause)}
 .tb-btn.next-set{color:var(--c-next);border-color:var(--c-next)}
 .tb-btn.until-set{color:var(--c-until);border-color:var(--c-until)}
 .tb-btn.watch-on,.tb-btn.remote-on{color:var(--c-watch);border-color:var(--c-watch)}
@@ -224,6 +228,9 @@ body.kiosk #swipe-hint{display:none}
   display:flex;flex-direction:column;align-items:center;gap:0.18rem;
   margin-top:0.55rem;cursor:pointer;min-height:1em;
 }
+/* In a row the icon sits between figures: a little air on both sides. */
+.sq-item .ico,.rc-q-row .ico{margin-right:0.5em}
+.q-left{font-variant-numeric:tabular-nums}
 #sq-queue-block{
   display:inline-flex;flex-direction:column;align-items:flex-start;gap:0.18rem;
 }
@@ -231,6 +238,7 @@ body.kiosk #swipe-hint{display:none}
   font-size:var(--list-fs);letter-spacing:0.12em;color:var(--c-next);
   text-transform:uppercase;white-space:nowrap;opacity:0.8;transition:opacity 0.15s;
   font-variant-numeric:tabular-nums;
+  max-width:calc(100vw - 4rem);overflow:hidden;text-overflow:ellipsis;
 }
 .sq-item:hover{opacity:1}
 .sq-empty{color:var(--dim);opacity:0.35;font-size:12px}
@@ -409,6 +417,8 @@ kbd{background:var(--fg);color:var(--bg);padding:0.08em 0.4em;font-family:var(--
    smaller so that, buttons included, it is the same height. */
 .ico-clock{aspect-ratio:1;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill-rule='evenodd' d='M12 0a12 12 0 1 0 0 24a12 12 0 1 0 0-24zM10.5 4h3v6.5H18v3h-7.5z'/%3E%3C/svg%3E") center/contain no-repeat}
 .ico-timer{aspect-ratio:1.05;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='1 3 22 21'%3E%3Cpath fill-rule='evenodd' d='M12 4a10 10 0 1 0 0 20a10 10 0 1 0 0-20zM10.5 7h3v8.5h-3z'/%3E%3Crect x='-2.6' y='-1.6' width='5.2' height='3.2' transform='translate(20 6) rotate(45)'/%3E%3Crect x='-2.6' y='-1.6' width='5.2' height='3.2' transform='translate(4 6) rotate(-45)'/%3E%3C/svg%3E") center/contain no-repeat}
+/* Prev: the same triangle, pointing back. */
+.ico-prev{aspect-ratio:0.85;clip-path:polygon(100% 0,0 50%,100% 100%)}
 .ico-play{aspect-ratio:0.85;clip-path:polygon(0 0,100% 50%,0 100%)}
 .ico-pause{aspect-ratio:0.8;background:linear-gradient(to right,currentColor 0 36%,transparent 36% 64%,currentColor 64%)}
 /* The bell: a silhouette used as a mask, so it takes the text colour like the
@@ -416,9 +426,9 @@ kbd{background:var(--fg);color:var(--bg);padding:0.08em 0.4em;font-family:var(--
    already allows data:). Its viewBox is cropped to the bell, so 1cap is the
    bell's own height. */
 .ico-bell{aspect-ratio:0.82;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='4 2 16 19.7'%3E%3Cpath d='M12 2a1.5 1.5 0 0 1 1.5 1.5v.6A6 6 0 0 1 18 10v4.5l2 2.5v1H4v-1l2-2.5V10a6 6 0 0 1 4.5-5.9v-.6A1.5 1.5 0 0 1 12 2zm-2.3 17.4h4.6a2.3 2.3 0 0 1-4.6 0z'/%3E%3C/svg%3E") center/contain no-repeat}
-/* Off: the same bell with a stroke through it, and a gap either side of the
-   stroke so it shows against the bell. */
-.ico-bell-off{aspect-ratio:0.82;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='4 2 16 19.7'%3E%3Cmask id='m'%3E%3Crect x='0' y='0' width='24' height='24' fill='%23fff'/%3E%3Cpath d='M4.6 21L19.4 2.7' stroke='%23000' stroke-width='4.4'/%3E%3C/mask%3E%3Cpath mask='url(%23m)' d='M12 2a1.5 1.5 0 0 1 1.5 1.5v.6A6 6 0 0 1 18 10v4.5l2 2.5v1H4v-1l2-2.5V10a6 6 0 0 1 4.5-5.9v-.6A1.5 1.5 0 0 1 12 2zm-2.3 17.4h4.6a2.3 2.3 0 0 1-4.6 0z'/%3E%3Cpath d='M4.9 20.8L19.1 2.9' stroke='%23000' stroke-width='1.7' stroke-linecap='round'/%3E%3C/svg%3E") center/contain no-repeat}
+/* Off: the same bell with a stroke through it, and a gap either side as wide as the
+   stroke itself (1.5 of 4.5 units cut away), so it reads at any size. */
+.ico-bell-off{aspect-ratio:0.82;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='4 2 16 19.7'%3E%3Cmask id='m'%3E%3Crect x='0' y='0' width='24' height='24' fill='%23fff'/%3E%3Cpath d='M4.6 21L19.4 2.7' stroke='%23000' stroke-width='4.5'/%3E%3C/mask%3E%3Cpath mask='url(%23m)' d='M12 2a1.5 1.5 0 0 1 1.5 1.5v.6A6 6 0 0 1 18 10v4.5l2 2.5v1H4v-1l2-2.5V10a6 6 0 0 1 4.5-5.9v-.6A1.5 1.5 0 0 1 12 2zm-2.3 17.4h4.6a2.3 2.3 0 0 1-4.6 0z'/%3E%3Cpath d='M4.9 20.8L19.1 2.9' stroke='%23000' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") center/contain no-repeat}
 #op-msg{
   display:none;background:var(--c-warn);color:#111;
   font-size:clamp(22px,min(6.5vw,9vh),72px);font-weight:700;line-height:1.15;
@@ -449,9 +459,25 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
 #rc-top{
   position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:0.8rem;
   align-self:stretch;margin:0 -1.5rem;padding:0.5rem 1.5rem;
-  background:var(--bg);border-bottom:1px solid var(--dim);
+  background:var(--bg);
 }
 .rc-top-right{display:flex;align-items:center;gap:0.5rem}
+/* Status, then the count of other remotes, as words in a line. */
+.rc-top-left{min-width:0;white-space:nowrap}
+.rc-top-left > *{vertical-align:middle}
+/* The kiosk as the pad sees it, in a frame of the ink colour: a picture of
+   the screen being controlled. */
+#rc-preview{
+  flex:1 0 auto;align-self:stretch;display:flex;flex-direction:column;align-items:center;gap:0.5rem;
+  border:1px solid var(--fg);padding:0.5rem 0.7rem 0.7rem;min-width:0;
+}
+#rc-preview > *{max-width:100%}
+/* The message on the kiosk, as it shows there: the orange band above the time. */
+#rc-msg-preview{
+  background:var(--c-warn);color:#111;font-weight:700;text-transform:uppercase;text-align:center;
+  font-size:clamp(14px,3.6vw,18px);letter-spacing:0.04em;line-height:1.2;padding:0.25em 0.6em;overflow-wrap:anywhere;
+}
+#rc-msg-preview[hidden]{display:none}
 .rc-code{
   /* The kiosk button's height, so the two read as one pair in the bar. */
   height:2.4rem;box-sizing:border-box;width:calc(6ch + 0.8em + 0.8rem + 2px);
@@ -463,8 +489,10 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
 .rc-code:focus{border-color:var(--fg)}
 .rc-code.bad{border-color:var(--c-ot)}
 .rc-icon-btn:disabled{opacity:0.35;cursor:default}
+/* The add-a-kiosk button is its QR code, edge to edge. */
+.rc-icon-btn svg{display:block;width:100%;height:100%}
 /* Other remotes on this timer, as "+1": a count, not a control. */
-#rc-others{font-size:clamp(13px,3.2vw,16px);letter-spacing:0.06em;color:var(--c-watch);border:1px solid var(--c-watch);padding:0.15rem 0.4rem;line-height:1.2}
+#rc-others{display:inline-block;margin-left:0.2rem;font-size:clamp(13px,3.2vw,16px);letter-spacing:0.06em;color:var(--c-watch);border:1px solid var(--c-watch);padding:0.15rem 0.4rem;line-height:1.2}
 #rc-others[hidden]{display:none}
 .rc-icon-btn{
   background:rgba(128,128,128,0.1);border:1px solid var(--dim);color:var(--fg);cursor:pointer;
@@ -477,12 +505,13 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
   font-variant-numeric:tabular-nums;color:var(--c-idle);transition:color 0.25s;
   line-height:1;
 }
-#rc-time{flex:1 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.5rem}
+#rc-time{flex:1 0 auto;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.5rem}
 /* While the kiosk is lost the pad's time is its own copy: dotted underline. */
 #remote-state-display.local{text-decoration:underline dotted;text-decoration-thickness:0.04em;text-underline-offset:0.12em}
 #remote-label-display{
   font-size:var(--rc-list-fs);letter-spacing:0.1em;text-transform:uppercase;
   color:var(--dim);min-height:1.2em;text-align:center;
+  max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 /* One line, always: the messages are kept short, and anything longer is cut
    with an ellipsis rather than pushing the bar to three lines. */
@@ -490,6 +519,7 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;
   font-size:clamp(13px,3.2vw,16px);letter-spacing:0.2em;text-transform:uppercase;
   color:var(--dim);min-height:1.2em;
+  display:inline-block;max-width:100%;
 }
 #remote-status-bar.conn{color:var(--c-watch)}
 /* Beside the code box and kiosk button a phone leaves little room: tighter
@@ -508,7 +538,7 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
 .rc-input.span3{grid-column:span 3}
 .rc-btn:disabled{opacity:0.35;cursor:default}
 #rc-queue-display .rc-q-head{color:var(--dim);font-size:0.85em}
-#rc-queue-display .rc-q-row{color:var(--c-next)}
+#rc-queue-display .rc-q-row{color:var(--c-next);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* Fields are as tall as the buttons (--rc-h, from the button's own font
    size, padding and border) but on the page's colour, so they read as
    places to type rather than things to press. */

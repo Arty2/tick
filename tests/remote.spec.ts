@@ -59,9 +59,9 @@ test('a command delivered twice (WebRTC and BroadcastChannel) runs once', async 
 test("the pad's queue field takes typing instead of treating it as shortcuts", async ({ page }) => {
 	await visit(page, '/#remote=ABCDEF');
 	await page.locator('#rc-queue-input').click();
-	await page.keyboard.type('Talk:25, QA:10');
+	await page.keyboard.type('Talk@25, QA@10');
 	await page.keyboard.press('Backspace');
-	await expect(page.locator('#rc-queue-input')).toHaveValue('Talk:25, QA:1');
+	await expect(page.locator('#rc-queue-input')).toHaveValue('Talk@25, QA@1');
 });
 
 test('PeerJS ships with the app: it loads from this origin, with nothing fetched from a CDN', async ({ page, offsite }) => {
@@ -166,7 +166,7 @@ test('an operator message typed on the pad shows on the kiosk, not the pad', asy
 });
 
 test('a lost kiosk is reported, and a kiosk added from the pad takes over and carries on the timer', async ({ page, context }) => {
-	const code = await hostWithRemote(page, '#mins=20&label=Keynote&next=QA:10');
+	const code = await hostWithRemote(page, '#mins=20&label=Keynote&next=QA@10');
 	const pad = await context.newPage();
 	await visit(pad, '/#remote=' + code);
 	await pad.clock.runFor(200);
@@ -190,7 +190,7 @@ test('a lost kiosk is reported, and a kiosk added from the pad takes over and ca
 	await expect(kiosk.locator('#timer-display')).toHaveClass(/s-run/);
 	// 20:00 started, 3 s before the old kiosk went, 7 s more until the new one.
 	await expect(kiosk.locator('#timer-display')).toHaveText(/^19:5\d$/);
-	await expect(kiosk.locator('.sq-queued')).toHaveText(['\u25B6 10:00\u2002QA']);
+	await expect(kiosk.locator('.sq-queued')).toHaveText(['10:00\u2002QA']);
 });
 
 for (const width of [320, 390]) {
@@ -236,15 +236,15 @@ test('the pad lays out reset then start, and the message box on its own line ove
 });
 
 test('the pad shows the queue with each session’s length and name', async ({ page, context }) => {
-	const code = await hostWithRemote(page, '#mins=20&next=Break:5|QA:10|15');
+	const code = await hostWithRemote(page, '#mins=20&next=Break@5|QA@10|15');
 	const pad = await context.newPage();
 	await visit(pad, '/#remote=' + code);
 	await pad.clock.runFor(200);
 	await expect(pad.locator('#rc-queue-display .rc-q-head')).toHaveText('Next');
-	await expect(pad.locator('#rc-queue-display .rc-q-row')).toHaveText(['\u25B6\uFE0E 05:00\u2002Break', '\u25B6\uFE0E 10:00\u2002QA', '\u25B6\uFE0E 15:00']);
+	await expect(pad.locator('#rc-queue-display .rc-q-row')).toHaveText(['05:00\u2002Break', '10:00\u2002QA', '15:00']);
 	// Next and Prev use the same solid triangles as the list, pointing each way.
-	await expect(pad.locator('#rc-next')).toHaveText('\u25B6\uFE0E Next');
-	await expect(pad.locator('#rc-prev')).toHaveText('\u25C0\uFE0E Prev');
+	await expect(pad.locator('#rc-next')).toHaveText('Next');
+	await expect(pad.locator('#rc-prev')).toHaveText('Prev');
 });
 
 test('the pad reads top to bottom: status and kiosk icon, time, queue, controls, queue box and set, prev and next, black and bell', async ({ page }) => {
@@ -279,24 +279,24 @@ test('the pad reads top to bottom: status and kiosk icon, time, queue, controls,
 });
 
 test('the queue box holds the current queue, so an edit and Set changes it, and empty clears it', async ({ page, context }) => {
-	const code = await hostWithRemote(page, '#mins=20&next=Break:5|QA:10|15');
+	const code = await hostWithRemote(page, '#mins=20&next=Break@5|QA@10|15');
 	const pad = await context.newPage();
 	await visit(pad, '/#remote=' + code);
 	await pad.clock.runFor(200);
 	const box = pad.locator('#rc-queue-input');
-	await expect(box).toHaveValue('Break:5|QA:10|15'); // written with pipes
-	await box.fill('Break:5|Q&A, panel:20');
+	await expect(box).toHaveValue('Break@5|QA@10|15'); // written with pipes
+	await box.fill('Break@5|Q&A, panel@20');
 	await pad.clock.runFor(2_500); // a heartbeat arrives while editing: the edit survives
-	await expect(box).toHaveValue('Break:5|Q&A, panel:20');
+	await expect(box).toHaveValue('Break@5|Q&A, panel@20');
 	await pad.locator('#rc-queue-send').click();
-	await expect(page.locator('.sq-queued')).toHaveText(['\u25B6 05:00\u2002Break', '\u25B6 20:00\u2002Q&A, panel']);
+	await expect(page.locator('.sq-queued')).toHaveText(['05:00\u2002Break', '20:00\u2002Q&A, panel']);
 	await box.fill('');
 	await box.press('Enter');
 	await expect(page.locator('.sq-queued')).toHaveCount(0);
 });
 
 test('Prev steps back to the session before, and Next steps forward again', async ({ page, context }) => {
-	const code = await hostWithRemote(page, '#mins=20&label=Talk&next=Break:5|QA:10');
+	const code = await hostWithRemote(page, '#mins=20&label=Talk&next=Break@5|QA@10');
 	const pad = await context.newPage();
 	await visit(pad, '/#remote=' + code);
 	await pad.clock.runFor(200);
@@ -309,7 +309,7 @@ test('Prev steps back to the session before, and Next steps forward again', asyn
 	await expect(page.locator('#session-label')).toHaveText('Talk');
 	await expect(digits(page)).toHaveText('20:00');
 	await expect(digits(page)).toHaveClass(/s-next/); // loaded, waiting to start
-	await expect(page.locator('.sq-queued')).toHaveText(['\u25B6 05:00\u2002Break', '\u25B6 10:00\u2002QA']);
+	await expect(page.locator('.sq-queued')).toHaveText(['05:00\u2002Break', '10:00\u2002QA']);
 	await page.clock.runFor(600);
 	await expect(pad.locator('#rc-prev')).toBeDisabled();
 	await pad.locator('#rc-next').click();
@@ -324,11 +324,11 @@ test('the queue box shows the queue itself; its hint appears only when there is 
 	await pad.clock.runFor(200);
 	const box = pad.locator('#rc-queue-input');
 	await expect(box).toHaveValue('');
-	await expect(box).toHaveAttribute('placeholder', /^No queue/);
-	await box.fill('Talk:25');
+	await expect(box).toHaveAttribute('placeholder', /^No queue.*Talk@25\|QA>14:30/);
+	await box.fill('Talk@25');
 	await box.press('Enter');
 	await page.clock.runFor(600);
-	await expect(box).toHaveValue('Talk:25');
+	await expect(box).toHaveValue('Talk@25');
 	await expect(pad.locator('#rc-next')).toBeEnabled();
 });
 
@@ -550,7 +550,7 @@ test('a kiosk adopts the timer a pad syncs to it', async ({ page, context }) => 
 	await expect(digits(page)).toHaveText('02:03');
 	await expect(page.locator('#session-label')).toHaveText('Panel');
 	await expect(page.locator('#label-text')).toHaveText('PAUSED');
-	await expect(page.locator('.sq-queued')).toHaveText(['▶ 05:00 QA']);
+	await expect(page.locator('.sq-queued')).toHaveText(['05:00 QA']);
 });
 
 test('Black covers the kiosk in the theme colour; the timer runs on under it, and Black or Esc lifts it', async ({ page, context }) => {
@@ -720,7 +720,7 @@ test("the session's name sits right under the time, on the pad and on the kiosk"
 	await under(page, '#timer-display', '#session-label');
 });
 
-test('with the kiosk lost, Next on the pad loads an @HH:MM session as a countdown to that time', async ({ page, context }) => {
+test('with the kiosk lost, Next on the pad loads a >HH:MM session as a countdown to that time', async ({ page, context }) => {
 	const kiosk = await padWithFakeKiosk(page, context); // 10:12:01 by the pad's clock
 	await kiosk.send(kioskState({ nextQueue: [{ label: 'Panel', at: '10:30' }] }));
 	await page.clock.runFor(7_000); // lost
@@ -731,7 +731,7 @@ test('with the kiosk lost, Next on the pad loads an @HH:MM session as a countdow
 });
 
 test("the session's name is the size of the queue rows, on the pad and on the kiosk", async ({ page, context }) => {
-	const code = await hostWithRemote(page, '#mins=20&label=Keynote&next=Break:5');
+	const code = await hostWithRemote(page, '#mins=20&label=Keynote&next=Break@5');
 	const pad = await context.newPage();
 	await pad.setViewportSize({ width: 390, height: 844 });
 	await visit(pad, '/#remote=' + code);
@@ -865,7 +865,7 @@ test('before the start, Reset is disabled and the minute buttons change the leng
 });
 
 test('a second kiosk on the same code is read only, and follows the first', async ({ page, context }) => {
-	const code = await hostWithRemote(page, '#mins=20&label=Keynote&next=QA:10');
+	const code = await hostWithRemote(page, '#mins=20&label=Keynote&next=QA@10');
 	const pad = await padFor(context, code);
 	const mirror = await kioskFor(context, code);
 	await expect(mirror.locator('body')).toHaveClass(/\bmirror\b/);
@@ -873,7 +873,7 @@ test('a second kiosk on the same code is read only, and follows the first', asyn
 	await expect(mirror.locator('#kiosk-tag')).toHaveText('read only');
 	await expect(mirror.locator('#timer-display')).toHaveText('20:00');
 	await expect(mirror.locator('#session-label')).toHaveText('Keynote');
-	await expect(mirror.locator('.sq-queued')).toHaveText(['▶ 10:00 QA']);
+	await expect(mirror.locator('.sq-queued')).toHaveText(['10:00 QA']);
 	await expect(mirror.locator('#label-text')).toHaveText(''); // no "click to start" on a screen that can't
 	await expect(page.locator('#remote-status')).toHaveText(/2 kiosks/);
 	await expect(page.locator('body')).not.toHaveClass(/mirror/); // the first kiosk is still the one in charge
@@ -960,4 +960,127 @@ test('a kiosk link with nobody on the code makes an ordinary kiosk, in charge of
 	await expect(page.locator('body')).not.toHaveClass(/mirror/);
 	await page.keyboard.press('Space'); // it takes input
 	await expect(digits(page)).toHaveClass(/s-run/);
+});
+
+// ── The pad's picture of the kiosk, and its message buttons ─────────────────
+test('the pad frames what the kiosk shows in the ink colour, and its top bar has no rule under it', async ({ page, context }) => {
+	const code = await hostWithRemote(page, '#mins=20&label=Keynote&next=QA@10');
+	const pad = await context.newPage();
+	await pad.setViewportSize({ width: 390, height: 844 });
+	await visit(pad, '/#remote=' + code);
+	await pad.clock.runFor(200);
+	const frame = pad.locator('#rc-preview');
+	const ink = await pad.evaluate(() => getComputedStyle(document.body).color);
+	await expect(frame).toHaveCSS('border-top-color', ink);
+	await expect(frame).toHaveCSS('border-top-width', '1px');
+	const f = (await frame.boundingBox())!;
+	for (const sel of ['#session-timer', '#wall-clock', '#remote-state-display', '#remote-label-display', '#rc-queue-display']) {
+		const b = (await pad.locator(sel).boundingBox())!;
+		expect(b.y, sel).toBeGreaterThanOrEqual(f.y);
+		expect(b.y + b.height, sel).toBeLessThanOrEqual(f.y + f.height);
+		expect(b.x, sel).toBeGreaterThanOrEqual(f.x);
+		expect(b.x + b.width, sel).toBeLessThanOrEqual(f.x + f.width);
+	}
+	expect((await pad.locator('#rc-toggle').boundingBox())!.y).toBeGreaterThan(f.y + f.height); // the buttons are outside it
+	await expect(pad.locator('#rc-top')).toHaveCSS('border-bottom-width', '0px');
+	const [scroll, client] = await pad.locator('#remote-pad').evaluate((p) => [p.scrollHeight, p.clientHeight]);
+	expect(scroll).toBeLessThanOrEqual(client); // still fits the phone
+});
+
+test('Send and Clear are disabled with nothing to send or clear; Send turns orange with text; the message previews on every pad', async ({ page, context }) => {
+	const code = await hostWithRemote(page);
+	const pad = await padFor(context, code);
+	const other = await padFor(context, code);
+	const [send, clear, input, preview] = [pad.locator('#rc-msg-send'), pad.locator('#rc-msg-clear'), pad.locator('#rc-msg-input'), pad.locator('#rc-msg-preview')];
+	await expect(send).toBeDisabled();
+	await expect(clear).toBeDisabled();
+	await expect(preview).toBeHidden();
+	await input.fill('   ');
+	await expect(send).toBeDisabled(); // spaces are nothing
+	await input.fill('Two minutes');
+	await expect(send).toBeEnabled();
+	await expect(clear).toBeEnabled();
+	const orange = await pad.evaluate(() => {
+		const d = document.createElement('div'); d.style.color = 'var(--c-warn)'; document.body.append(d);
+		const v = getComputedStyle(d).color; d.remove(); return v;
+	});
+	await expect(send).toHaveCSS('color', orange);
+	await expect(send).toHaveCSS('border-top-color', orange);
+
+	await send.click();
+	await expect(page.locator('#op-msg')).toHaveText('Two minutes');
+	await expect(preview).toBeVisible(); // the pad shows what the kiosk shows
+	await expect(preview).toHaveText('Two minutes');
+	await expect(other.locator('#rc-msg-preview')).toHaveText('Two minutes'); // and so does the other pad
+	const [p, t, f] = [(await preview.boundingBox())!, (await pad.locator('#remote-state-display').boundingBox())!, (await pad.locator('#rc-preview').boundingBox())!];
+	expect(p.y + p.height).toBeLessThanOrEqual(t.y + 1); // above the time
+	expect(p.y).toBeGreaterThan(f.y); // inside the frame
+	await expect(send).toBeDisabled(); // the box is empty again
+	await expect(send).not.toHaveCSS('color', orange);
+	await expect(clear).toBeEnabled(); // a message is up: it can be cleared
+	await clear.click();
+	await expect(page.locator('#op-msg')).toBeHidden();
+	await expect(preview).toBeHidden();
+	await expect(clear).toBeDisabled();
+
+	await input.fill('Wrap up');
+	await input.press('Enter');
+	await expect(preview).toHaveText('Wrap up');
+	await together(pad, 6_500); // it leaves the pad when it leaves the kiosk
+	await expect(preview).toBeHidden();
+	await expect(page.locator('#op-msg')).toBeHidden();
+});
+
+test('the count of other remotes sits right after the status; the add-a-kiosk button is a small QR code', async ({ page, context }) => {
+	const code = await hostWithRemote(page);
+	const pad = await context.newPage();
+	await pad.setViewportSize({ width: 320, height: 640 });
+	await visit(pad, '/#remote=' + code);
+	await pad.clock.runFor(200);
+	await padFor(context, code);
+	await together(page, 600);
+	const [status, others, codeBox, qr] = await Promise.all(['#remote-status-bar', '#rc-others', '#rc-code-input', '#rc-new-kiosk'].map(async (s) => (await pad.locator(s).boundingBox())!));
+	await expect(pad.locator('#rc-others')).toHaveText('+1');
+	await expect(pad.locator('#rc-others')).toHaveCSS('display', 'inline-block');
+	expect(others.x).toBeGreaterThanOrEqual(status.x + status.width); // after the status...
+	expect(others.x - (status.x + status.width)).toBeLessThan(20); // ...right after
+	expect(others.x + others.width).toBeLessThan(codeBox.x); // not over by the code
+	expect(Math.abs(others.y + others.height / 2 - (status.y + status.height / 2))).toBeLessThan(3); // one line
+	// The button holds a real QR code for the kiosk link, not a picture of a screen.
+	await expect(pad.locator('#rc-new-kiosk')).toHaveText('');
+	const mini = (await pad.locator('#rc-new-kiosk svg').boundingBox())!;
+	expect(mini.width).toBeGreaterThan(30);
+	expect(mini.width).toBeLessThanOrEqual(qr.width);
+	await pad.locator('#rc-new-kiosk').click();
+	await expect(pad.locator('#rc-kiosk-qr svg')).toBeVisible();
+	const [small, large] = await pad.evaluate(() => ['#rc-new-kiosk svg path', '#rc-kiosk-qr svg path'].map((s) => document.querySelector(s)!.getAttribute('d')));
+	expect(small).toBe(large); // the same code, small and large
+});
+
+test('the pad asks to keep its screen awake', async ({ page }) => {
+	await page.addInitScript(() => {
+		const w = window as unknown as { locks: string[] };
+		w.locks = [];
+		Object.defineProperty(navigator, 'wakeLock', { configurable: true, value: { request: (kind: string) => { w.locks.push(kind); return Promise.resolve({ addEventListener() {}, release() {} }); } } });
+	});
+	await visit(page, '/#remote=ABCDEF');
+	expect(await page.evaluate(() => (window as unknown as { locks: string[] }).locks)).toEqual(['screen']);
+});
+
+test('Prev and Next carry the queue triangle, drawn in CSS and level with their labels', async ({ page }) => {
+	await page.setViewportSize({ width: 390, height: 844 });
+	await visit(page, '/#remote=ABCDEF');
+	for (const [sel, cls] of [['#rc-prev', 'ico-prev'], ['#rc-next', 'ico-play']] as const) {
+		const m = await page.locator(sel).evaluate((b, cls) => {
+			const ico = b.querySelector('.' + cls)!.getBoundingClientRect();
+			const probe = document.createElement('span');
+			probe.style.cssText = 'display:inline-block;width:0;height:1cap;vertical-align:baseline';
+			b.append(probe);
+			const cap = probe.getBoundingClientRect();
+			probe.remove();
+			return { mid: (ico.top + ico.bottom) / 2, capMid: (cap.top + cap.bottom) / 2, h: ico.height, capH: cap.height };
+		}, cls);
+		expect(Math.abs(m.mid - m.capMid), sel).toBeLessThan(0.5); // the middle of the triangle is the middle of the capitals
+		expect(Math.abs(m.h - m.capH), sel).toBeLessThan(0.5);
+	}
 });

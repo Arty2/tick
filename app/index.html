@@ -217,8 +217,8 @@
     <h2>Queue</h2>
     <ul>
       <li>The queue is a list of sessions that run one after another. Open it with <strong>queue</strong>, the list under the timer, or <kbd>N</kbd>.</li>
-      <li>Each session has a name and a length in minutes, or a time of day written <code>@14:30</code> to count down to it. <strong>+ Add</strong> adds one, <strong>&#xD7;</strong> removes one, and dragging a row changes the order.</li>
-      <li>As text (in a link or the remote's queue box), sessions are separated by <code>|</code>: <code>Talk:25|Break:5|Panel@14:30</code>. A <code>|</code> in a name is written <code>\|</code>.</li>
+      <li>Each session has a name and a length in minutes, or a time of day written <code>&gt;14:30</code> to count down to it. In the list, a session with a time of day shows that time, a triangle with a bar, and the time left until then. <strong>+ Add</strong> adds one, <strong>&#xD7;</strong> removes one, and dragging a row changes the order.</li>
+      <li>As text (in a link or the remote's queue box), sessions are separated by <code>|</code>: <code>Talk@25|Break@5|Panel&gt;14:30</code>. A <code>|</code> in a name is written <code>\|</code>.</li>
       <li>When a session ends, the next one starts by itself. <kbd>Ctrl+Enter</kbd> loads it sooner.</li>
     </ul>
     <h2>Target time</h2>
@@ -234,11 +234,11 @@
     <ul>
       <li>The <strong>remote</strong> button shows a six-letter code and a QR code. Scan the code on another device to get a remote pad. Or, on that device, open Acari, choose <strong>remote</strong>, then <strong>Join</strong>, type the code and choose <strong>Remote</strong>. This screen then changes to kiosk mode, and stays in it if the remote disconnects. While a session is on, the menu button reads <strong>remote: waiting</strong> or <strong>remote: connected</strong>.</li>
       <li>Any number of remote pads can control one timer. A pad shows <strong>+1</strong>, <strong>+2</strong>&#x2026; in its top bar for the other pads connected. The top bar also shows the code; typing another one there switches to that timer.</li>
-      <li>The remote pad shows the time left and the queue. Its buttons reset, start or pause, ring the bell, load the next or the previous session, and change the time. Before the start, the minute buttons change the length to count down from, and <strong>Reset</strong> is greyed out. On phones the buttons vibrate.</li>
+      <li>The remote pad shows the time left and the queue in a frame, as a small picture of this screen; a message sent to this screen shows there too. The pad keeps its own screen awake. Its buttons reset, start or pause, ring the bell, load the next or the previous session, and change the time. Before the start, the minute buttons change the length to count down from, and <strong>Reset</strong> is greyed out. On phones the buttons vibrate.</li>
       <li><strong>Black</strong> covers this screen in the background colour while the timer runs on underneath; changes from the remote pad stay hidden until it is pressed again. <kbd>Esc</kbd>, a double tap or a double-click here also lifts it.</li>
       <li>Its queue box holds the current queue. Change it and press <strong>Set</strong>; an empty box clears the queue.</li>
-      <li>A message typed on the remote pad appears on this screen for 6 seconds, on an orange band above the time. The time gets smaller while it shows. <strong>Clear</strong> removes it sooner.</li>
-      <li>A timer can show on more than one screen. The small screen button (&#x1F5A5;&#xFE0F;) on the remote pad shows a link and QR code for another kiosk; so does <strong>remote</strong>, <strong>Join</strong>, <strong>Kiosk</strong> on the other screen. The extra kiosk is <strong>read only</strong>: it follows the first one and takes no input. A double-click fills its screen; <kbd>Esc</kbd> makes it an ordinary timer again.</li>
+      <li>A message typed on the remote pad appears on this screen for 6 seconds, on an orange band above the time. The time gets smaller while it shows. <strong>Clear</strong> removes it sooner. <strong>Send</strong> turns orange when there is a message to send.</li>
+      <li>A timer can show on more than one screen. The small QR code at the top right of the remote pad opens a link and a large QR code for another kiosk; so does <strong>remote</strong>, <strong>Join</strong>, <strong>Kiosk</strong> on the other screen. The extra kiosk is <strong>read only</strong>: it follows the first one and takes no input. A double-click fills its screen; <kbd>Esc</kbd> makes it an ordinary timer again.</li>
       <li>If the first kiosk stops answering, the remote pad says <strong>Kiosk lost</strong>, and after a few seconds a read-only kiosk takes over and continues the timer. A new kiosk opened from the pad's link does the same.</li>
       <li>The timer doesn't stop when this screen is lost: the remote pad keeps counting, and its buttons work on its own copy. When this screen answers again, it takes the pad's timer. If the pad itself was offline, it takes this screen's timer instead.</li>
       <li>Tabs in the same browser connect without the internet. Different devices need the internet to find each other, through a service called PeerJS. This may not work on some school or office networks.</li>
@@ -271,8 +271,8 @@
         </tr>
         <tr style="border-bottom:1px solid rgba(128,128,128,0.15)">
           <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>next</code></td>
-          <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>Title:25|10</code></td>
-          <td style="padding:0.35rem 0 0.35rem 0.5rem">The queue. Sessions are separated by <code>|</code>; each is <code>name:minutes</code> (<code>Talk:25</code>), only minutes (<code>25</code>), or a countdown to a time of day (<code>Panel@14:30</code>): <code>Keynote:40|Break:5|Lunch@12:30</code>. A <code>|</code> in a name is written <code>\|</code>.</td>
+          <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>Title@25|10</code></td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem">The queue. Sessions are separated by <code>|</code>; each is <code>name@minutes</code> (<code>Talk@25</code>), only minutes (<code>25</code>), or a countdown to a time of day (<code>Panel&gt;14:30</code>): <code>Keynote@40|Break@5|Lunch&gt;12:30</code>. A <code>|</code> in a name is written <code>\|</code>.</td>
         </tr>
         <tr style="border-bottom:1px solid rgba(128,128,128,0.15)">
           <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>theme</code></td>
@@ -292,11 +292,11 @@
         <tr>
           <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>kiosk</code></td>
           <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>XXXXXX</code></td>
-          <td style="padding:0.35rem 0 0.35rem 0.5rem">A six-letter remote code. The page opens as a kiosk for that code: read only while another kiosk holds the timer, or taking the timer over if none does. The small screen button on the remote pad makes these links.</td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem">A six-letter remote code. The page opens as a kiosk for that code: read only while another kiosk holds the timer, or taking the timer over if none does. The small QR code on the remote pad makes these links.</td>
         </tr>
       </tbody>
     </table>
-    <p style="margin-top:0.6rem">Example:<br><code>#mins=25&amp;label=Keynote&amp;next=Break:5|QA:10&amp;theme=dark&amp;sound=1</code></p>
+    <p style="margin-top:0.6rem">Example:<br><code>#mins=25&amp;label=Keynote&amp;next=Break@5|QA@10&amp;theme=dark&amp;sound=1</code></p>
   </div>
 </div>
 
@@ -340,24 +340,33 @@
 <!-- Remote pad (shown when the link has #remote=CODE) -->
 <div id="remote-pad">
   <div id="rc-top">
-    <div id="remote-status-bar">connecting&#x2026;</div>
-    <div class="rc-top-right">
-      <!-- Other remotes on the same timer: "+1" is one besides this pad. -->
+    <!-- The connection, and right after it the other remotes on the same
+         timer: "+1" is one besides this pad. -->
+    <div class="rc-top-left">
+      <span id="remote-status-bar">connecting&#x2026;</span>
       <span id="rc-others" hidden></span>
+    </div>
+    <div class="rc-top-right">
       <!-- The code, typed by hand when there's no QR code to scan. Enter
            switches the pad to the timer with that code. -->
       <input type="text" id="rc-code-input" class="rc-code" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="CODE" aria-label="Timer code">
-      <!-- Rarely needed (one more screen, or a lost kiosk), so a small icon beside the status. -->
-      <button id="rc-new-kiosk" class="rc-icon-btn" aria-label="Add a kiosk" title="Add a kiosk">&#x1F5A5;&#xFE0F;</button>
+      <!-- One more screen for this timer: the button is the QR code itself,
+           small; pressing it shows it large, with its link. -->
+      <button id="rc-new-kiosk" class="rc-icon-btn" aria-label="Add a kiosk" title="Add a kiosk"></button>
     </div>
   </div>
-  <!-- The time with the session's name right under it, as on the kiosk; the
-       block grows into spare height and stays centred in it. -->
-  <div id="rc-time">
-    <div id="remote-state-display">&#x2014;</div>
-    <div id="remote-label-display"></div>
+  <!-- What the kiosk shows, framed as a small picture of it: its top line
+       (moved here by pad.js), a message while one is up, the time with the
+       session's name under it, and the queue. The frame grows into spare
+       height. -->
+  <div id="rc-preview">
+    <div id="rc-msg-preview" role="status" hidden></div>
+    <div id="rc-time">
+      <div id="remote-state-display">&#x2014;</div>
+      <div id="remote-label-display"></div>
+    </div>
+    <div id="rc-queue-display"></div>
   </div>
-  <div id="rc-queue-display"></div>
   <div class="rc-grid">
     <button class="rc-btn hi-reset wide" data-rc="reset" id="rc-reset"><span class="ico ico-circle" aria-hidden="true"></span>Reset</button>
     <!-- One button for start and pause: it follows the kiosk's state. -->
@@ -372,14 +381,13 @@
   <!-- On the grid: the box takes three columns and Set the fourth, so Set
        lines up with +10m above it. -->
   <div class="rc-grid">
-    <input type="text" id="rc-queue-input" class="rc-input span3" placeholder="No queue &#x2014; e.g. Talk:25|QA@14:30" autocomplete="off" aria-label="Queue">
+    <input type="text" id="rc-queue-input" class="rc-input span3" placeholder="No queue &#x2014; e.g. Talk@25|QA&gt;14:30" autocomplete="off" aria-label="Queue">
     <button class="rc-btn" id="rc-queue-send">Set</button>
   </div>
   <div class="rc-grid">
-    <!-- The queue's solid triangles, with U+FE0E so iOS keeps them as text
-         rather than drawing emoji. -->
-    <button class="rc-btn wide" data-rc="prev" id="rc-prev">&#x25C0;&#xFE0E; Prev</button>
-    <button class="rc-btn wide" data-rc="next" id="rc-next">&#x25B6;&#xFE0E; Next</button>
+    <!-- The queue's triangle, drawn in CSS, pointing each way. -->
+    <button class="rc-btn wide" data-rc="prev" id="rc-prev"><span class="ico ico-prev" aria-hidden="true"></span>Prev</button>
+    <button class="rc-btn wide" data-rc="next" id="rc-next"><span class="ico ico-play" aria-hidden="true"></span>Next</button>
     <button class="rc-btn wide" data-rc="black" id="rc-black"><span class="ico ico-stop" aria-hidden="true"></span>Black</button>
     <button class="rc-btn wide" data-rc="bell"><span class="ico ico-bell" aria-hidden="true"></span>Bell</button>
   </div>
