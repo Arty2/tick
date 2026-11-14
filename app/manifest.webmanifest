@@ -1,6 +1,6 @@
 {
-	"name": "/tick",
-	"short_name": "/tick",
+	"name": "Acari",
+	"short_name": "Acari",
 	"description": "A countdown timer for presentations, streams and stage use.",
 	"id": "./",
 	"start_url": "./",

@@ -116,7 +116,7 @@ test.describe('on a phone', () => {
 		await open(page);
 		await page.keyboard.press('Home');
 		await expect(page.locator('#manual-h1-fixed h1')).toHaveText('Manual');
-		await expect(page.locator('#manual .manual-app')).toContainText('/tick v');
+		await expect(page.locator('#manual .manual-app')).toContainText('Acari v');
 		const title = (await page.locator('#manual-h1-fixed h1').boundingBox())!;
 		const text = await page.locator('#manual-h1-fixed h1').evaluate((h) => {
 			const r = document.createRange();
@@ -308,4 +308,86 @@ test('a window button that throws something away has a red border, like its labe
 		expect(color).toBe(red);
 		expect(border).toBe(red);
 	}
+});
+
+// Icons are drawn in CSS at the height of a capital, on the label's baseline.
+const capFit = (btn: import('@playwright/test').Locator) => btn.evaluate((b) => {
+	const ico = b.querySelector('.ico')!, r = ico.getBoundingClientRect();
+	const probe = document.createElement('span');
+	probe.style.cssText = 'display:inline-block;width:0;height:1cap;vertical-align:baseline';
+	b.append(probe);
+	const cap = probe.getBoundingClientRect();
+	probe.remove();
+	const s = getComputedStyle(ico);
+	return { dh: Math.abs(r.height - cap.height), db: Math.abs(r.bottom - cap.bottom), w: r.width, h: r.height, radius: s.borderTopLeftRadius, mask: s.maskImage, clip: s.clipPath };
+});
+
+test('the menu: reset has a circle, then clock, then target with a triangle and bar', async ({ page }) => {
+	await open(page);
+	await menu(page);
+	await expect(page.locator('#btn-reset').locator('xpath=..').locator('.tb-btn:visible')).toHaveText(['reset', 'clock', 'target', /^queue/]);
+	const reset = await capFit(page.locator('#btn-reset'));
+	expect(reset.radius).toBe('50%');
+	expect(Math.abs(reset.w - reset.h)).toBeLessThan(0.01); // a circle, not an oval
+	const target = await capFit(page.locator('#btn-until-open'));
+	expect(target.clip).toContain('polygon'); // triangle and bar, one shape
+	const clock = await capFit(page.locator('#btn-clock-watch'));
+	expect(clock.mask).toContain('data:image/svg+xml');
+	for (const m of [reset, target, clock]) { expect(m.dh).toBeLessThan(0.5); expect(m.db).toBeLessThan(0.5); }
+
+	// In clock mode the button offers the timer, with a stopwatch.
+	await expect(page.locator('#btn-clock-watch .ico')).toHaveClass(/ico-clock/);
+	await page.locator('#btn-clock-watch').click();
+	await expect(page.locator('#btn-clock-watch')).toHaveText('timer');
+	await expect(page.locator('#btn-clock-watch .ico')).toHaveClass(/ico-timer/);
+	const timer = await capFit(page.locator('#btn-clock-watch'));
+	expect(timer.dh).toBeLessThan(0.5);
+	expect(timer.mask).not.toBe(clock.mask);
+});
+
+test('sound is one switch: a bell, struck through when off', async ({ page }) => {
+	await open(page);
+	await menu(page);
+	const btn = page.locator('#btn-sound');
+	await expect(btn).toHaveText('sound');
+	await expect(btn).toHaveAttribute('aria-pressed', 'false');
+	await expect(btn.locator('.ico')).toHaveClass(/ico-bell-off/);
+	const off = await capFit(btn);
+	await btn.click();
+	await expect(btn).toHaveAttribute('aria-pressed', 'true');
+	await expect(btn.locator('.ico')).toHaveClass(/ico-bell(?!-)/);
+	await expect(btn).toHaveClass(/sound-on/);
+	const on = await capFit(btn);
+	expect(on.mask).not.toBe(off.mask); // a different drawing...
+	expect(Math.abs(on.w - off.w)).toBeLessThan(0.01); // ...in the same box, so nothing shifts
+	expect(on.dh).toBeLessThan(0.5);
+	await btn.click(); // and off again: there is no third setting
+	await expect(btn).toHaveAttribute('aria-pressed', 'false');
+	await page.keyboard.press('Insert');
+	await expect(btn).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('on the pad, Reset has a circle and Black has the square', async ({ page }) => {
+	await page.setViewportSize({ width: 390, height: 844 });
+	await visit(page, '/#remote=ABCDEF');
+	await expect(page.locator('#rc-reset .ico')).toHaveClass(/ico-circle/);
+	await expect(page.locator('#rc-black .ico')).toHaveClass(/ico-stop/);
+	const [reset, black] = [await capFit(page.locator('#rc-reset')), await capFit(page.locator('#rc-black'))];
+	expect(reset.radius).toBe('50%');
+	expect(black.radius).toBe('0px');
+	for (const m of [reset, black]) { expect(m.dh).toBeLessThan(0.5); expect(m.db).toBeLessThan(0.5); expect(Math.abs(m.w - m.h)).toBeLessThan(0.01); }
+});
+
+test('a QR code has a white margin of six modules on every side', async ({ page }) => {
+	await open(page);
+	await menu(page);
+	await page.locator('#btn-remote').click();
+	const m = await page.locator('#remote-qr svg').evaluate((svg) => {
+		const size = +svg.getAttribute('viewBox')!.split(' ')[2];
+		const box = (svg.querySelector('path') as SVGPathElement).getBBox();
+		return { size, left: box.x, top: box.y, right: size - box.x - box.width, bottom: size - box.y - box.height, bg: svg.querySelector('rect')!.getAttribute('fill') };
+	});
+	expect([m.left, m.top, m.right, m.bottom]).toEqual([6, 6, 6, 6]);
+	expect(m.size).toBe(29 + 12); // the 29-module code for a remote link
+	expect(m.bg).toBe('#fff');
 });

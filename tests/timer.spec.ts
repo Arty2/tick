@@ -127,9 +127,9 @@ test('holding the sound button rings the bell without changing the setting', asy
 	await page.mouse.down();
 	await page.clock.runFor(900);
 	await page.mouse.up();
-	await expect(page.locator('#btn-sound')).toHaveText('sound: off');
+	await expect(page.locator('#btn-sound')).toHaveAttribute('aria-pressed', 'false');
 	await page.locator('#btn-sound').click(); // a plain click still cycles
-	await expect(page.locator('#btn-sound')).toHaveText('sound: end');
+	await expect(page.locator('#btn-sound')).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('the mouse wheel scrolls the manual instead of changing the timer', async ({ page }) => {

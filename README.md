@@ -1,12 +1,12 @@
-# /tick
+# Acari
 
-**/tick** is a countdown timer that runs in a web browser. People use it to keep time during talks, live streams, meetings and stage events. It needs nothing but a browser. It can be installed like an app, and once it has been opened it works without an internet connection.
+**Acari** is a countdown timer that runs in a web browser. It is the successor to [/tick](https://heracl.es/tick), the single-file timer it grew out of. People use it to keep time during talks, live streams, meetings and stage events. It needs nothing but a browser. It can be installed like an app, and once it has been opened it works without an internet connection.
 
 - Live version: [acari.vercel.app](https://acari.vercel.app)
 - Source code: [github.com/Arty2/tick](https://github.com/Arty2/tick)
-- Website: [heracl.es/tick](https://heracl.es/tick)
+- Its predecessor, /tick: [heracl.es/tick](https://heracl.es/tick)
 
-![/tick showing 09:59 left in a keynote, with a break and a Q&A session waiting next](./screenshots/ticker-screenshot_01.png)
+![Acari showing 09:59 left in a keynote, with a break and a Q&A session waiting next](./screenshots/ticker-screenshot_01.png)
 
 ---
 
@@ -14,7 +14,7 @@
 
 Open [acari.vercel.app](https://acari.vercel.app) in a browser. Nothing else is needed.
 
-- To keep /tick on a device, choose **install** in the menu. See [Installing and working offline](#installing-and-working-offline).
+- To keep Acari on a device, choose **install** in the menu. See [Installing and working offline](#installing-and-working-offline).
 - To host a copy, put the contents of the `app` folder on any web server. There is nothing to build.
 
 ---
@@ -91,7 +91,7 @@ Open [acari.vercel.app](https://acari.vercel.app) in a browser. Nothing else is 
 | `W` | Opens the warning settings. |
 | `Delete` or `Backspace` | Changes the session name. `Enter` saves it. |
 | `` ` `` | Rings the bell. |
-| `Insert` | Changes the sound setting. |
+| `Insert` | Turns the bell at the end on or off. |
 | `Page Up` | Turns kiosk mode on or off. |
 | `Page Down` | Changes between the dark and light themes. |
 | `End` | Resets the timer. |
@@ -110,7 +110,7 @@ The queue is a list of sessions that run one after another. To open it, press `N
 - **Current session** is the name shown under the timer.
 - **Up next** is the list of sessions. Each one has a name and a length in minutes, or a time of day written `@14:30`, which makes that session count down to 14:30. **+ Add** adds a session, **×** removes one, and dragging a row changes the order.
 - When a session ends, the next one loads and starts by itself. A short sound plays.
-- The queue and the session name are saved in the browser. They are still there the next time /tick is opened.
+- The queue and the session name are saved in the browser. They are still there the next time Acari is opened.
 
 ### Writing a queue
 
@@ -137,7 +137,7 @@ The **target** button (or `U`) makes the timer count down to a time of day. The 
 
 The menu has five preset buttons. Clicking one loads its length. Holding a preset down, or right-clicking it, opens a box to change its name and length. An empty preset shows **+**. At first, the presets are 5, 10 and 25 minutes.
 
-Holding down the **reset** button for about one second removes everything /tick has saved: presets, queue, settings and the session name.
+Holding down the **reset** button for about one second removes everything Acari has saved: presets, queue, settings and the session name.
 
 ---
 
@@ -156,8 +156,8 @@ The **warn** button (or `W`) changes these points. They are set in seconds. Sett
 
 The remote control lets other devices start, pause and change the timer, and lets the timer show on more than one screen.
 
-1. Choose **remote** in the menu. A code of six letters and numbers appears, with a QR code. /tick draws the QR code itself; no internet is needed for it.
-2. On the other device, scan the QR code. Without a camera, open /tick on that device, choose **remote**, then **Join**, type the code and choose **Remote**.
+1. Choose **remote** in the menu. A code of six letters and numbers appears, with a QR code. Acari draws the QR code itself; no internet is needed for it.
+2. On the other device, scan the QR code. Without a camera, open Acari on that device, choose **remote**, then **Join**, type the code and choose **Remote**.
 3. The other device now shows a **remote pad**, and the timer screen changes to kiosk mode. It stays in kiosk mode if the remote pad disconnects.
 
 While a session is on, the menu's button reads **remote: waiting** until a remote pad connects, and **remote: connected** after. **Stop** in the remote window ends the session.
@@ -184,7 +184,7 @@ Any number of remote pads can join the same code, and all of them control the ti
 
 ### Several kiosks
 
-A timer can show on more than one screen. To add a screen, press the small screen button (🖥️) on a remote pad and open its link or QR code on the new screen. Or, on the new screen, open /tick, choose **remote**, then **Join**, type the code and choose **Kiosk**.
+A timer can show on more than one screen. To add a screen, press the small screen button (🖥️) on a remote pad and open its link or QR code on the new screen. Or, on the new screen, open Acari, choose **remote**, then **Join**, type the code and choose **Kiosk**.
 
 The first kiosk holds the timer. Every other kiosk is **read only**: it shows the first kiosk's time, queue, messages and **Black**, counts by its own clock between updates, and takes no clicks or keys. Its top line says **read only**. This is the same for another tab in the same browser and for another device. On a read-only kiosk, a double-click or double tap fills the screen, and `Escape` stops following and makes the page an ordinary timer again.
 
@@ -204,7 +204,7 @@ Tabs in the same browser connect straight away, without the internet. Different 
 
 ## Links that set up the timer
 
-A link to /tick can include settings after a `#`. These settings are used for that visit only. They do not replace the settings saved in the browser. Because they follow a `#`, the browser keeps them to itself: they are not sent to the server that the page comes from.
+A link to Acari can include settings after a `#`. These settings are used for that visit only. They do not replace the settings saved in the browser. Because they follow a `#`, the browser keeps them to itself: they are not sent to the server that the page comes from.
 
 | Setting | Values | What it does |
 |---|---|---|
@@ -212,7 +212,7 @@ A link to /tick can include settings after a `#`. These settings are used for th
 | `label` | text | The session name. |
 | `next` | `Break:5\|QA@14:30` | The queue, written as described in [Writing a queue](#writing-a-queue): sessions separated by `\|`, each `name:minutes`, minutes alone, or `name@HH:MM`. |
 | `theme` | `dark` or `light` | The theme. |
-| `sound` | `0`, `1` or `2` | The sound setting: off, bell at the end, or a bell every minute of overtime. |
+| `sound` | `0` or `1` | The bell when the time runs out: off or on. |
 | `remote` | a six-letter code | Opens the remote pad for that code. The **remote** button makes these links. |
 | `kiosk` | a six-letter code | Opens a kiosk for that code. It is read only while another kiosk holds the timer, and takes the timer over if none does. The small screen button (🖥️) on the remote pad makes these links. |
 
@@ -222,7 +222,7 @@ For example, this link opens a 25-minute keynote with a break and questions afte
 https://acari.vercel.app/#mins=25&label=Keynote&next=Break:5|QA:10&theme=dark&sound=1
 ```
 
-The **share** button copies a link like this for the timer as it is now.
+The **share** button opens the device's own share window with a link like this for the timer as it is now, so it can be sent with any app on the device. In a browser with no share window, the link is copied instead.
 
 ---
 
@@ -236,11 +236,7 @@ On computers, kiosk mode also fills the whole screen and stops the screen from g
 
 ## Sound
 
-The **sound** button (or `Insert`) changes between three settings:
-
-- **Off**: no bell.
-- **End**: one bell when the time runs out.
-- **Min**: a bell when the time runs out, and another at each minute of overtime.
+The **sound** button (or `Insert`) turns the bell on or off. When it is on, one bell rings when the time runs out. The button shows a bell; the bell is struck through while the sound is off.
 
 `` ` `` rings the bell at any time, and so does holding down the **sound** button.
 
@@ -264,18 +260,18 @@ The **sound** button (or `Insert`) changes between three settings:
 
 ## Installing and working offline
 
-The **install** button in the menu adds /tick to the device as an app. It then opens in its own window, without the browser's address bar.
+The **install** button in the menu adds Acari to the device as an app. It then opens in its own window, without the browser's address bar.
 
 - In Chrome, Edge and other browsers that have an install window, the button opens it.
 - In Safari and Firefox, the button says where to look instead: **Share → Add to Home Screen** on an iPhone or iPad, or the browser's own menu.
 
-Installed or not, /tick keeps a copy of itself in the browser the first time it is opened. After that it opens with no internet connection. When a new version is published, the copy is replaced the next time the page is opened online.
+Installed or not, Acari keeps a copy of itself in the browser the first time it is opened. After that it opens with no internet connection. When a new version is published, the copy is replaced the next time the page is opened online.
 
 ---
 
 ## External services: what leaves this computer
 
-The timer uses no outside services. Nothing is sent anywhere until a remote session connects two devices; the timer, queue, presets and settings are kept only in this browser. The settings in a link follow a `#`, so the server that sends the page never sees them. The QR codes are drawn by /tick itself.
+The timer uses no outside services. Nothing is sent anywhere until a remote session connects two devices; the timer, queue, presets and settings are kept only in this browser. The settings in a link follow a `#`, so the server that sends the page never sees them. The QR codes are drawn by Acari itself.
 
 Choosing **remote**, or opening a remote pad or a kiosk link, uses these external services, and no others:
 
@@ -286,7 +282,7 @@ Choosing **remote**, or opening a remote pad or a kiosk link, uses these externa
 
 After the introduction, the devices talk to each other directly (WebRTC); the timer itself never passes through these services. Tabs in the same browser use none of them.
 
-The PeerJS program (version 1.5.4, [MIT licence](./app/vendor/peerjs.LICENSE)) is part of /tick, in `app/vendor`. It is not fetched from another site.
+The PeerJS program (version 1.5.4, [MIT licence](./app/vendor/peerjs.LICENSE)) is part of Acari, in `app/vendor`. It is not fetched from another site.
 
 The live version is hosted by [Vercel](https://vercel.com), which serves the app's files when it is opened.
 
@@ -296,13 +292,13 @@ The live version is hosted by [Vercel](https://vercel.com), which serves the app
 
 - **iPhone and iPad**: kiosk mode cannot fill the whole screen.
 - **Remote control between devices**: needs the internet, and needs peerjs.com to be reachable.
-- **Opening the files directly**: /tick must come from a web server (or be installed). A browser will not run it from a folder on the disk, because it is made of several files.
+- **Opening the files directly**: Acari must come from a web server (or be installed). A browser will not run it from a folder on the disk, because it is made of several files.
 
 ---
 
 ## Development
 
-/tick is the `app` folder: a page, a style sheet, and a few JavaScript modules. It has no build step and no dependency. The tests need [Node.js](https://nodejs.org) and pnpm:
+Acari is the `app` folder: a page, a style sheet, and a few JavaScript modules. It has no build step and no dependency. The tests need [Node.js](https://nodejs.org) and pnpm:
 
 ```
 pnpm install

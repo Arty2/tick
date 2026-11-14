@@ -178,12 +178,13 @@ export function qrMatrix(text) {
   return best;
 }
 
-// Drawn as one SVG path on white, with the four-module quiet zone a scanner
-// needs. Built with DOM calls, never from a string of markup.
+// Drawn as one SVG path on white, with a margin of six modules: the four a
+// scanner asks for, and two to spare against whatever the code sits on.
+// Built with DOM calls, never from a string of markup.
 export function qrSvg(text) {
   const m = qrMatrix(text);
   if (!m) return null;
-  const NS = 'http://www.w3.org/2000/svg', quiet = 4, size = m.length + quiet * 2;
+  const NS = 'http://www.w3.org/2000/svg', quiet = 6, size = m.length + quiet * 2;
   const svg = document.createElementNS(NS, 'svg');
   svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
   svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'QR code');

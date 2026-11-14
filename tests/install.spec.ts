@@ -10,7 +10,7 @@ test('the manifest names the app, starts at its own folder, and its icons are th
 	const res = await page.request.get('/' + href);
 	expect(res.headers()['content-type']).toContain('application/manifest+json');
 	const m = await res.json();
-	expect(m.name).toBe('/tick');
+	expect(m.name).toBe('Acari');
 	expect(m.display).toBe('standalone');
 	expect(m.start_url).toBe('./');
 	// What a browser asks for before it offers to install: a 192 and a 512 px icon.

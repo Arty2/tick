@@ -1,12 +1,12 @@
 import { test, expect, open, reopen, digits, settle, letStorageSettle, menu, freezeAt, visit } from './fixtures';
 
 test('settings in the link set duration, label, queue, theme and sound', async ({ page }) => {
-	await open(page, '#mins=25&label=Keynote&next=Break:5|10&theme=light&sound=2');
+	await open(page, '#mins=25&label=Keynote&next=Break:5|10&theme=light&sound=1');
 	await expect(digits(page)).toHaveText('25:00');
 	await expect(page.locator('#session-label')).toHaveText('Keynote');
 	await expect(page.locator('.sq-queued')).toHaveCount(2);
 	await expect(page.locator('body')).toHaveClass(/light/);
-	await expect(page.locator('#btn-sound')).toHaveText('sound: min');
+	await expect(page.locator('#btn-sound')).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('preferences survive a reload; settings in a link do not overwrite them', async ({ page }) => {
@@ -80,7 +80,7 @@ test('malformed saved presets and queue entries are dropped, not fatal', async (
 	await expect(digits(page)).toHaveText('10:00');
 	await expect(page.locator('.sq-queued')).toHaveText(['▶ 05:00 QA']);
 	await expect(page.locator('.preset-btn')).toHaveText(['+', 'Talk', '+', '+', '+']);
-	await expect(page.locator('#btn-sound')).toHaveText('sound: off');
+	await expect(page.locator('#btn-sound')).toHaveAttribute('aria-pressed', 'false');
 });
 
 test("the app is at the root of the site, and the link's settings are not sent to the server", async ({ page }) => {
@@ -114,13 +114,13 @@ test("a share link's settings don't replace the user's own when something saves"
 			sessionStorage.setItem('seeded', '1');
 		}
 	});
-	await open(page, '#mins=1&next=Talk:2&theme=light&sound=2&label=Linked');
+	await open(page, '#mins=1&next=Talk:2&theme=light&sound=1&label=Linked');
 	await page.keyboard.press('Space');
 	await page.clock.fastForward(62_000); // the hand-over saves
 	await letStorageSettle(page);
 	await reopen(page);
 	await expect(page.locator('body')).not.toHaveClass(/light/);
-	await expect(page.locator('#btn-sound')).toHaveText('sound: off');
+	await expect(page.locator('#btn-sound')).toHaveAttribute('aria-pressed', 'false');
 	await expect(page.locator('.sq-queued')).toHaveText(['▶ 05:00 Mine']);
 });
 
@@ -176,3 +176,60 @@ test("a hand-over saves the new slot's label with the shortened queue", async ({
 	await expect(page.locator('.sq-queued')).toHaveText(['▶ 10:00 QA']);
 });
 
+
+test("share opens the device's share window with the link, where there is one", async ({ page }) => {
+	await open(page, '#mins=12&label=Panel');
+	await page.evaluate(() => {
+		const w = window as unknown as { shared: unknown };
+		Object.defineProperty(navigator, 'share', { configurable: true, value: (data: unknown) => { w.shared = data; return Promise.resolve(); } });
+	});
+	await menu(page);
+	await page.locator('#btn-share').click();
+	const shared = await page.evaluate(() => (window as unknown as { shared: { title: string; url: string } }).shared);
+	expect(shared.title).toBe('Acari');
+	expect(new URLSearchParams(new URL(shared.url).hash.slice(1)).get('label')).toBe('Panel');
+	await expect(page.locator('#status-hint')).not.toHaveText(/copied/i); // shared, not copied
+});
+
+test('a share window that fails falls back to copying; one that is closed does nothing', async ({ page, context }) => {
+	await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+	await open(page, '#mins=12');
+	const stub = (name: string) => page.evaluate((name) => {
+		Object.defineProperty(navigator, 'share', { configurable: true, value: () => Promise.reject(new DOMException('no', name)) });
+	}, name);
+	await stub('AbortError');
+	await menu(page);
+	await page.locator('#btn-share').click();
+	await page.clock.runFor(100);
+	await expect(page.locator('#status-hint')).not.toHaveClass(/show/);
+	await stub('NotAllowedError');
+	await page.locator('#btn-share').click();
+	await expect(page.locator('#status-hint')).toHaveText(/copied/i);
+	expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('#mins=12');
+});
+
+test('with sound on, the bell rings once when the time runs out, and not again each minute', async ({ page }) => {
+	await page.addInitScript(() => {
+		localStorage.setItem('tick_prefs', JSON.stringify({ nextQueue: [] })); // nothing to hand over to
+		const w = window as unknown as { rings: number };
+		w.rings = 0;
+		const start = OscillatorNode.prototype.start;
+		let last = -1;
+		OscillatorNode.prototype.start = function (when?: number) {
+			// One bell is several oscillators started at the same instant.
+			if (when !== last) { last = when ?? 0; w.rings++; }
+			return start.call(this, when);
+		};
+	});
+	await open(page, '#mins=1&sound=1');
+	await page.keyboard.press('Space');
+	await page.clock.fastForward(61_000);
+	await page.clock.runFor(200);
+	await expect(page.locator('#label-text')).toHaveText('OVERTIME');
+	const rings = () => page.evaluate(() => (window as unknown as { rings: number }).rings);
+	const atEnd = await rings();
+	expect(atEnd).toBeGreaterThan(0);
+	await page.clock.fastForward(185_000); // three more minutes of overtime
+	await page.clock.runFor(200);
+	expect(await rings()).toBe(atEnd);
+});

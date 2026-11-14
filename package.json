@@ -1,7 +1,7 @@
 {
 	"name": "tick",
 	"private": true,
-	"description": "Development tooling for /tick. The app is the app/ folder and needs none of this to run.",
+	"description": "Development tooling for Acari. The app is the app/ folder and needs none of this to run.",
 	"type": "module",
 	"scripts": {
 		"gates": "bash scripts/gates.sh",

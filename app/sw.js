@@ -1,4 +1,4 @@
-// The service worker: keeps a copy of every file of the app, so that /tick
+// The service worker: keeps a copy of every file of the app, so that Acari
 // opens — and can be installed — with no network at all. It never touches
 // anything off this origin; the remote control's own connections go around it.
 //

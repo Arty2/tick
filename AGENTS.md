@@ -8,7 +8,8 @@ with no build, and that is a feature, not a stage it hasn't grown out of.
 
 ## What this is
 
-`/tick` is a countdown timer for presentations, streams and stage use.
+Acari is a countdown timer for presentations, streams and stage use, the
+successor to `/tick` (the repository and some internal names keep `tick`).
 `app/` is the entire app, and everything in it ships: `index.html` (markup
 and the manual), `tick.css`, ES modules in `js/` (`main` picks `timer` or
 `pad`; `transport`, `queue`, `qr`, `util` serve both), a manifest, icons, a

@@ -88,13 +88,14 @@ const p = loadPrefs();
 // replaces the user's own; changing one by hand clears its flag (setPrefOwn).
 const fromUrl = {
   theme: URL_THEME === 'light' || URL_THEME === 'dark',
-  sound: [0,1,2].includes(URL_SOUND),
+  sound: [0,1].includes(URL_SOUND),
   nextQueue: URL_NEXT_ITEMS.length > 0,
   customLabel: !!URL_LABEL,
 };
 const storedPrefs = p;
 const setPrefOwn = (...keys) => keys.forEach(k => { fromUrl[k] = false; });
-soundMode = [0,1,2].includes(URL_SOUND) ? URL_SOUND : [0,1,2].includes(p.sound) ? p.sound : 0;
+// The bell at the end of a session: on (1) or off (0).
+soundMode = [0,1].includes(URL_SOUND) ? URL_SOUND : p.sound === 1 ? 1 : 0;
 // A saved queue wins over the first-visit default even when empty: the user
 // cleared it, and it shouldn't come back as a 10-minute slot on reload.
 if (!URL_NEXT_ITEMS.length && Array.isArray(p.nextQueue)) nextQueue = p.nextQueue.map(toEntry).filter(Boolean);
@@ -157,7 +158,6 @@ function playBell(freq=440, dur=3.0, vol=0.5, parts) {
 }
 const playDampBell = () => playBell(440, 0.7, 0.28);
 const playOTBell   = () => playBell(220, 4.0, 0.55);
-const playMinBell  = () => playBell(330, 2.5, 0.45);
 const playPing     = () => playBell(1047, 1.2, 0.35);
 
 // ── Utilities ─────────────────────────────────────────
@@ -228,7 +228,7 @@ function renderUntilBtn() {
   const on = !!untilTarget;
   btnUntilAct.style.display  = on ? '' : 'none';
   btnUntilOpen.style.display = on ? 'none' : '';
-  if (on) btnUntilAct.textContent = 'target: ' + untilLabel;
+  if (on) btnUntilAct.querySelector('.lbl').textContent = 'target: ' + untilLabel.replace(/^\u25B6\s*/, ''); // the icon is the triangle
 }
 
 function renderPresets() {
@@ -343,11 +343,7 @@ let renderDigits = rem => {
 };
 
 function checkAutoSound() {
-  if (!soundMode) return;
-  if (soundMode === 1) { if (remaining <= 0 && bellRecord === null) { playOTBell(); bellRecord = 0; } }
-  else if (remaining < 0) {
-    const min = Math.floor(-remaining/60); if (bellRecord !== min) { playMinBell(); bellRecord = min; }
-  } else bellRecord = null;
+  if (soundMode && remaining <= 0 && bellRecord === null) { playOTBell(); bellRecord = 0; }
 }
 
 // ── Timer controls ────────────────────────────────────
@@ -484,7 +480,10 @@ function exitUntilMode() {
 let preWatchRunning = false;
 function toggleWatchMode() {
   watchMode = !watchMode;
-  btnCW.classList.toggle('watch-on', watchMode); btnCW.textContent = watchMode ? 'timer' : 'clock';
+  btnCW.classList.toggle('watch-on', watchMode);
+  // The button names where a press goes, with that face's icon: a clock, or a stopwatch.
+  btnCW.querySelector('.lbl').textContent = watchMode ? 'timer' : 'clock';
+  btnCW.querySelector('.ico').className = 'ico ' + (watchMode ? 'ico-timer' : 'ico-clock');
   if (watchMode) {
     preWatchRunning = running;
     display.style.color = 'var(--c-watch)'; display.className = 's-watch';
@@ -556,8 +555,10 @@ function kbCommit() {
   renderDigits(remaining); if (was) startTimer();
 }
 
-// ── Share URL ─────────────────────────────────────────
-function copyShareUrl() {
+// ── Share ─────────────────────────────────────────────
+// The device's own share sheet where there is one; elsewhere the link is
+// copied, as before.
+function shareTimer() {
   const p = new URLSearchParams();
   p.set('mins', Math.max(1, Math.round(totalSecs/60)));
   if (customLabel) p.set('label', customLabel);
@@ -568,7 +569,11 @@ function copyShareUrl() {
   p.set('theme', document.body.classList.contains('light') ? 'light' : 'dark');
   p.set('sound', soundMode);
   // After "#": the link's settings never reach the server that serves the page.
-  copyText(`${location.origin}${location.pathname}#${p}`).then(() => showHint('URL copied'));
+  const url = `${location.origin}${location.pathname}#${p}`;
+  const copy = () => copyText(url).then(() => showHint('URL copied'));
+  if (!navigator.share) return copy();
+  // Closing the sheet without choosing (AbortError) is an answer, not a failure.
+  navigator.share({title: document.title, url}).catch(e => { if (e?.name !== 'AbortError') copy(); });
 }
 
 // ── Modals ────────────────────────────────────────────
@@ -841,13 +846,17 @@ const toggleFullscreen = () => fsEl() ? fsLeave() : (!isIOS && fsEnter(document.
 // ── Theme & Sound ─────────────────────────────────────
 const toggleTheme = () => { document.body.classList.toggle('light'); setPrefOwn('theme'); savePrefs(); showHint(document.body.classList.contains('light') ? 'light' : 'dark'); };
 
-const SOUND_LABELS = ['sound: off','sound: end','sound: min'];
-const updateSoundBtn = () => { btnSound.textContent=SOUND_LABELS[soundMode]; btnSound.classList.toggle('sound-on', soundMode>0); };
+// The bell icon carries the state: struck through when off.
+const updateSoundBtn = () => {
+  btnSound.classList.toggle('sound-on', soundMode > 0);
+  btnSound.querySelector('.ico').className = 'ico ' + (soundMode ? 'ico-bell' : 'ico-bell-off');
+  btnSound.setAttribute('aria-pressed', String(soundMode > 0));
+};
 updateSoundBtn();
 function cycleSoundMode() {
-  soundMode = (soundMode+1)%3; updateSoundBtn(); setPrefOwn('sound'); savePrefs();
-  showHint(['SOUND: OFF','SOUND: END','SOUND: MIN'][soundMode]);
-  const preview = soundMode===0 ? playDampBell : [null,playOTBell,playMinBell][soundMode];
+  soundMode = soundMode ? 0 : 1; updateSoundBtn(); setPrefOwn('sound'); savePrefs();
+  showHint(soundMode ? 'SOUND: ON' : 'SOUND: OFF');
+  const preview = soundMode ? playOTBell : playDampBell;
   const ctx = getCtx(), fire = () => { try { preview(); } catch {} };
   ctx.state==='running' ? fire() : ctx.resume().then(fire).catch(()=>{});
 }
@@ -986,7 +995,7 @@ tbBtn('btn-next',         openNextModal);
 tbBtn('btn-until-open',   openUntilModal);
 tbBtn('btn-until-active', openUntilModal);
 tbBtn('btn-reset',        ()=>fullReset(), ()=>{ showHint('full reset'); setTimeout(hardReset,600); });
-tbBtn('btn-share',        copyShareUrl);
+tbBtn('btn-share',        shareTimer);
 tbBtn('btn-fullscreen',   toggleKiosk);
 tbBtn('btn-theme',        toggleTheme);
 tbBtn('btn-warn',         openWarnModal);

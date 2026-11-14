@@ -1,7 +1,7 @@
 import { test as base, expect, type Page } from '@playwright/test';
 
 /*
- * Every test runs with the outside world switched off and watched. /tick is
+ * Every test runs with the outside world switched off and watched. Acari is
  * meant to work with no network, so a test that only passes because some
  * third-party host answered is a test of that host. Anything
  * off-origin is aborted and recorded; `offsite` lets a test assert on it.
