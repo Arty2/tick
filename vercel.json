@@ -1,0 +1,27 @@
+{
+	"$schema": "https://openapi.vercel.sh/vercel.json",
+	"framework": null,
+	"installCommand": "true",
+	"buildCommand": "mkdir -p public && cp tick.html public/",
+	"outputDirectory": "public",
+	"redirects": [{ "source": "/", "destination": "/tick.html", "permanent": false }],
+	"headers": [
+		{
+			"source": "/(.*)",
+			"headers": [
+				{ "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" },
+				{ "key": "X-Content-Type-Options", "value": "nosniff" },
+				{ "key": "Referrer-Policy", "value": "no-referrer" },
+				{ "key": "X-Frame-Options", "value": "DENY" },
+				{
+					"key": "Content-Security-Policy",
+					"value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://api.qrserver.com; connect-src 'self' https://0.peerjs.com wss://0.peerjs.com; manifest-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+				},
+				{
+					"key": "Permissions-Policy",
+					"value": "camera=(), microphone=(), geolocation=(), payment=(), usb=(), midi=(), display-capture=()"
+				}
+			]
+		}
+	]
+}

@@ -1,0 +1,27 @@
+{
+	"permissions": {
+		"allow": [
+			"Bash(pnpm install)",
+			"Bash(pnpm test)",
+			"Bash(pnpm run gates)",
+			"Bash(pnpm run test:e2e *)",
+			"Bash(pnpm exec playwright test *)",
+			"Bash(pnpm run feedback *)",
+			"Bash(git status *)",
+			"Bash(git diff *)",
+			"Bash(git log *)",
+			"Bash(git show *)",
+			"Bash(ls *)",
+			"Bash(wc *)",
+			"Bash(head *)",
+			"Bash(tail *)",
+			"Bash(sed -n *)"
+		],
+		"deny": ["Read(./pnpm-lock.yaml)"]
+	},
+	"hooks": {
+		"SessionStart": [
+			{ "hooks": [{ "type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh" }] }
+		]
+	}
+}

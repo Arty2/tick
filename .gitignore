@@ -1,0 +1,8 @@
+node_modules
+test-results
+playwright-report
+.DS_Store
+
+# Local-only log of every gates run — see AGENTS.md § Closing the loop.
+# Never upload it anywhere: the point is that it stays on this machine.
+/.claude/logs

@@ -1,0 +1,64 @@
+name: CI
+
+# Prose cannot break the timer. CHANGELOG.md is the exception: the gates
+# check its top heading against tick.html's version. `paths` rather than
+# `paths-ignore` because only `paths` can re-include a file; the last
+# matching line wins.
+on:
+  push:
+    branches: [main, master]
+    paths: ['**', '!**.md', 'CHANGELOG.md', 'README.md']
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths: ['**', '!**.md', 'CHANGELOG.md', 'README.md']
+  workflow_dispatch:
+
+# A newer push says everything the older one did.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+# `gates` answers "is this coherent" in seconds, on every push. `browser`
+# answers "may this land": the Playwright suite, on the default branch and
+# on a pull request that is no longer a draft. README.md is re-included
+# above because the gates read it (every contacted host must be named).
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Gates
+        run: bash scripts/gates.sh
+
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Cache Chromium
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm run test:e2e
+        env:
+          CI: true
+      - name: Keep the report of a failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

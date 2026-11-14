@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="version" content="0.3.1">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0a0a0a">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -76,7 +77,10 @@ html,body{
 #timer-display.s-watch ~ #session-label{color:var(--c-watch)}
 
 #timer-display{
-  font-size:clamp(80px,19vw,240px);font-weight:900;letter-spacing:-0.04em;
+  /* 1.5x the old clamp(80px,19vw,240px), in regular weight. The vh term
+     keeps it inside a short screen (a landscape phone, a 16:9 stream) with
+     room for the label and queue; vw keeps hours mode inside a portrait one. */
+  font-size:clamp(48px,min(28.5vw,48vh),360px);font-weight:400;letter-spacing:-0.04em;white-space:nowrap;
   line-height:1;color:var(--c-run);transition:color 0.3s;font-variant-numeric:tabular-nums;
 }
 #timer-display .colon{display:inline-block;position:relative;top:-0.07em;letter-spacing:0}
@@ -86,6 +90,10 @@ html,body{
   line-height:1;margin-right:0.15em;letter-spacing:0;
 }
 #timer-display .disp-h-suf{font-size:0.72em;letter-spacing:0}
+/* Hours make the line about a fifth wider ("16H 39:00"), so it gets a
+   smaller vw share to stay on screen in portrait. Without :has() support it
+   keeps the larger size, and nowrap keeps it on one line. */
+#timer-display:has(.disp-h){font-size:clamp(40px,min(23vw,48vh),360px)}
 #timer-display .disp-ms{display:inline-block;vertical-align:top;line-height:1}
 /* Watch-mode colon blink via class toggle instead of per-frame style writes */
 #timer-display.colon-off .colon{color:transparent}
@@ -107,6 +115,9 @@ html,body{
   display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;pointer-events:none;
 }
 #session-timer{font-size:12px;letter-spacing:0.12em;color:var(--dim);text-transform:uppercase}
+/* Centred on the screen, not between its neighbours, whose widths differ. */
+#app-version{position:absolute;left:50%;transform:translateX(-50%);font-size:12px;letter-spacing:0.12em;color:var(--dim)}
+body.kiosk #app-version{display:none}
 
 #status-hint{
   position:fixed;top:3.2rem;left:1.5rem;font-size:clamp(22px,3.5vw,36px);font-weight:700;
@@ -305,12 +316,16 @@ input[type=time].modal-input::-webkit-calendar-picker-indicator{filter:invert(0.
 body.light #manual{background:rgba(170,165,158,0.92)}
 #manual.open{display:block}
 
+/* Sticky inside #manual rather than fixed to the window, so it is centred in
+   the same box as #manual-inner (a fixed bar ignored the scrollbar's width)
+   and the title starts on the text's left edge. */
 #manual-h1-fixed{
-  position:fixed;top:0;left:0;right:0;height:3rem;z-index:415;display:flex;align-items:center;
-  padding:0 1.5rem;pointer-events:none;border-bottom:1px solid var(--dim);background:rgba(0,0,0,0.82);
+  position:sticky;top:0;height:3rem;z-index:415;display:flex;align-items:center;
+  margin:0 -1rem;padding:0 1rem;pointer-events:none;border-bottom:1px solid var(--dim);background:rgba(0,0,0,0.96);
 }
-body.light #manual-h1-fixed{background:rgba(150,145,138,0.92)}
-#manual-h1-fixed h1{font-size:1.1em;letter-spacing:0.3em;text-transform:uppercase;color:var(--fg);margin:0}
+#manual-h1-fixed h1{width:100%;max-width:620px;margin:0 auto}
+body.light #manual-h1-fixed{background:rgba(150,145,138,0.98)}
+#manual-h1-fixed h1{font-size:1.1em;letter-spacing:0.3em;text-transform:uppercase;color:var(--fg)}
 
 #manual-close{
   position:fixed;top:0;right:1.5rem;height:3rem;display:flex;align-items:center;
@@ -320,11 +335,13 @@ body.light #manual-h1-fixed{background:rgba(150,145,138,0.92)}
 }
 #manual-close:hover{opacity:0.7}
 
-#manual-inner{max-width:620px;width:100%;margin:0 auto;padding-top:4rem;font-size:13px;line-height:1.78;user-select:text;-webkit-user-select:text}
+#manual-inner{max-width:620px;width:100%;margin:0 auto;padding-top:1rem;font-size:13px;line-height:1.78;user-select:text;-webkit-user-select:text}
 #manual-inner h2{font-size:0.78em;letter-spacing:0.28em;text-transform:uppercase;color:var(--fg);margin-top:1.6rem;margin-bottom:0.5rem;padding-bottom:0.3rem;border-bottom:1px solid rgba(255,255,255,0.2)}
 #manual-inner ul{padding-left:1.35rem;margin-bottom:0.5rem}
 #manual-inner li{margin-bottom:0.3rem}
 #manual-inner p{margin-bottom:0.5rem;color:var(--fg);font-size:0.9em}
+#manual-inner a{color:inherit}
+#manual-inner .manual-credit{color:var(--dim)}
 code{background:rgba(128,128,128,0.16);padding:0.08em 0.33em;font-family:var(--font);font-size:0.92em}
 
 /* ── Remote control ── */
@@ -415,6 +432,7 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
 <div id="swipe-hint"></div>
 <div id="top-bar">
   <div id="session-timer">00:00</div>
+  <div id="app-version"></div>
   <div id="wall-clock"></div>
 </div>
 <div id="status-hint"></div>
@@ -504,7 +522,7 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
     <div class="modal-row">
       <div style="flex:1">
         <label>First warning (sec)</label>
-        <input type="number" id="warn1-input" class="modal-input" min="0" max="7200" placeholder="300">
+        <input type="number" id="warn1-input" class="modal-input" min="0" max="7200" placeholder="auto">
       </div>
       <div style="flex:1">
         <label>Second warning (sec)</label>
@@ -512,7 +530,8 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
       </div>
     </div>
     <div style="font-size:11px;color:var(--dim);text-align:center;letter-spacing:0.08em">
-      e.g. 300 = 5 min &nbsp;&#xB7;&nbsp; 60 = 1 min &nbsp;&#xB7;&nbsp; 0 = disabled
+      e.g. 300 = 5 min &nbsp;&#xB7;&nbsp; 60 = 1 min &nbsp;&#xB7;&nbsp; 0 = off<br>
+      First warning left empty: 2 min, or 5 min for sessions over 10 min
     </div>
     <div class="modal-actions">
       <button class="modal-btn" id="warn-cancel">Cancel</button>
@@ -522,87 +541,91 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
 </div>
 
 <div id="manual">
-  <div id="manual-h1-fixed"><h1>/tick manual</h1></div>
+  <div id="manual-h1-fixed"><h1>/tick manual <span id="manual-version"></span></h1></div>
   <button id="manual-close">close</button>
   <div id="manual-inner">
-    <p>/tick is a shortcut-first countdown timer for streams, webinars, or any reverse time-keeping needs.</p>
-    <h2>Mouse &amp; Touch</h2>
+    <p>/tick is a countdown timer. People use it to keep time during talks, live streams, meetings and stage events. It is one file and works without the internet.</p>
+    <p class="manual-links">Live: <a href="https://acari.vercel.app">acari.vercel.app</a> &#xB7; Source: <a href="https://github.com/Arty2/tick">github.com/Arty2/tick</a> &#xB7; Website: <a href="https://heracl.es/tick">heracl.es/tick</a></p>
+    <p class="manual-credit">Dialectic Acheiropoieton of Heracles Papatheodorou and&nbsp;Claude</p>
+    <h2>Mouse and touch</h2>
     <ul>
-      <li>Click or tap to start. Again to pause / unpause.</li>
-      <li>Click or tap to reset after overtime.</li>
-      <li>Double-click / double-tap for kiosk (fullscreen). Double again to exit.</li>
-      <li>Scroll &#x00B1;1 min (mouse, while running).</li>
-      <li>Swipe &#x1F446;+10 &#x1F447;&#x2212;5 &#x1F448;+1 &#x1F449;&#x2212;1 min (touch, while running).</li>
+      <li>Click or tap to start. Click again to pause, and again to start.</li>
+      <li>In overtime, a click loads the next session, or resets the timer if the queue is empty.</li>
+      <li>Click or tap the list under the timer to open the queue.</li>
+      <li>Double-click or double-tap to turn kiosk mode on or off.</li>
+      <li>While running, the mouse wheel adds or takes away 1 minute.</li>
+      <li>While running, swipe &#x1F446; to add 10 minutes, &#x1F447; to take away 5, &#x1F448; to add 1, &#x1F449; to take away 1.</li>
     </ul>
     <h2>Keyboard</h2>
     <ul>
-      <li><code>Enter</code> &#x2014; Start / restart &nbsp; <code>Space</code> &#x2014; Start / pause</li>
-      <li><code>Ctrl+Enter</code> &#x2014; Load next queued timer immediately</li>
-      <li><code>0&#x2013;9</code> &#x2014; Type minutes, confirm with <code>Enter</code></li>
-      <li><code>N</code> &#x2014; Queue next timer(s) &nbsp; <code>U</code> &#x2014; Countdown mode</li>
-      <li><code>W</code> &#x2014; Warning thresholds</li>
-      <li><code>&#x2191;</code>+10 <code>&#x2193;</code>&#x2212;5 <code>&#x2190;</code>+1 <code>&#x2192;</code>&#x2212;1 min</li>
-      <li><code>Ctrl+&#x2191;</code> / <code>Ctrl+&#x2193;</code> &#x2014; Previous / next preset</li>
-      <li><code>Page Up</code> &#x2014; Kiosk / fullscreen &nbsp; <code>Page Down</code> &#x2014; Theme</li>
-      <li><code>End</code> &#x2014; Reset &nbsp; <code>Esc</code> &#x2014; Close / exit kiosk</li>
-      <li><code>Insert</code> &#x2014; Cycle sound &nbsp; <code>`</code> &#x2014; Bell on demand</li>
-      <li><code>Del</code> / <code>Backspace</code> &#x2014; Edit label &nbsp; <code>Home</code> &#x2014; Manual</li>
+      <li><code>Enter</code> starts again from the starting length. <code>Space</code> starts or pauses.</li>
+      <li>Type <code>0</code>&#x2013;<code>9</code>, then <code>Enter</code>, to set the length in minutes.</li>
+      <li><code>Ctrl+Enter</code> loads the next session now. It waits until it is started.</li>
+      <li><code>&#x2191;</code> adds 10 minutes, <code>&#x2193;</code> takes away 5, <code>&#x2190;</code> adds 1, <code>&#x2192;</code> takes away 1.</li>
+      <li><code>Ctrl+&#x2191;</code> and <code>Ctrl+&#x2193;</code> load the previous or next preset.</li>
+      <li><code>N</code> opens the queue. <code>U</code> opens the target time. <code>W</code> opens the warnings.</li>
+      <li><code>Delete</code> or <code>Backspace</code> changes the session name.</li>
+      <li><code>`</code> rings the bell. <code>Insert</code> changes the sound setting.</li>
+      <li><code>Page Up</code> turns kiosk mode on or off. <code>Page Down</code> changes the theme.</li>
+      <li><code>End</code> resets. <code>Home</code> opens this manual. <code>Tab</code> opens the menu.</li>
+      <li><code>Esc</code> closes the menu or a window. If none is open, it leaves target time, clock mode or kiosk mode.</li>
     </ul>
-    <h2>Timer Status</h2>
+    <h2>Colours</h2>
     <ul>
-      <li><strong style="color:var(--c-idle)">Grey</strong> &#x2014; Idle.</li>
-      <li><strong style="color:var(--c-run)">White</strong> &#x2014; Running.</li>
-      <li><strong style="color:var(--c-warn)">Orange</strong> &#x2014; First warning (default: 5 min remaining).</li>
-      <li><strong style="color:var(--c-warn)">Orange flash</strong> &#x2014; Second warning (default: 1 min remaining).</li>
-      <li><strong style="color:var(--c-pause)">Amber</strong> &#x2014; Paused.</li>
-      <li><strong style="color:var(--c-ot)">Red</strong> &#x2014; Overtime. Timer counts up.</li>
-      <li><strong style="color:var(--c-reset)">Green</strong> &#x2014; Reset flash.</li>
-      <li><strong style="color:var(--c-next)">Purple</strong> &#x2014; Next timer loaded.</li>
-      <li><strong style="color:var(--c-until)">Blue</strong> &#x2014; Countdown to wall-clock time.</li>
-      <li><strong style="color:var(--c-watch)">Teal</strong> &#x2014; Clock mode.</li>
+      <li><strong style="color:var(--c-idle)">Grey</strong> &#x2014; not started.</li>
+      <li><strong style="color:var(--c-run)">White</strong> &#x2014; running.</li>
+      <li><strong style="color:var(--c-warn)">Orange</strong> &#x2014; first warning (2 minutes left, or 5 for sessions over 10 minutes).</li>
+      <li><strong style="color:var(--c-warn)">Flashing orange</strong> &#x2014; second warning (1 minute left, at first).</li>
+      <li><strong style="color:var(--c-pause)">Amber</strong> &#x2014; paused.</li>
+      <li><strong style="color:var(--c-ot)">Red</strong> &#x2014; overtime. The time has run out, and the timer counts up.</li>
+      <li><strong style="color:var(--c-reset)">Green</strong> &#x2014; just reset.</li>
+      <li><strong style="color:var(--c-next)">Purple</strong> &#x2014; the next session is loaded.</li>
+      <li><strong style="color:var(--c-until)">Blue</strong> &#x2014; counting down to a time of day.</li>
+      <li><strong style="color:var(--c-watch)">Teal</strong> &#x2014; clock mode.</li>
     </ul>
-    <h2>Warning Thresholds</h2>
+    <h2>Warnings</h2>
     <ul>
-      <li>Click <strong>warn</strong> or press <code>W</code> to set two configurable thresholds.</li>
-      <li><strong>First warning</strong> — colour changes to orange (default 120 sec = 2 min).</li>
-      <li><strong>Second warning</strong> — orange + flashing digits (default 60 sec = 1 min).</li>
-      <li>Set either to 0 to disable that level. Settings saved across sessions.</li>
+      <li>The <strong>warn</strong> button (or <code>W</code>) sets two warning points, in seconds.</li>
+      <li>At the <strong>first warning</strong> the numbers turn orange. It comes 2 minutes before the end, or 5 minutes before the end of a session longer than 10 minutes. A number typed in the box is used instead; leaving the box empty goes back to this.</li>
+      <li>At the <strong>second warning</strong> the numbers also flash. At first this is 60 seconds (1 minute) before the end.</li>
+      <li>Setting a warning to 0 turns it off. The settings are saved.</li>
     </ul>
-    <h2>Kiosk Mode</h2>
+    <h2>Kiosk mode</h2>
     <ul>
-      <li>Click <strong>kiosk</strong>, press <code>Page Up</code>, or double-click to enter. Hides all UI chrome.</li>
-      <li>On desktop: enters fullscreen. Press <code>Esc</code> or double-click to exit.</li>
-      <li>On mobile: hides toolbar and top bar without requiring fullscreen. Double-tap to exit.</li>
+      <li>Kiosk mode hides the buttons and the menu. Only the time and the top line are shown.</li>
+      <li>Turn it on with the <strong>kiosk</strong> button, <code>Page Up</code>, or a double-click. Turn it off the same way, or with <code>Esc</code>.</li>
+      <li>On computers it also fills the screen and keeps the screen from going dark. On iPhones and iPads the address bar stays.</li>
     </ul>
     <h2>Presets</h2>
     <ul>
-      <li>Up to 5 presets. Click to load. <strong>Long-press</strong> or right-click to edit.</li>
-      <li>Empty slots show <strong>+</strong> &#x2014; click to configure.</li>
-      <li><strong>Long-press Reset</strong> to clear all saved data.</li>
+      <li>There are five presets in the menu. Click one to load it.</li>
+      <li>Hold a preset down, or right-click it, to change its name and length. An empty preset shows <strong>+</strong>.</li>
+      <li>Holding down <strong>reset</strong> for about one second removes everything /tick has saved.</li>
     </ul>
-    <h2>Next Timer Queue</h2>
+    <h2>Queue</h2>
     <ul>
-      <li>Click <strong>&#x25B6; next</strong> or press <code>N</code>. Enter comma-separated minutes: <code>10,5,2</code>.</li>
-      <li>Auto-loads after current timer ends. <code>Ctrl+Enter</code> to skip immediately.</li>
+      <li>The queue is a list of sessions that run one after another. Open it with <strong>&#x25B6; queue</strong>, the list under the timer, or <code>N</code>.</li>
+      <li>Each session has a name and a length in minutes. <strong>+ Add</strong> adds one, <strong>&#xD7;</strong> removes one, and dragging a row changes the order.</li>
+      <li>When a session ends, the next one starts by itself. <code>Ctrl+Enter</code> loads it sooner.</li>
     </ul>
-    <h2>Countdown Mode</h2>
+    <h2>Target time</h2>
     <ul>
-      <li>Click <strong>target</strong> or press <code>U</code>. Targets tomorrow if time has passed.</li>
+      <li>The <strong>target</strong> button (or <code>U</code>) counts down to a time of day, in the 24-hour clock. If that time has passed today, it counts down to tomorrow.</li>
     </ul>
-    <h2>Clock / Watch Mode</h2>
+    <h2>Clock mode</h2>
     <ul>
-      <li>Toggle <strong>timer &#x2194; clock</strong> in toolbar. Countdown keeps running in background.</li>
-      <li>Exiting clock mode resumes the current timer; the queue is not advanced.</li>
+      <li>The <strong>clock</strong> button shows the time of day instead of the timer. The timer keeps running, and the queue keeps moving.</li>
+      <li>A click, or the <strong>timer</strong> button, shows the timer again.</li>
     </ul>
-    <h2>Remote Control</h2>
+    <h2>Remote control</h2>
     <ul>
-      <li>Click <strong>remote</strong> to generate a 6-character code + QR. Open on any device via the URL or scan.</li>
-      <li>Same browser: works instantly via BroadcastChannel. Cross-device: uses WebRTC via a third-party broker (peerjs.com) — requires internet; may not work on restrictive networks.</li>
-      <li>Remote pad shows live timer state. Buttons vibrate on mobile.</li>
-      <li><strong>Operator message</strong> — type in the message field and press <code>Enter</code> or Send. Text flashes on the presenter&rsquo;s screen for 6 seconds. Send empty (Clear) to dismiss immediately.</li>
+      <li>The <strong>remote</strong> button shows a six-letter code and a QR code. Open the link or scan the code on another device to get a remote pad.</li>
+      <li>The remote pad shows the time left. Its buttons start, pause, reset, ring the bell, load the next session and change the time. On phones they vibrate.</li>
+      <li>A message typed in the remote window on this screen appears on the remote pad for 6 seconds. <strong>Clear</strong> removes it sooner.</li>
+      <li>Two tabs in the same browser connect without the internet. Two devices need the internet, and connect through a service called PeerJS. This may not work on some school or office networks.</li>
     </ul>
     <h2>Share</h2>
-    <p>Click <strong>share</strong> to copy the current state as a URL. Opening it restores the timer exactly as configured. Parameters override saved preferences but do not overwrite them.</p>
+    <p>The <strong>share</strong> button copies a link to the timer as it is now. Opening the link sets up the same timer. Settings in a link are used for that visit only; they do not replace the saved settings.</p>
     <table style="width:100%;border-collapse:collapse;font-size:0.82em;margin-top:0.4rem">
       <thead>
         <tr style="border-bottom:1px solid var(--dim)">
@@ -615,36 +638,36 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
         <tr style="border-bottom:1px solid rgba(128,128,128,0.15)">
           <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>mins</code></td>
           <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>1&ndash;999</code></td>
-          <td style="padding:0.35rem 0 0.35rem 0.5rem">Starting duration in whole minutes.</td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem">The starting length in minutes.</td>
         </tr>
         <tr style="border-bottom:1px solid rgba(128,128,128,0.15)">
           <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>label</code></td>
           <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>text</code></td>
-          <td style="padding:0.35rem 0 0.35rem 0.5rem">Current session title shown above the timer. URL-encoded if it contains spaces or special characters.</td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem">The session name shown under the timer.</td>
         </tr>
         <tr style="border-bottom:1px solid rgba(128,128,128,0.15)">
           <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>next</code></td>
           <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>Title:25,10</code></td>
-          <td style="padding:0.35rem 0 0.35rem 0.5rem">Comma-separated queue. Each entry is either plain minutes (<code>25</code>) or a labelled slot (<code>Talk:25</code>). Mixed formats are fine: <code>Keynote:40,Break:5,10</code>. Loaded in order when each timer ends.</td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem">The queue. Each session is <code>name:minutes</code> (<code>Talk:25</code>) or only minutes (<code>25</code>), separated by commas: <code>Keynote:40,Break:5,10</code>. A comma inside a name is written <code>\,</code>.</td>
         </tr>
         <tr style="border-bottom:1px solid rgba(128,128,128,0.15)">
           <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>theme</code></td>
           <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>dark&nbsp;|&nbsp;light</code></td>
-          <td style="padding:0.35rem 0 0.35rem 0.5rem">Force dark or light theme regardless of saved preference.</td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem">The theme.</td>
         </tr>
         <tr style="border-bottom:1px solid rgba(128,128,128,0.15)">
           <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>sound</code></td>
           <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>0&nbsp;|&nbsp;1&nbsp;|&nbsp;2</code></td>
-          <td style="padding:0.35rem 0 0.35rem 0.5rem"><code>0</code> off &middot; <code>1</code> bell at end &middot; <code>2</code> bell every minute.</td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem"><code>0</code> off &middot; <code>1</code> a bell at the end &middot; <code>2</code> a bell every minute of overtime.</td>
         </tr>
         <tr>
           <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>rc</code></td>
           <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>XXXXXX</code></td>
-          <td style="padding:0.35rem 0 0.35rem 0.5rem">6-character room code. When present, the page opens as a remote control pad instead of a timer. Generated automatically by the <strong>remote</strong> button; do not set manually.</td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem">A six-letter remote code. The page opens as a remote pad instead of a timer. The <strong>remote</strong> button makes these links.</td>
         </tr>
       </tbody>
     </table>
-    <p style="margin-top:0.6rem">Full example:<br><code>?mins=25&amp;label=Keynote&amp;next=Break:5,QA:10&amp;theme=dark&amp;sound=1</code></p>
+    <p style="margin-top:0.6rem">Example:<br><code>?mins=25&amp;label=Keynote&amp;next=Break:5,QA:10&amp;theme=dark&amp;sound=1</code></p>
   </div>
 </div>
 
@@ -705,14 +728,20 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
 {
 // ── URL params ────────────────────────────────────────
 const usp          = new URLSearchParams(location.search);
-const DEFAULT_MINS = Math.max(1, +usp.get('mins') || 10);
+// Whole minutes, 1–999, or 0 for "not a duration". Every source of minutes
+// goes through this — URL, saved data, the remote's queue — so none of them
+// can produce a fractional, infinite or NaN countdown.
+const toMins       = v => { const n = Math.floor(+v); return n >= 1 && n <= 999 ? n : 0; };
+const DEFAULT_MINS = toMins(usp.get('mins')) || 10;
 const URL_LABEL    = usp.get('label') ?? '';
 // nextQueue: {label:string, mins:number}[]  — label may be ''
-const parseNextStr = str => str.split(',').map(s => {
+// Entries split on commas not escaped as "\,", and minutes follow the last
+// colon, so a label may hold either ("Q&A: panel\, part 2:10").
+const parseNextStr = str => str.split(/(?<!\\),/).map(s => {
   s = s.trim(); if (!s) return null;
-  const col = s.indexOf(':');
-  if (col > 0) { const mins = +s.slice(col+1); return mins > 0 ? {label: s.slice(0,col).trim(), mins} : null; }
-  const mins = +s; return mins > 0 ? {label:'', mins} : null;
+  const col = s.lastIndexOf(':');
+  if (col > 0) { const mins = toMins(s.slice(col+1)); return mins ? {label: s.slice(0,col).trim().replaceAll('\\,', ',').slice(0,32), mins} : null; }
+  const mins = toMins(s); return mins ? {label:'', mins} : null;
 }).filter(Boolean);
 const URL_NEXT_ITEMS = parseNextStr(usp.get('next') ?? '');
 const URL_THEME    = usp.get('theme') ?? '';
@@ -741,11 +770,22 @@ const app          = $('app'),
       btnCW        = $('btn-clock-watch');
 
 // ── State ─────────────────────────────────────────────
-let warnSecs1 = 120, warnSecs2 = 60;  // configurable warning thresholds
+// warnSecs1 null = automatic: AUTO_WARN_SHORT before the end, or AUTO_WARN_LONG
+// for a session longer than LONG_SESSION — two minutes' notice is too little
+// to wrap up a 45-minute talk. A number set in the warn window replaces it.
+const AUTO_WARN_SHORT = 120, AUTO_WARN_LONG = 300, LONG_SESSION = 10 * 60;
+let warnSecs1 = null, warnSecs2 = 60;
 let totalSecs = DEFAULT_MINS * 60, remaining = totalSecs;
+// The length of the countdown under way: totalSecs, or for a target time the
+// time to it when it was set.
+let untilLenSecs = 0;
+const sessionLen = () => untilTarget ? untilLenSecs : totalSecs;
+const firstWarnSecs = () => warnSecs1 ?? (sessionLen() > LONG_SESSION ? AUTO_WARN_LONG : AUTO_WARN_SHORT);
 let running = false, editingLabel = false;
 let customLabel = URL_LABEL, uiState = 'idle';
-let resumeAbsSec = 0, resumeVal = remaining, lastRenderedSec = -1;
+// null, not -1, for "nothing drawn yet": -1 is a real value (one second
+// into overtime), and a first frame landing there was skipped.
+let resumeAbsSec = 0, resumeVal = remaining, lastRenderedSec = null;
 let T0_ABSSEC = null;
 let soundMode = 0, bellRecord = null;
 let nextQueue = URL_NEXT_ITEMS.length ? URL_NEXT_ITEMS.slice() : [{label:'', mins:10}];
@@ -763,26 +803,48 @@ let touchX0 = 0, touchY0 = 0, touchT0 = 0, lastTapT = 0;
 let longPressTid = null, wakeLock = null;
 
 // ── Prefs ─────────────────────────────────────────────
-try {
-  const p = JSON.parse(localStorage.getItem('tick_prefs') ?? '{}');
-  if (URL_THEME === 'light' || (!URL_THEME && p.theme === 'light'))
-    document.body.classList.add('light');
-  soundMode = URL_SOUND >= 0 ? URL_SOUND : (p.sound ?? 0);
-  if (!URL_NEXT_ITEMS.length && Array.isArray(p.nextQueue) && p.nextQueue.length) {
-    // Migrate old format (number[]) or load new object format
-    nextQueue = p.nextQueue.map(e => typeof e === 'number' ? {label:'', mins:e} : e).filter(e => e.mins > 0);
-    if (!nextQueue.length) nextQueue = [{label:'', mins:10}];
-  }
-  if (Array.isArray(p.presets) && p.presets.length === 5) presets = p.presets;
-  if (typeof p.warnSecs1 === 'number') warnSecs1 = p.warnSecs1;
-  if (typeof p.warnSecs2 === 'number') warnSecs2 = p.warnSecs2;
-  if (!URL_LABEL && typeof p.customLabel === 'string') customLabel = p.customLabel;
-} catch {}
+// Saved data is migrated, not trusted: it may be an older version's shape
+// (a queue of plain numbers), hand-edited, or garbage. Each field is checked
+// on its own, so one bad field costs that field and not the rest.
+const toEntry = e => typeof e === 'number' ? (toMins(e) ? {label:'', mins:toMins(e)} : null)
+  : e && typeof e === 'object' && toMins(e.mins) ? {label: typeof e.label === 'string' ? e.label.slice(0,32) : '', mins: toMins(e.mins)} : null;
+let p = {};
+try { p = JSON.parse(localStorage.getItem('tick_prefs') ?? '{}') ?? {}; } catch {}
+if (!p || typeof p !== 'object') p = {};
+// Fields a URL parameter set for this visit. savePrefs() keeps the stored
+// value for these, so a share link's theme, sound, queue or label never
+// replaces the user's own; changing one by hand clears its flag (setPrefOwn).
+const fromUrl = {
+  theme: URL_THEME === 'light' || URL_THEME === 'dark',
+  sound: [0,1,2].includes(URL_SOUND),
+  nextQueue: URL_NEXT_ITEMS.length > 0,
+  customLabel: !!URL_LABEL,
+};
+const storedPrefs = p;
+const setPrefOwn = (...keys) => keys.forEach(k => { fromUrl[k] = false; });
+if (URL_THEME === 'light' || (!URL_THEME && p.theme === 'light'))
+  document.body.classList.add('light');
+soundMode = [0,1,2].includes(URL_SOUND) ? URL_SOUND : [0,1,2].includes(p.sound) ? p.sound : 0;
+// A saved queue wins over the first-visit default even when empty: the user
+// cleared it, and it shouldn't come back as a 10-minute slot on reload.
+if (!URL_NEXT_ITEMS.length && Array.isArray(p.nextQueue)) nextQueue = p.nextQueue.map(toEntry).filter(Boolean);
+if (Array.isArray(p.presets) && p.presets.length === 5)
+  presets = p.presets.map(e => toEntry(e) ?? {label:'', mins:0});
+const toWarn = v => typeof v === 'number' && v >= 0 && v <= 7200 ? Math.floor(v) : null;
+// 120 was the fixed default before the automatic warning, and every save
+// wrote it, so a stored 120 almost always means "never changed": automatic.
+warnSecs1 = p.warnSecs1 === 120 ? null : toWarn(p.warnSecs1);
+warnSecs2 = toWarn(p.warnSecs2) ?? warnSecs2;
+if (!URL_LABEL && typeof p.customLabel === 'string') customLabel = p.customLabel;
 
-const savePrefs = () => { try { localStorage.setItem('tick_prefs', JSON.stringify({
-  theme: document.body.classList.contains('light') ? 'light' : 'dark',
-  sound: soundMode, nextQueue, presets, warnSecs1, warnSecs2, customLabel,
-})); } catch {} };
+const savePrefs = () => {
+  const now = {
+    theme: document.body.classList.contains('light') ? 'light' : 'dark',
+    sound: soundMode, nextQueue, presets, warnSecs1, warnSecs2, customLabel,
+  };
+  for (const k in fromUrl) if (fromUrl[k]) { if (k in storedPrefs) now[k] = storedPrefs[k]; else delete now[k]; }
+  try { localStorage.setItem('tick_prefs', JSON.stringify(now)); } catch {}
+};
 
 const hardReset = () => { try { localStorage.removeItem('tick_prefs'); } catch {} location.search = ''; };
 
@@ -834,7 +896,7 @@ const COLON_RE = /:/g;
 const withColons = s => s.replace(COLON_RE, '<span class="colon">:</span>');
 const isTouchDev = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 const startHint  = () => (isTouchDev || hasTouched) ? 'tap to start' : 'click or enter to start';
-const stateFor = rem => rem < 0 ? 'ot' : (warnSecs2 > 0 && rem <= warnSecs2) ? 'warn2' : (warnSecs1 > 0 && rem <= warnSecs1) ? 'warn' : 'run';
+const stateFor = rem => rem < 0 ? 'ot' : (warnSecs2 > 0 && rem <= warnSecs2) ? 'warn2' : (firstWarnSecs() > 0 && rem <= firstWarnSecs()) ? 'warn' : 'run';
 
 function fmt(secs) {
   const sign = secs < 0 ? '+' : '', abs = Math.abs(secs);
@@ -845,6 +907,9 @@ function fmt(secs) {
 // ── UI state machine ──────────────────────────────────
 function applyState(s, transientMs) {
   uiState = s;
+  // In clock mode the face belongs to the clock; toggleWatchMode() applies
+  // the recorded state when it hands the face back.
+  if (watchMode) return;
   labelWrap.className = 's-' + s + (editingLabel ? ' editing' : '');
   display.className   = 's-' + s;
   // Clear flash classes so they re-sync on next tick (not left over from previous state)
@@ -951,11 +1016,10 @@ let lastSessionSec = -1, lastWallSec = -1, lastWatchMin = '', lastColonBit = -1;
     wallClock.textContent = ks;
   }
 
+  // Clock mode only changes what the face shows. The countdown below runs
+  // either way — bells, queue hand-over and remote updates included; it once
+  // stopped here and caught up only when clock mode was left.
   if (watchMode) {
-    if (running) {
-      const rem = untilTarget ? Math.round((untilTarget - Date.now())/1000) : resumeVal - (now - resumeAbsSec);
-      remaining = lastRenderedSec = rem;
-    }
     // Clock face — only rebuild innerHTML when the displayed minute changes
     const d = new Date();
     const watchMin = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -970,7 +1034,6 @@ let lastSessionSec = -1, lastWallSec = -1, lastWatchMin = '', lastColonBit = -1;
       display.classList.toggle('colon-off', bit !== 0);
     }
     display.style.color = 'var(--c-watch)'; display.style.opacity = '';
-    requestAnimationFrame(loop); return;
   }
 
   if (running) {
@@ -981,10 +1044,18 @@ let lastSessionSec = -1, lastWallSec = -1, lastWatchMin = '', lastColonBit = -1;
         applyState(st);
         // On first OT transition, auto-advance to next queued session
         if (st === 'ot' && nextQueue.length) {
-          loadNextTimer(); startTimer(); return;
+          // loadNextTimer() stops the clock, so startTimer() starts the new
+          // slot from now. Keep scheduling: returning here once stopped the
+          // loop, and with it every redraw, for good.
+          loadNextTimer(); startTimer();
+          requestAnimationFrame(loop); return;
         }
       }
-      checkAutoSound(); renderDigits(rem); renderSessionQueue();
+      // No renderSessionQueue() here: the queue doesn't change with the
+      // second, and rebuilding it every tick swapped rows out from under a
+      // click, which then fell through to the stage and paused the timer.
+      checkAutoSound(); renderDigits(rem);
+      if (watchMode) { requestAnimationFrame(loop); return; }
       // Sync flash to countdown second — toggled on each tick so perfectly aligned
       const bit = Math.abs(rem) % 2;
       if (uiState === 'ot')    { labelWrap.classList.toggle('flash-off',  bit === 1); }
@@ -1000,7 +1071,7 @@ let renderDigits = rem => {
   const sign = rem < 0 ? '+' : '', abs = Math.abs(rem);
   const h = Math.floor(abs/3600), m = Math.floor((abs%3600)/60), s = abs%60;
   if (h > 0) {
-    display.innerHTML =
+    display.innerHTML = // safe-markup: sign, h, m and s are numbers
       `<span class="disp-h">${sign}${h}<span class="disp-h-suf">H</span></span>` +
       `<span class="disp-ms">${withColons(pad(m)+':'+pad(s))}</span>`;
   } else {
@@ -1020,13 +1091,13 @@ function checkAutoSound() {
 function startTimer() {
   if (running) return; running = true;
   if (T0_ABSSEC === null) T0_ABSSEC = absSec();
-  resumeAbsSec = absSec(); resumeVal = remaining; lastRenderedSec = -1;
+  resumeAbsSec = absSec(); resumeVal = remaining; lastRenderedSec = null;
   applyState(stateFor(remaining)); renderSessionQueue(); renderDigits(remaining); hideToolbar();
 }
 function pauseTimer() {
   if (!running) return; running = false;
   if (!untilTarget) { remaining = resumeVal - (absSec() - resumeAbsSec); resumeVal = remaining; }
-  lastRenderedSec = -1;
+  lastRenderedSec = null;
   applyState('pause'); renderDigits(remaining); renderSessionQueue();
 }
 
@@ -1059,19 +1130,22 @@ toolbar.addEventListener('pointermove', () => { clearTimeout(tbTid); tbTid = set
 
 function loadNextTimer(silent) {
   if (!nextQueue.length) return false;
-  exitUntilMode(); const entry = nextQueue.shift(); savePrefs();
+  // A loaded slot waits in 'next' until started; callers that want it running
+  // call startTimer(), which would be a no-op if the old timer still ran.
+  running = false; lastRenderedSec = null;
+  exitUntilMode(); const entry = nextQueue.shift();
   totalSecs = entry.mins*60; remaining = resumeVal = totalSecs; bellRecord = null;
-  customLabel = entry.label || '';
+  customLabel = entry.label || ''; savePrefs();
   applyState('next'); renderSessionQueue(); renderDigits(remaining);
   if (!silent) playPing();
   return true;
 }
 
 function fullReset(mins) {
-  running = false; lastRenderedSec = -1;
+  running = false; lastRenderedSec = null;
   exitUntilMode();
   totalSecs = (mins||DEFAULT_MINS)*60; remaining = resumeVal = totalSecs;
-  resumeAbsSec = 0; bellRecord = null; customLabel = URL_LABEL;
+  resumeAbsSec = 0; bellRecord = null; // the label is the user's; Enter/End/reset keep it
   T0_ABSSEC = null; sessionEl.textContent = '00:00';
   applyState('reset', 700); renderSessionQueue(); renderDigits(remaining);
 }
@@ -1079,16 +1153,20 @@ function fullReset(mins) {
 function adjustMinutes(delta) {
   if (!running || untilTarget) return;
   remaining = Math.max(-(99*60+59), remaining + delta*60);
-  resumeVal = remaining; resumeAbsSec = absSec(); lastRenderedSec = -1;
-  const d = stateFor(remaining); if (d !== uiState) applyState(d);
+  resumeVal = remaining; resumeAbsSec = absSec(); lastRenderedSec = null;
+  const d = stateFor(remaining);
+  // The loop only hands over to the queue on a state change, and this sets
+  // the state itself, so an adjustment past zero has to hand over here.
+  if (d === 'ot' && nextQueue.length) { loadNextTimer(); startTimer(); showHint((delta>0?'+':'')+delta+' min'); return; }
+  if (d !== uiState) applyState(d);
   if (remaining >= 0) bellRecord = null;
   renderDigits(remaining); showHint((delta>0?'+':'')+delta+' min');
 }
 
 // ── Until mode ────────────────────────────────────────
 function enterUntilMode(targetMs, label) {
-  untilTarget = targetMs; untilLabel = label; running = false; lastRenderedSec = -1;
-  remaining = resumeVal = Math.round((targetMs - Date.now())/1000); bellRecord = null;
+  untilTarget = targetMs; untilLabel = label; running = false; lastRenderedSec = null;
+  remaining = resumeVal = untilLenSecs = Math.round((targetMs - Date.now())/1000); bellRecord = null;
   applyState('until'); renderUntilBtn(); renderSessionQueue(); renderDigits(remaining); startTimer();
 }
 function exitUntilMode() {
@@ -1117,13 +1195,7 @@ function toggleWatchMode() {
 }
 function exitWatchMode() {
   if (!watchMode) return;
-  // Delegate to toggle (handles all cleanup); skip the auto-load-next-timer behaviour
-  watchMode = true; // toggle will flip it
-  btnCW.classList.add('watch-on'); // toggle will remove
-  toggleWatchMode();
-  // toggleWatchMode would also call loadNextTimer+startTimer — undo that for Esc-key exit
-  // Actually we do want the same behaviour on Esc (exit clock, load next if queued).
-  // So full delegation is correct.
+  toggleWatchMode(); // does all the cleanup, and resumes the timer as it was
 }
 
 // ── Preset cycling ────────────────────────────────────
@@ -1157,7 +1229,7 @@ function startLabelEdit() {
 }
 function endLabelEdit() {
   if (!editingLabel) return; editingLabel = false; labelWrap.classList.remove('editing');
-  labelEl.contentEditable = 'false'; customLabel = labelEl.textContent.trim();
+  labelEl.contentEditable = 'false'; customLabel = labelEl.textContent.trim(); setPrefOwn('customLabel');
   sessionLabelEl.textContent = customLabel;
   savePrefs(); applyState(uiState);
 }
@@ -1183,7 +1255,7 @@ function copyShareUrl() {
   p.set('mins', Math.max(1, Math.round(totalSecs/60)));
   if (customLabel) p.set('label', customLabel);
   if (nextQueue.length) {
-    const nextStr = nextQueue.map(e => e.label ? `${e.label}:${e.mins}` : e.mins).join(',');
+    const nextStr = nextQueue.map(e => e.label ? `${e.label.replaceAll(',', '\\,')}:${e.mins}` : e.mins).join(',');
     p.set('next', nextStr);
   }
   p.set('theme', document.body.classList.contains('light') ? 'light' : 'dark');
@@ -1200,7 +1272,13 @@ function copyShareUrl() {
 
 // ── Modals ────────────────────────────────────────────
 const openModal  = id => $(id).classList.add('open');
-const closeModal = id => $(id).classList.remove('open');
+// Closing a window also takes the cursor out of it: a hidden field that
+// kept focus swallowed every shortcut until the page was clicked.
+const closeModal = id => {
+  const m = $(id);
+  if (m.contains(document.activeElement)) document.activeElement.blur();
+  m.classList.remove('open');
+};
 const isAnyModalOpen = () => !!document.querySelector('.modal-overlay.open');
 const wireBtn = (id, fn) => $(id)?.addEventListener('click', e => { e.stopPropagation(); fn(); });
 const backdropClose = (id, fn) => $(id).addEventListener('click', e => { if (e.target === $(id)) fn(); });
@@ -1232,6 +1310,7 @@ function buildQueueRow(entry, idx) {
   del.className = 'qr-del'; del.textContent = '×';
   del.addEventListener('click', e => {
     e.stopPropagation();
+    queueEditRows = collectQueueRows(); // keep edits typed into other rows
     queueEditRows.splice(idx, 1);
     rebuildQueueList();
   });
@@ -1248,6 +1327,7 @@ function buildQueueRow(entry, idx) {
   row.addEventListener('drop', e => {
     e.preventDefault(); row.classList.remove('drag-over');
     if (dragSrcIdx === null || dragSrcIdx === idx) return;
+    queueEditRows = collectQueueRows();
     const moved = queueEditRows.splice(dragSrcIdx, 1)[0];
     queueEditRows.splice(idx, 0, moved);
     dragSrcIdx = null;
@@ -1286,6 +1366,7 @@ function buildQueueRow(entry, idx) {
     if (target && dragSrcIdx !== null) {
       const destIdx = +target.dataset.idx;
       if (destIdx !== dragSrcIdx) {
+        queueEditRows = collectQueueRows();
         const moved = queueEditRows.splice(dragSrcIdx, 1)[0];
         queueEditRows.splice(destIdx, 0, moved);
       }
@@ -1307,7 +1388,7 @@ function rebuildQueueList() {
 function collectQueueRows() {
   return [...$('queue-list').querySelectorAll('.qr-row')].map(row => ({
     label: row.querySelector('.qr-label').value.trim(),
-    mins:  Math.max(1, parseInt(row.querySelector('.qr-mins').value, 10) || 1),
+    mins:  Math.min(999, Math.max(1, parseInt(row.querySelector('.qr-mins').value, 10) || 1)),
   }));
 }
 
@@ -1323,6 +1404,7 @@ const closeNextModal = () => closeModal('next-modal');
 function nextCommit() {
   customLabel = $('queue-current-label').value.trim();
   nextQueue = collectQueueRows().filter(e => e.mins > 0);
+  setPrefOwn('customLabel', 'nextQueue');
   closeNextModal(); savePrefs(); renderSessionQueue(); applyState(uiState);
   showHint(customLabel || (nextQueue.length ? `next: ${nextQueue.map(e=>e.label||e.mins+'m').join(', ')}` : 'queue set'));
 }
@@ -1400,8 +1482,9 @@ function openPresetModal(idx) {
 }
 const closePresetModal = () => { closeModal('preset-modal'); presetEditIdx = -1; };
 function presetSave() {
-  const label=$('preset-label-input').value.trim(), mins=parseInt($('preset-mins-input').value,10);
-  if (isNaN(mins)||mins<=0) { closePresetModal(); return; }
+  const label=$('preset-label-input').value.trim(), typed=parseInt($('preset-mins-input').value,10);
+  if (isNaN(typed)||typed<=0) { closePresetModal(); return; }
+  const mins = Math.min(999, typed); // max="999" doesn't stop typing 1200
   presets[presetEditIdx]={label,mins}; closePresetModal(); savePrefs(); renderPresets(); showHint('preset saved');
 }
 function presetDelete() {
@@ -1453,13 +1536,13 @@ function exitKiosk() {
 const toggleKiosk = () => kioskMode ? exitKiosk() : enterKiosk();
 
 // ── Theme & Sound ─────────────────────────────────────
-const toggleTheme = () => { document.body.classList.toggle('light'); savePrefs(); showHint(document.body.classList.contains('light') ? 'light' : 'dark'); };
+const toggleTheme = () => { document.body.classList.toggle('light'); setPrefOwn('theme'); savePrefs(); showHint(document.body.classList.contains('light') ? 'light' : 'dark'); };
 
 const SOUND_LABELS = ['sound: off','sound: end','sound: min'];
 const updateSoundBtn = () => { btnSound.textContent=SOUND_LABELS[soundMode]; btnSound.classList.toggle('sound-on', soundMode>0); };
 updateSoundBtn();
 function cycleSoundMode() {
-  soundMode = (soundMode+1)%3; updateSoundBtn(); savePrefs();
+  soundMode = (soundMode+1)%3; updateSoundBtn(); setPrefOwn('sound'); savePrefs();
   showHint(['SOUND: OFF','SOUND: END','SOUND: MIN'][soundMode]);
   const preview = soundMode===0 ? playDampBell : [null,playOTBell,playMinBell][soundMode];
   const ctx = getCtx(), fire = () => { try { preview(); } catch {} };
@@ -1472,9 +1555,10 @@ const showHint  = msg => { statusHint.textContent=msg; statusHint.classList.add(
 const showSwipe = icon => { swipeEl.textContent=icon; swipeEl.classList.add('show'); clearTimeout(swipeTid); swipeTid=setTimeout(()=>swipeEl.classList.remove('show'),700); };
 
 // ── Touch ─────────────────────────────────────────────
-const isUIChrome = el => !!(el.closest('#toolbar')||el.closest('#top-bar')||el.closest('#manual')||el.closest('.modal-overlay')||el.closest('#btn-menu')||el.closest('#btn-tick')||el.closest('#menu-backdrop'));
+const isUIChrome = el => !!(el.closest('#remote-pad')||el.closest('#session-queue')||el.closest('#toolbar')||el.closest('#top-bar')||el.closest('#manual')||el.closest('.modal-overlay')||el.closest('#btn-menu')||el.closest('#btn-tick')||el.closest('#menu-backdrop'));
 
 document.addEventListener('touchstart', e => {
+  if (IS_REMOTE) return;
   isTouching = true;
   if (!hasTouched) { hasTouched=true; if (['idle','reset'].includes(uiState)) applyState(uiState); }
   try { audioCtx?.resume().catch(()=>{}); } catch {}
@@ -1484,6 +1568,9 @@ document.addEventListener('touchstart', e => {
 }, {passive:true});
 
 document.addEventListener('touchend', e => {
+  // The pad's buttons need their synthesised click; cancelling touchend here
+  // made every tap on a phone a no-op.
+  if (IS_REMOTE) return;
   // Reset isTouching after the synthetic mouse-click window (~300 ms) so real
   // mouse users on hybrid devices aren't locked out permanently.
   setTimeout(() => { isTouching = false; }, 400);
@@ -1512,13 +1599,22 @@ app.addEventListener('click', e => {
   clearTimeout(clickTid);
   running ? (clickTid=setTimeout(doMainAction,160)) : doMainAction();
 });
-document.addEventListener('wheel', e => { e.preventDefault(); if (!running||untilTarget) return; adjustMinutes(e.deltaY<0?1:-1); }, {passive:false});
+document.addEventListener('wheel', e => {
+  // Only the stage turns the wheel into minutes; the manual, a long queue
+  // and the remote pad still need to scroll.
+  if (IS_REMOTE || isUIChrome(e.target)) return;
+  e.preventDefault(); if (!running||untilTarget) return; adjustMinutes(e.deltaY<0?1:-1); }, {passive:false});
 
 // ── Keyboard ──────────────────────────────────────────
 document.addEventListener('keydown', e => {
-  if (isAnyModalOpen()) { if (e.key==='Escape') { e.preventDefault(); document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open')); } return; }
+  // A modal field that handled the key (Enter to save, Escape to cancel)
+  // closes its modal first, so without this the same press reached the
+  // shortcuts below too: Enter in any modal restarted the timer.
+  if (e.defaultPrevented || IS_REMOTE) return;
+  if (isAnyModalOpen()) { if (e.key==='Escape') { e.preventDefault(); document.querySelectorAll('.modal-overlay.open').forEach(m=>closeModal(m.id)); } return; }
   if (editingLabel) { if (e.key==='Enter'||e.key==='Escape') { e.preventDefault(); endLabelEdit(); } return; }
   if (isManualOpen()) { if (e.key==='Escape') { e.preventDefault(); closeManual(); } return; }
+  if (e.target instanceof Element && e.target.matches('input, textarea, select')) return;
   if (e.ctrlKey||e.metaKey) {
     if (e.key==='Enter')                         { e.preventDefault(); if(nextQueue.length){running=false;loadNextTimer();} return; }
     if (e.key==='ArrowUp')                       { e.preventDefault(); loadPresetByDirection(-1); return; }
@@ -1531,7 +1627,7 @@ document.addEventListener('keydown', e => {
   if (/^[0-9]$/.test(e.key)&&!e.altKey){ e.preventDefault(); kbPushDigit(e.key); return; }
   switch(e.key) {
     case 'Enter':     e.preventDefault(); keyBuf ? kbCommit() : (fullReset(DEFAULT_MINS),startTimer()); break;
-    case ' ':         e.preventDefault(); clearKeyBuf(); remaining<0 ? (fullReset(DEFAULT_MINS),startTimer()) : running ? pauseTimer() : startTimer(); break;
+    case ' ':         e.preventDefault(); clearKeyBuf(); remaining<0 ? (nextQueue.length ? loadNextTimer() : fullReset(DEFAULT_MINS), startTimer()) : running ? pauseTimer() : startTimer(); break;
     case 'Escape':    clearKeyBuf();
       if (toolbar.classList.contains('visible')) { hideToolbar(); break; }
       untilTarget ? (exitUntilMode(),running=false,applyState('idle')) : watchMode ? exitWatchMode() : kioskMode ? exitKiosk() : fsEl()&&fsLeave(); break;
@@ -1562,7 +1658,7 @@ function tbBtn(id, fn, longFn) {
   el.addEventListener('mousedown',  start); el.addEventListener('mouseup',    cancel);
   el.addEventListener('mouseleave', cancel); el.addEventListener('touchstart', start, {passive:true});
   el.addEventListener('touchend',   cancel, {passive:true});
-  el.addEventListener('click', e => { if(fired){fired=false;e.stopImmediatePropagation();} });
+  el.addEventListener('click', e => { if(fired){fired=false;e.stopImmediatePropagation();} }, true);
 }
 
 tbBtn('btn-next',         openNextModal);
@@ -1586,7 +1682,7 @@ app.addEventListener('dblclick', e => { if (!isUIChrome(e.target)) toggleKiosk()
   el.addEventListener('touchstart',start,{passive:true}); el.addEventListener('mousedown',start);
   el.addEventListener('touchend',cancel,{passive:true});  el.addEventListener('mouseup',cancel);
   el.addEventListener('mouseleave',cancel);
-  el.addEventListener('click',e=>{if(fired){fired=false;e.stopImmediatePropagation();}});
+  el.addEventListener('click',e=>{if(fired){fired=false;e.stopImmediatePropagation();}},true);
 })();
 
 toolbar.addEventListener('click',      e=>e.stopPropagation());
@@ -1601,15 +1697,15 @@ manual.addEventListener('click', e=>{ if(e.target===manual) closeManual(); });
 
 // ── Warn modal ────────────────────────────────────────
 function openWarnModal() {
-  $('warn1-input').value = warnSecs1;
+  $('warn1-input').value = warnSecs1 ?? ''; // empty shows "auto"
   $('warn2-input').value = warnSecs2;
   openModal('warn-modal');
   $('warn1-input').focus();
 }
 function saveWarnModal() {
-  const v1 = parseInt($('warn1-input').value) || 0;
+  const v1 = parseInt($('warn1-input').value);
   const v2 = parseInt($('warn2-input').value) || 0;
-  warnSecs1 = Math.max(0, Math.min(7200, v1));
+  warnSecs1 = isNaN(v1) ? null : Math.max(0, Math.min(7200, v1)); // empty: automatic
   warnSecs2 = Math.max(0, Math.min(7200, v2));
   savePrefs();
   closeModal('warn-modal');
@@ -1703,7 +1799,12 @@ function makeBCTransport(code, isRemote) {
 // ── PeerJS WebRTC transport ────────────────────────────────────────
 function makePeerTransport(code, isRemote, onReady, onFail) {
   const script = document.createElement('script');
-  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js';
+  // jsDelivr's npm mirror serves the published package byte for byte, so the
+  // hash can be checked against `npm pack peerjs@1.5.4`. A changed file is
+  // refused by the browser rather than run with this page's authority.
+  script.src = 'https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js';
+  script.integrity = 'sha384-nlUQ8ZqCbvStErob+biJNzSgltf6urV3VGqhfIfzhmg9RXmpeRm76ELw0pYnKlTR';
+  script.crossOrigin = 'anonymous';
   script.onerror = () => onFail('PeerJS load failed');
   script.onload = () => {
     try {
@@ -1743,22 +1844,18 @@ function openRemoteModal() {
   const rcUrl = `${location.origin}${location.pathname}?rc=${rcHostCode}`;
 
   $('remote-code-display').textContent = rcHostCode;
-  renderQR(rcUrl);
-
-  // Re-render QR on connectivity change while modal is open
-  const onNet = () => renderQR(rcUrl);
-  window.addEventListener('online',  onNet);
-  window.addEventListener('offline', onNet);
-  const cleanupNet = () => {
-    window.removeEventListener('online',  onNet);
-    window.removeEventListener('offline', onNet);
-  };
-  $('remote-modal')._cleanupNet = cleanupNet;
-
-  updateRemoteStatus('waiting');
+  rcQrUrl = rcUrl; renderQR(rcUrl);
+  updateRemoteStatus(rcHostConnected ? 'connected' : 'waiting');
   openModal('remote-modal');
   startHostTransports();
 }
+
+// Registered once: re-render the QR when connectivity changes while the
+// modal is open. (Adding a pair per open leaked one per open.)
+let rcQrUrl = '', rcHostConnected = false;
+const onNetChange = () => { if (rcQrUrl && $('remote-modal').classList.contains('open')) renderQR(rcQrUrl); };
+window.addEventListener('online',  onNetChange);
+window.addEventListener('offline', onNetChange);
 
 function updateRemoteStatus(state, extra) {
   const el = $('remote-status');
@@ -1770,8 +1867,10 @@ function updateRemoteStatus(state, extra) {
   }[state] ?? state;
 }
 
+let rcGeneration = 0;
 function startHostTransports() {
   if (remoteTransport) return; // already running
+  const gen = ++rcGeneration;
 
   // BroadcastChannel — assign immediately so hello messages get answered
   const bc = makeBCTransport(rcHostCode, false);
@@ -1781,6 +1880,9 @@ function startHostTransports() {
   // PeerJS (WebRTC) — cross-computer; upgrades to composite when peer connects
   makePeerTransport(rcHostCode, false,
     t => {
+      // Stopped (or restarted) while PeerJS was loading: this peer belongs
+      // to a code nobody is using any more.
+      if (gen !== rcGeneration) { t.close(); return; }
       t.onmessage = msg => handleHostMessage(msg, t);
       remoteTransport = {
         send(m) { bc.send(m); t.send(m); },
@@ -1791,13 +1893,22 @@ function startHostTransports() {
   );
 }
 
+const seenCmdIds = new Set();
 function handleHostMessage(msg, _transport) {
+  if (!msg || typeof msg !== 'object') return;
   if (msg.type === 'hello' || msg.type === '_peerOpen') {
+    rcHostConnected = true;
     updateRemoteStatus('connected');
     remoteTransport?.send(stateSnap());
     return;
   }
   if (msg.type === 'cmd') {
+    if (typeof msg.cmd !== 'string') return;
+    if (msg.id) {
+      if (seenCmdIds.has(msg.id)) return;
+      seenCmdIds.add(msg.id);
+      if (seenCmdIds.size > 200) seenCmdIds.delete(seenCmdIds.values().next().value);
+    }
     execRemoteCmd(msg.cmd);
     setTimeout(() => remoteTransport?.send(stateSnap()), 50);
   }
@@ -1812,13 +1923,18 @@ function execRemoteCmd(cmd) {
   if (cmd === 'reset') { fullReset(); return; }
   if (cmd === 'bell')  { playOTBell(); return; }
   if (cmd === 'next')  { if (nextQueue.length) { running=false; loadNextTimer(); } return; }
-  if (cmd.startsWith('adj:')) { adjustMinutes(parseInt(cmd.slice(4))); return; }
+  if (cmd.startsWith('adj:')) {
+    const n = parseInt(cmd.slice(4), 10);
+    if (Number.isFinite(n) && Math.abs(n) <= 999) adjustMinutes(n);
+    return;
+  }
   if (cmd.startsWith('setQueue:')) {
     const raw = cmd.slice(9);
     // Format: "Current Title|Slot1:25,Slot2:10" — pipe separates current label from queue
     const pipe = raw.indexOf('|');
+    setPrefOwn('nextQueue');
     if (pipe >= 0) {
-      customLabel = raw.slice(0, pipe).trim();
+      customLabel = raw.slice(0, pipe).trim().slice(0, 32); setPrefOwn('customLabel');
       nextQueue = parseNextStr(raw.slice(pipe + 1));
     } else {
       nextQueue = parseNextStr(raw);
@@ -1829,7 +1945,7 @@ function execRemoteCmd(cmd) {
 }
 
 function stopRemote() {
-  $('remote-modal')._cleanupNet?.();
+  rcGeneration++; rcHostConnected = false; rcQrUrl = '';
   remoteTransport?.close(); remoteTransport = null; rcHostCode = '';
   closeModal('remote-modal');
 }
@@ -1843,10 +1959,6 @@ function showOpMsg(text) {
   $('op-msg-box').textContent = text;
   el.classList.add('show');
   opMsgTid = setTimeout(() => el.classList.remove('show'), 6000);
-}
-function sendOpMsg(text) {
-  remoteTransport?.send({type:'opMsg', text: text.trim()});
-  if (text.trim()) showOpMsg(text.trim()); // also show locally? No — host sends to remote only
 }
 
 wireBtn('op-msg-send', () => {
@@ -1940,8 +2052,12 @@ if (IS_REMOTE) {
 
   let rcTransport = null;
 
+  // Commands go over every open transport (WebRTC and BroadcastChannel), so
+  // a pad in the same browser reaches the host twice; the id lets it run once.
+  let rcCmdSeq = 0;
+  const rcCmdBase = Math.random().toString(36).slice(2, 8);
   function sendCmd(cmd) {
-    rcTransport?.send({type:'cmd', cmd});
+    rcTransport?.send({type:'cmd', cmd, id: `${rcCmdBase}-${++rcCmdSeq}`});
   }
 
   document.querySelectorAll('.rc-btn[data-rc]').forEach(btn => {
@@ -1960,6 +2076,7 @@ if (IS_REMOTE) {
     rcQueueInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendQueue(); } });
   }
 
+  let rcHeard = false;
   function connectRemote() {
     const code = RC_PARAM.toUpperCase();
     rcSetStatus('', 'connecting\u2026');
@@ -1967,7 +2084,7 @@ if (IS_REMOTE) {
     // Start BC immediately (same-browser)
     const bc = makeBCTransport(code, true);
     bc.onmessage = msg => {
-      if (msg.type === 'state')  { rcSetStatus('conn', '\u2713 connected (local)'); rcApplyState(msg); }
+      if (msg.type === 'state')  { rcHeard = true; rcSetStatus('conn', '\u2713 connected (local)'); rcApplyState(msg); }
       if (msg.type === 'opMsg') { rcShowOpMsg(msg.text); }
     };
 
@@ -1975,66 +2092,45 @@ if (IS_REMOTE) {
     makePeerTransport(code, true,
       t => {
         t.onmessage = msg => {
-          if (msg.type === 'state')    { rcSetStatus('conn', '\u2713 connected'); rcApplyState(msg); }
-          if (msg.type === '_peerOpen'){ rcSetStatus('conn', '\u2713 connected'); }
+          if (msg.type === 'state')    { rcHeard = true; rcSetStatus('conn', '\u2713 connected'); rcApplyState(msg); }
+          if (msg.type === '_peerOpen'){ rcHeard = true; rcSetStatus('conn', '\u2713 connected'); }
           if (msg.type === 'opMsg')   { rcShowOpMsg(msg.text); }
         };
-        // Prefer WebRTC when available; BC is still active as backup
-        const old = rcTransport;
+        // Send over both. Closing BroadcastChannel here (as this once did)
+        // lost the host for good if the WebRTC link to it then never opened;
+        // the host runs each command once whichever way it arrives.
         rcTransport = {
           send(msg) { t.send(msg); bc.send(msg); },
           close() { t.close(); bc.close(); }
         };
-        old?.close();
         t.send({type:'hello'});
       },
       err => {
-        // PeerJS failed — stick with BC only
-        if (!rcTransport) rcSetStatus('', 'local mode (same browser)');
+        // PeerJS failed — BroadcastChannel only, so only this browser's tabs.
+        if (!rcHeard) rcSetStatus('', 'local mode (same browser only)');
       }
     );
 
     // Start with BC as default transport
     rcTransport = { send(msg){bc.send(msg);}, close(){bc.close();} };
-    setTimeout(() => { if (!rcTransport) rcSetStatus('err','no connection'); }, 8000);
+    // rcTransport always exists by now, so "did anything answer" is the test.
+    setTimeout(() => { if (!rcHeard) rcSetStatus('err','no connection \u2014 check the code'); }, 8000);
   }
 
   connectRemote();
 }
 
-// ── Service worker (offline / PWA) ───────────────────────────────────
-// Registers an inline SW via blob URL. Works when served over HTTPS;
-// silently skipped on file:// (which is fine — the file is already self-contained).
-if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-  const swSrc = `
-    const CACHE = 'tick-v1';
-    self.addEventListener('install', e => {
-      self.skipWaiting();
-      e.waitUntil(caches.open(CACHE).then(c => c.add('.')));
-    });
-    self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
-    self.addEventListener('fetch', e => {
-      if (e.request.method !== 'GET') return;
-      e.respondWith(caches.open(CACHE).then(cache =>
-        cache.match(e.request).then(cached => {
-          const net = fetch(e.request).then(res => {
-            if (res.ok) cache.put(e.request, res.clone());
-            return res;
-          }).catch(() => cached);
-          return cached ?? net;
-        })
-      ));
-    });
-  `;
-  try {
-    const blob = new Blob([swSrc], {type: 'text/javascript'});
-    navigator.serviceWorker.register(URL.createObjectURL(blob), {scope: '/'})
-      .catch(() => {}); // silently ignore scope/security errors
-  } catch {}
-}
+// No service worker: one registered from a blob: URL (the only way to keep
+// it inside this file) is refused by browsers, so offline means saving the
+// page. A real one would need a second file next to tick.html.
 
 // ── Init ──────────────────────────────────────────────
-sessionQueue.addEventListener('click', e => { if (!isUIChrome(e.target)) openNextModal(); });
+// The <meta name="version"> is the only copy of the version; CHANGELOG.md's
+// top heading is checked against it by scripts/gates.sh.
+const APP_VERSION = 'v' + (document.querySelector('meta[name="version"]')?.content ?? '');
+$('manual-version').textContent = APP_VERSION;
+$('app-version').textContent = APP_VERSION;
+sessionQueue.addEventListener('click', e => { e.stopPropagation(); openNextModal(); });
 renderPresets(); renderSessionQueue(); renderUntilBtn(); applyState('idle'); showToolbar(); renderDigits(remaining);
 }
 </script>
