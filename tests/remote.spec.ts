@@ -103,7 +103,7 @@ test.describe('on a touch screen', () => {
 });
 
 test('a pad whose code nobody answers says so', async ({ page }) => {
-	await open(page, '?rc=WRONG1');
+	await open(page, '?rc=ZZZZZ2');
 	await page.clock.runFor(8_500);
 	await expect(page.locator('#remote-status-bar')).toContainText(/no connection/i);
 });
@@ -350,4 +350,47 @@ test.describe('the pad on a 390×844 phone', () => {
 		const [scroll, client] = await page.locator('#remote-pad').evaluate((p) => [p.scrollHeight, p.clientHeight]);
 		expect(scroll).toBeLessThanOrEqual(client);
 	});
+});
+
+test('a pad opened without a code asks for one, and a code typed in its bar connects it', async ({ page, context }) => {
+	const code = await hostWithRemote(page);
+	const pad = await context.newPage();
+	await pad.goto('/tick.html?rc=');
+	await expect(pad.locator('#remote-status-bar')).toHaveText(/enter a code/i);
+	await expect(pad.locator('#rc-code-input')).toBeFocused();
+	await expect(pad.locator('#rc-new-kiosk')).toBeDisabled();
+	await pad.keyboard.type(code.toLowerCase()); // typed in any case
+	await expect(pad.locator('#rc-code-input')).toHaveValue(code);
+	await pad.keyboard.press('Enter');
+	await expect(pad).toHaveURL(new RegExp('\\?rc=' + code + '$'));
+	await pad.clock.runFor(200);
+	await expect(pad.locator('#remote-status-bar')).toContainText(/connected/i);
+	await expect(pad.locator('#rc-code-input')).toHaveValue(code); // the bar shows the code in use
+});
+
+test('a code that cannot be one is refused in the bar', async ({ page }) => {
+	await page.goto('/tick.html?rc=ABCDEF');
+	const box = page.locator('#rc-code-input');
+	await box.fill('');
+	await box.pressSequentially('OOO111'); // O and 1 are never used in codes
+	await box.press('Enter');
+	await expect(box).toHaveClass(/bad/);
+	await expect(page).toHaveURL(/\?rc=ABCDEF$/);
+});
+
+test("another timer's remote window can turn that device into this timer's remote", async ({ page, context }) => {
+	const code = await hostWithRemote(page);
+	const other = await context.newPage();
+	await open(other);
+	await menu(other);
+	await other.locator('#btn-remote').click();
+	await other.locator('#remote-join-code').fill('nope');
+	await other.locator('#remote-join').click();
+	await expect(other).toHaveURL(/\/tick\.html$/); // a typo stays put
+	await other.locator('#remote-join-code').fill(code.toLowerCase());
+	await other.locator('#remote-join-code').press('Enter');
+	await expect(other).toHaveURL(new RegExp('\\?rc=' + code + '$'));
+	await other.clock.runFor(200);
+	await expect(other.locator('#remote-status-bar')).toContainText(/connected/i);
+	await expect(page.locator('body')).toHaveClass(/kiosk/); // and the timer became the kiosk
 });

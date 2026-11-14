@@ -402,6 +402,16 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
   align-self:stretch;margin:0 -1.5rem;padding:0.5rem 1.5rem;
   background:var(--bg);border-bottom:1px solid var(--dim);
 }
+.rc-top-right{display:flex;align-items:center;gap:0.5rem}
+.rc-code{
+  width:calc(6ch + 0.8em);background:rgba(128,128,128,0.1);border:1px solid var(--dim);color:var(--fg);
+  font-family:var(--font);font-size:clamp(15px,4vw,18px);letter-spacing:0.12em;text-transform:uppercase;
+  padding:0.35rem 0.4rem;outline:none;text-align:center;box-sizing:content-box;
+  user-select:text;-webkit-user-select:text;
+}
+.rc-code:focus{border-color:var(--fg)}
+.rc-code.bad{border-color:var(--c-ot)}
+.rc-icon-btn:disabled{opacity:0.35;cursor:default}
 .rc-icon-btn{
   background:rgba(128,128,128,0.1);border:1px solid var(--dim);color:var(--fg);cursor:pointer;
   font-size:20px;line-height:1;width:2.4rem;height:2.4rem;padding:0;flex-shrink:0;
@@ -677,7 +687,7 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
     </ul>
     <h2>Remote control</h2>
     <ul>
-      <li>The <strong>remote</strong> button shows a six-letter code and a QR code. Open the link or scan the code on another device to get a remote pad. This screen then changes to kiosk mode, and stays in it if the remote disconnects.</li>
+      <li>The <strong>remote</strong> button shows a six-letter code and a QR code. Open the link or scan the code on another device to get a remote pad. Or, on that device, open /tick, choose <strong>remote</strong>, type the code under <em>Use this device as a remote</em> and choose <strong>Join</strong>. The remote pad's top bar shows the code; typing another one there switches to that timer. This screen then changes to kiosk mode, and stays in it if the remote disconnects.</li>
       <li>The remote pad shows the time left and the queue. Its buttons reset, start or pause, ring the bell, load the next or the previous session, and change the time. On phones they vibrate.</li>
       <li>Its queue box holds the current queue. Change it and press <strong>Set</strong>; an empty box clears the queue.</li>
       <li>A message typed on the remote pad appears on this screen for 6 seconds, on an orange band above the time. The time gets smaller while it shows. <strong>Clear</strong> removes it sooner.</li>
@@ -744,6 +754,15 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
     <div id="remote-qr"></div>
     <div id="remote-url-text" style="display:none;font-size:10px;word-break:break-all;text-align:center;padding:0.4rem 0;color:var(--dim)"></div>
     <div id="remote-status">waiting for connection&#x2026;</div>
+    <!-- The other way round: make this device the remote for another timer,
+         by typing the code that timer shows. -->
+    <div class="modal-row" style="flex-direction:column;gap:0">
+      <label for="remote-join-code">Use this device as a remote</label>
+      <div style="display:flex;gap:0.5rem">
+        <input type="text" id="remote-join-code" class="modal-input" maxlength="6" placeholder="Code" autocomplete="off" autocapitalize="characters" spellcheck="false" style="flex:1;text-transform:uppercase;letter-spacing:0.15em">
+        <button class="modal-btn" id="remote-join" style="flex:0 0 auto;padding:0 1.2rem">Join</button>
+      </div>
+    </div>
     <div class="modal-actions">
       <button class="modal-btn" id="remote-open-tab">Open remote</button>
       <button class="modal-btn" id="remote-copy-url">Copy URL</button>
@@ -757,8 +776,13 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
 <div id="remote-pad">
   <div id="rc-top">
     <div id="remote-status-bar">connecting&#x2026;</div>
-    <!-- Rarely needed (a lost kiosk), so a small icon beside the status. -->
-    <button id="rc-new-kiosk" class="rc-icon-btn" aria-label="New kiosk" title="New kiosk">&#x1F5A5;&#xFE0F;</button>
+    <div class="rc-top-right">
+      <!-- The code, typed by hand when there's no QR code to scan. Enter
+           switches the pad to the timer with that code. -->
+      <input type="text" id="rc-code-input" class="rc-code" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="CODE" aria-label="Timer code">
+      <!-- Rarely needed (a lost kiosk), so a small icon beside the status. -->
+      <button id="rc-new-kiosk" class="rc-icon-btn" aria-label="New kiosk" title="New kiosk">&#x1F5A5;&#xFE0F;</button>
+    </div>
   </div>
   <div id="remote-label-display"></div>
   <div id="remote-state-display">&#x2014;</div>
@@ -1854,13 +1878,16 @@ const haptic = () => { try { navigator.vibrate?.(50); } catch {} };
 //   HOST  — the timer page; accepts commands, broadcasts state
 //   REMOTE— opened with ?rc=CODE; shows control pad, sends commands
 
-const RC_PARAM  = usp.get('rc');         // present → remote pad mode
+// ?rc=CODE opens the remote pad. ?rc with no code, or a code that can't be
+// one, still opens the pad, waiting for a code to be typed into its bar.
+const CODE_RE   = /^[A-HJ-NP-Z2-9]{6}$/;
+const RC_PARAM  = CODE_RE.test((usp.get('rc') ?? '').toUpperCase()) ? usp.get('rc').toUpperCase() : '';
 // ?host=CODE: a replacement kiosk, opened from a pad whose kiosk was lost.
 // It takes over CODE and waits for the pad to hand it the timer.
-const CODE_RE   = /^[A-HJ-NP-Z2-9]{6}$/;
 const HOST_PARAM = CODE_RE.test((usp.get('host') ?? '').toUpperCase()) ? usp.get('host').toUpperCase() : '';
 let awaitingRestore = !!HOST_PARAM;
-const IS_REMOTE = !!RC_PARAM;
+const IS_REMOTE = usp.has('rc');
+const padUrl = code => `${location.origin}${location.pathname}?rc=${code}`;
 
 // ── QR code — online only (uses external API) ─────────────────────
 function renderQR(rcUrl, qrEl = $('remote-qr'), urlEl = $('remote-url-text'), size = 160) {
@@ -2131,6 +2158,15 @@ function showOpMsg(text) {
 }
 
 
+// Join: open the remote pad for a code typed here. Checked here so a typo
+// says so instead of opening a pad that waits for nobody.
+const joinAsRemote = () => {
+  const inp = $('remote-join-code'), code = inp.value.trim().toUpperCase();
+  if (!CODE_RE.test(code)) { inp.focus(); inp.select(); showHint('Not a timer code'); return; }
+  stopRemote(); location.href = padUrl(code);
+};
+wireBtn('remote-join', joinAsRemote);
+$('remote-join-code').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); joinAsRemote(); } });
 wireBtn('remote-stop',        stopRemote);
 wireBtn('remote-modal-close', () => closeModal('remote-modal'));
 wireBtn('remote-open-tab',    () => window.open(`${location.origin}${location.pathname}?rc=${rcHostCode}`, '_blank'));
@@ -2250,7 +2286,23 @@ if (IS_REMOTE) {
   rcMsgInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('rc-msg-send').click(); } });
 
   // New kiosk: a link and QR code that open a replacement timer screen.
-  const kioskUrl = `${location.origin}${location.pathname}?host=${RC_PARAM.toUpperCase()}`;
+  const kioskUrl = `${location.origin}${location.pathname}?host=${RC_PARAM}`;
+  // The code field: shows this pad's code; Enter on another code switches to
+  // that timer (a fresh page, so nothing of the old connection lingers).
+  const codeInput = $('rc-code-input');
+  codeInput.value = RC_PARAM;
+  codeInput.addEventListener('input', () => {
+    codeInput.value = codeInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    codeInput.classList.toggle('bad', codeInput.value.length === 6 && !CODE_RE.test(codeInput.value));
+  });
+  codeInput.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const code = codeInput.value.trim().toUpperCase();
+    if (!CODE_RE.test(code)) { codeInput.classList.add('bad'); return; }
+    if (code !== RC_PARAM) location.href = padUrl(code);
+  });
+  $('rc-new-kiosk').disabled = !RC_PARAM;
   $('rc-new-kiosk').addEventListener('click', () => {
     haptic();
     $('rc-kiosk-url').textContent = kioskUrl;
@@ -2323,7 +2375,8 @@ if (IS_REMOTE) {
     setTimeout(() => { if (!rcHeard) rcSetStatus('err','\u26A0\uFE0F No connection \u2014 check the code'); }, 8000);
   }
 
-  connectRemote();
+  if (RC_PARAM) connectRemote();
+  else { rcSetStatus('', 'Enter a code'); codeInput.focus(); }
 }
 
 // No service worker: one registered from a blob: URL (the only way to keep
