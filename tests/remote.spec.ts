@@ -251,7 +251,10 @@ test('the pad shows the queue with each session’s length and name', async ({ p
 	await pad.goto('/tick.html?rc=' + code);
 	await pad.clock.runFor(200);
 	await expect(pad.locator('#rc-queue-display .rc-q-head')).toHaveText('Next');
-	await expect(pad.locator('#rc-queue-display .rc-q-row')).toHaveText(['\u25B6 05:00\u2002Break', '\u25B6 10:00\u2002QA', '\u25B6 15:00']);
+	await expect(pad.locator('#rc-queue-display .rc-q-row')).toHaveText(['\u25B6\uFE0E 05:00\u2002Break', '\u25B6\uFE0E 10:00\u2002QA', '\u25B6\uFE0E 15:00']);
+	// Next and Prev use the same solid triangles as the list, pointing each way.
+	await expect(pad.locator('#rc-next')).toHaveText('\u25B6\uFE0E Next');
+	await expect(pad.locator('#rc-prev')).toHaveText('\u25C0\uFE0E Prev');
 });
 
 test('the pad reads top to bottom: status and kiosk icon, time, queue, controls, queue box and set, prev and next, bell', async ({ page }) => {
