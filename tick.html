@@ -450,12 +450,12 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
   touch-action:manipulation;-webkit-tap-highlight-color:transparent;
 }
 #remote-state-display{
-  /* Big enough to read at arm's length, by the screen's width and height;
-     its box grows into any spare height and centres the digits in it. */
+  /* Big enough to read at arm's length, by the screen's width and height. */
   font-size:clamp(56px,min(30vw,15vh),240px);font-weight:900;letter-spacing:-0.03em;
   font-variant-numeric:tabular-nums;color:var(--c-idle);transition:color 0.25s;
-  line-height:1;flex:1 0 auto;display:flex;align-items:center;justify-content:center;
+  line-height:1;
 }
+#rc-time{flex:1 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.5rem}
 /* While the kiosk is lost the pad's time is its own copy: dotted underline. */
 #remote-state-display.local{text-decoration:underline dotted;text-decoration-thickness:0.04em;text-underline-offset:0.12em}
 #remote-label-display{
@@ -838,8 +838,12 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
       <button id="rc-new-kiosk" class="rc-icon-btn" aria-label="New kiosk" title="New kiosk">&#x1F5A5;&#xFE0F;</button>
     </div>
   </div>
-  <div id="remote-label-display"></div>
-  <div id="remote-state-display">&#x2014;</div>
+  <!-- The time with the session's name right under it, as on the kiosk; the
+       block grows into spare height and stays centred in it. -->
+  <div id="rc-time">
+    <div id="remote-state-display">&#x2014;</div>
+    <div id="remote-label-display"></div>
+  </div>
   <div id="rc-queue-display"></div>
   <div class="rc-grid">
     <button class="rc-btn hi-reset wide" data-rc="reset"><span class="ico ico-stop" aria-hidden="true"></span>Reset</button>

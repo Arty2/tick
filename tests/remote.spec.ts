@@ -267,7 +267,7 @@ test('the pad shows the queue with each session’s length and name', async ({ p
 test('the pad reads top to bottom: status and kiosk icon, time, queue, controls, queue box and set, prev and next, black and bell', async ({ page }) => {
 	await page.goto('/tick.html?rc=ABCDEF');
 	const top = async (sel: string) => (await page.locator(sel).first().boundingBox())!;
-	const order = ['#remote-status-bar', '#remote-state-display', '#rc-queue-display', '#rc-toggle', '[data-rc="adj:10"]', '#rc-queue-input', '#rc-queue-send', '[data-rc="bell"]', '#rc-msg-input', '#rc-msg-send'];
+	const order = ['#remote-status-bar', '#remote-state-display', '#remote-label-display', '#rc-queue-display', '#rc-toggle', '[data-rc="adj:10"]', '#rc-queue-input', '#rc-queue-send', '[data-rc="bell"]', '#rc-msg-input', '#rc-msg-send'];
 	const ys = [];
 	for (const sel of order) ys.push((await top(sel)).y);
 	expect(ys).toEqual([...ys].sort((a, b) => a - b));
@@ -712,4 +712,21 @@ test('the bell is drawn in CSS like the other icons, a capital tall, on the base
 	expect(m.mask).toContain('data:image/svg+xml');
 	expect(Math.abs(m.h - m.capH)).toBeLessThan(0.5);
 	expect(Math.abs(m.bottom - m.capBottom)).toBeLessThan(0.5);
+});
+
+test("the session's name sits right under the time, on the pad and on the kiosk", async ({ page, context }) => {
+	const code = await hostWithRemote(page, '?mins=20&label=Keynote');
+	const pad = await context.newPage();
+	await pad.setViewportSize({ width: 390, height: 844 });
+	await pad.goto('/tick.html?rc=' + code);
+	await pad.clock.runFor(200);
+	const under = async (p: typeof page, time: string, name: string) => {
+		const [t, n] = [(await p.locator(time).boundingBox())!, (await p.locator(name).boundingBox())!];
+		expect(n.y).toBeGreaterThanOrEqual(t.y + t.height - 1); // below the time
+		expect(n.y - (t.y + t.height)).toBeLessThan(40); // and close under it
+	};
+	await expect(pad.locator('#remote-label-display')).toHaveText('Keynote');
+	await under(pad, '#remote-state-display', '#remote-label-display');
+	await expect(page.locator('#session-label')).toHaveText('Keynote');
+	await under(page, '#timer-display', '#session-label');
 });

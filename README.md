@@ -226,20 +226,22 @@ A downloaded copy of `tick.html` works with no internet connection. The live ver
 
 ---
 
-## What leaves this computer
+## External services: what leaves this computer
 
-Nothing is sent anywhere until the remote control is opened. The timer, queue, presets and settings are kept only in this browser.
+The timer uses no outside services. Nothing is sent anywhere until the remote control is opened; the timer, queue, presets and settings are kept only in this browser.
 
-When **remote** is chosen, or the small screen button on the remote pad, /tick contacts these services, and no others:
+Choosing **remote**, or the small screen button on the remote pad, uses these external services, and no others:
 
-| Service | Why |
-|---|---|
-| `api.qrserver.com` | Draws the QR code. The remote link, including its code, is sent to it. When there is no internet, the link is shown as text instead. |
-| `cdn.jsdelivr.net` | Sends the PeerJS program used to connect two devices. /tick checks that the program has not been changed before running it. |
-| `0.peerjs.com` | Introduces the two devices to each other. |
-| `stun.l.google.com`, `stun1.l.google.com` | Help the two devices find a direct connection. |
+| Service | Run by | What it does | What it receives | Without it |
+|---|---|---|---|---|
+| `api.qrserver.com` | [goQR.me](https://goqr.me/api/), a free QR code API | Draws the QR codes | The remote or kiosk link, including its code | The link is shown as text instead |
+| `cdn.jsdelivr.net` | [jsDelivr](https://www.jsdelivr.com), a free public CDN | Sends the PeerJS program (version 1.5.4) used to connect two devices. /tick checks a fixed fingerprint and refuses a changed file | An ordinary download request | Only tabs in the same browser can connect |
+| `0.peerjs.com` | [PeerJS](https://peerjs.com), its free public server | Introduces the two devices to each other | An ID made from the code | Only tabs in the same browser can connect |
+| `stun.l.google.com`, `stun1.l.google.com` | Google, public STUN servers | Help the two devices find a direct route through routers | The devices' network addresses | Devices on different networks may not connect |
 
-After that, the two devices talk to each other directly. Two tabs in the same browser use none of these services.
+After the introduction, the two devices talk to each other directly (WebRTC); the timer itself never passes through these services. Two tabs in the same browser use none of them.
+
+The live version is hosted by [Vercel](https://vercel.com), which serves the page when it is opened. A downloaded copy of `tick.html` needs no host at all.
 
 ---
 
@@ -283,7 +285,7 @@ The version number is written in one place: `<meta name="version">` in `tick.htm
 
 ## Deployment
 
-The live version at [acari.vercel.app](https://acari.vercel.app) is built by Vercel, using `vercel.json`. Only `tick.html` is published; the tests and documents are not. Visiting the main address opens `/tick.html`, and any settings in the link are kept, so `https://acari.vercel.app/?mins=25` opens a 25-minute timer. Every page is sent with the security headers in `vercel.json`. One of them, the Content-Security-Policy, lets the page reach only the services listed in [What leaves this computer](#what-leaves-this-computer).
+The live version at [acari.vercel.app](https://acari.vercel.app) is built by Vercel, using `vercel.json`. Only `tick.html` is published; the tests and documents are not. Visiting the main address opens `/tick.html`, and any settings in the link are kept, so `https://acari.vercel.app/?mins=25` opens a 25-minute timer. Every page is sent with the security headers in `vercel.json`. One of them, the Content-Security-Policy, lets the page reach only the services listed in [External services](#external-services-what-leaves-this-computer).
 
 ---
 

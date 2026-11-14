@@ -105,7 +105,7 @@ test('the page is served with the security policy from vercel.json', async ({ pa
 	const csp = res!.headers()['content-security-policy'];
 	expect(csp).toContain("frame-ancestors 'none'");
 	expect(csp).toContain("object-src 'none'");
-	// The remote's third parties, and only those (see README § What leaves this machine).
+	// The remote's third parties, and only those (see README § External services).
 	expect(csp).toContain('https://cdn.jsdelivr.net');
 	expect(csp).toContain('https://api.qrserver.com');
 	expect(res!.headers()['x-frame-options']).toBe('DENY');

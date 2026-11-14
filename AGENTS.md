@@ -29,14 +29,14 @@ server left running from before.
   framework or a second file the app needs to run. A user saves the page and
   has the whole thing.
 - **Works offline is the promise.** The only network calls are the ones the
-  remote control makes, and README § What leaves this machine names every
+  remote control makes, and README § External services names every
   host; the gates fail when the code contacts one it doesn't. A third-party
   script is the exception that needs the most justification — PeerJS is the
   one there is, loaded only when the remote is opened.
 - **The live site is acari.vercel.app**, configured by `vercel.json`. The
   test server applies its headers and redirect, so the suite runs under the
   production CSP; a new resource the app loads needs a directive there and a
-  row in README § What leaves this machine.
+  row in README § External services.
 - **No route from user text to markup.** Labels, queue names and operator
   messages arrive from URLs and from a remote pad; they go in through
   `textContent`. `innerHTML` is for digits only, and the gates enforce it.
