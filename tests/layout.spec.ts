@@ -14,7 +14,7 @@ const screens = [
 for (const [width, height] of screens) {
 	test(`the counter fits on one line on a ${width}×${height} screen`, async ({ page }) => {
 		await page.setViewportSize({ width, height });
-		for (const query of ['#mins=25&label=Keynote&next=Break@5|QA@10', '#mins=999']) {
+		for (const query of ['#mins=25&label=Keynote&next=Break>5|QA>10', '#mins=999']) {
 			await open(page, query);
 			await settled(page);
 			const box = await page.evaluate(() => {
@@ -76,7 +76,7 @@ test.describe('on a phone', () => {
 	test.use({ viewport: { width: 390, height: 700 }, hasTouch: true });
 
 	test('a menu row too long for the screen scrolls, from its first button to its last', async ({ page }) => {
-		await open(page, '#next=Talk@10');
+		await open(page, '#next=Talk>10');
 		await page.keyboard.press('u');
 		await page.locator('#until-hour').press('Enter'); // "target: 10:30" makes the row long
 		await menu(page);
@@ -147,7 +147,7 @@ async function sendOpMsg(page: import('@playwright/test').Page, text: string) {
 for (const [width, height] of [[1280, 720], [390, 844], [844, 390], [320, 568]] as const) {
 	test(`an operator message is solid and fits beside the shrunken time on ${width}×${height}`, async ({ page }) => {
 		await page.setViewportSize({ width, height });
-		await open(page, '#mins=25&label=Keynote&next=Break@5|QA@10');
+		await open(page, '#mins=25&label=Keynote&next=Break>5|QA>10');
 		await page.keyboard.press('Space');
 		const before = await page.locator('#timer-display').evaluate((d) => parseFloat(getComputedStyle(d).fontSize));
 		await sendOpMsg(page, 'Please wrap up in two minutes'); // near the 40-character limit
@@ -255,7 +255,7 @@ for (const width of [1280, 390, 320]) {
 }
 
 test("the queue button's triangle is drawn in CSS, a capital tall, close to its label", async ({ page }) => {
-	await open(page, '#next=Talk@10');
+	await open(page, '#next=Talk>10');
 	await menu(page);
 	const btn = page.locator('#btn-next');
 	await expect(btn).toHaveText('queue: 10:00'); // no triangle character in the text
@@ -290,9 +290,9 @@ test('in the manual, keys are keycaps: page colour on ink', async ({ page }) => 
 	}
 	// Keys only: things to type stay in the grey of code.
 	expect(await page.locator('#manual kbd').count()).toBeGreaterThan(25);
-	await expect(page.locator('#manual code', { hasText: 'Talk@25|Break@5|Panel>14:30' })).toHaveCount(1);
-	await expect(page.locator('#manual td code', { hasText: 'Title@25|10' })).toHaveCount(1); // the queue example, with a pipe
-	await expect(page.locator('#manual')).not.toContainText('Title@25,10');
+	await expect(page.locator('#manual code', { hasText: 'Talk>25|Break>5|Panel>[14:30]' })).toHaveCount(1);
+	await expect(page.locator('#manual td code', { hasText: 'Title>25|10' })).toHaveCount(1); // the queue example, with a pipe
+	await expect(page.locator('#manual')).not.toContainText('Title>25,10');
 });
 
 test('a window button that throws something away has a red border, like its label', async ({ page }) => {

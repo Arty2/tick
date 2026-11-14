@@ -108,24 +108,34 @@ The keys only change the timer when no text box is being typed in.
 The queue is a list of sessions that run one after another. To open it, press `N`, choose **queue** in the menu, or click the list under the timer.
 
 - **Current session** is the name shown under the timer.
-- **Up next** is the list of sessions. Each one has a name and a length in minutes, or a time of day written `>14:30`, which makes that session count down to 14:30. **+ Add** adds a session, **×** removes one, and dragging a row changes the order.
+- **Up next** is the list of sessions. Each one has a name and a length in minutes, or a time of day written `[14:30]`, which makes that session count down to 14:30. **+ Add** adds a session, **×** removes one, and dragging a row changes the order.
 - When a session ends, the next one loads and starts by itself. A short sound plays.
 - The queue and the session name are saved in the browser. They are still there the next time Acari is opened.
 
 ### Writing a queue
 
-A queue can also be written as text: in a link, or in the queue box on the remote pad. Sessions are separated by `|` (a vertical bar), and each session is one of these:
+A queue can also be written as text: in a link, or in the queue box on the remote pad. Sessions are separated by `|` (a vertical bar). Each session is its name, then `>`, then its length:
 
 | Written | Means |
 |---|---|
-| `Talk@25` | A session called Talk, 25 minutes long |
+| `Talk>25` | A session called Talk, 25 minutes long |
+| `Talk>25:00` | The same, with the length written as minutes and seconds |
+| `Wrap>[14:30]` | A session called Wrap that counts down to 14:30 (the next 14:30, which may be tomorrow) |
 | `25` | A 25-minute session with no name |
-| `Panel>14:30` | A session called Panel that counts down to 14:30 (the next 14:30, which may be tomorrow) |
-| `>14:30` | A countdown to 14:30 with no name |
+| `[14:30]` | A countdown to 14:30 with no name |
 
-For example, `Keynote@40|Break@5|Q&A, panel: part 2@15|Lunch>12:30`. Names may contain commas and colons. A `|` inside a name is written `\|`.
+For example, `Break>5:00|Q&A>15|Wrap>[23:30]`. Names may contain commas, colons and `@`. A `|` inside a name is written `\|`. Lengths are whole minutes: `7:40` is taken as 8 minutes.
 
-In the list under the timer, a session with a length shows a triangle, its length and its name. A session that counts down to a time of day shows that time, a triangle with a bar, the time left until then, and its name.
+The list under the timer shows the sessions like this, with the icons in one column:
+
+```
+NEXT
+BREAK  ▶  05:00
+Q&A    ▶  15:00
+WRAP   ▶| 30:00 [23:30]
+```
+
+A session with a length shows its name, a triangle and the length. A session that counts down to a time of day shows its name, a triangle with a bar, the time left until then, and that time in brackets.
 
 ---
 
@@ -174,7 +184,7 @@ Its buttons reset, start or pause (one button, which changes between the two), r
 - Before the timer has been started, the minute buttons (**−1m**, **+1m**, **−5m**, **+10m**) change the length it will count down from, and **Reset** is greyed out, because there is nothing to reset. While the timer runs, the minute buttons change the time left. While it is paused, they are greyed out.
 - **Prev** goes back to the session that ran before and puts the current one back at the front of the queue; it is greyed out until a session has handed over to the next.
 - **Black** covers the whole timer screen in the theme's background colour (black in the dark theme, white in the light one). The timer keeps running underneath, and changes made from the remote pad don't show until **Black** is pressed again. The button is lit while the screen is covered. On the timer screen itself, `Escape`, a double tap or a double-click also lifts the cover, so it can be lifted without the remote or a keyboard; single taps and clicks on the cover do nothing.
-- The queue box shows the current queue, written as described in [Writing a queue](#writing-a-queue), such as `Talk@25|QA>14:30`. Changing it and pressing **Set** changes the queue; emptying it and pressing **Set** clears the queue.
+- The queue box shows the current queue, written as described in [Writing a queue](#writing-a-queue), such as `Talk>25|QA>[14:30]`. Changing it and pressing **Set** changes the queue; emptying it and pressing **Set** clears the queue.
 
 On phones, the buttons vibrate when pressed.
 
@@ -212,7 +222,7 @@ A link to Acari can include settings after a `#`. These settings are used for th
 |---|---|---|
 | `mins` | `1`–`999` | The starting length in minutes. |
 | `label` | text | The session name. |
-| `next` | `Break@5\|QA>14:30` | The queue, written as described in [Writing a queue](#writing-a-queue): sessions separated by `\|`, each `name@minutes`, minutes alone, or `name>HH:MM`. |
+| `next` | `Break>5\|QA>[14:30]` | The queue, written as described in [Writing a queue](#writing-a-queue): sessions separated by `\|`, each `name>minutes`, minutes alone, or `name>[HH:MM]`. |
 | `theme` | `dark` or `light` | The theme. |
 | `sound` | `0` or `1` | The bell when the time runs out: off or on. |
 | `remote` | a six-letter code | Opens the remote pad for that code. The **remote** button makes these links. |
@@ -221,7 +231,7 @@ A link to Acari can include settings after a `#`. These settings are used for th
 For example, this link opens a 25-minute keynote with a break and questions after it:
 
 ```
-https://acari.vercel.app/#mins=25&label=Keynote&next=Break@5|QA@10&theme=dark&sound=1
+https://acari.vercel.app/#mins=25&label=Keynote&next=Break>5|QA>10&theme=dark&sound=1
 ```
 
 The **share** button opens the device's own share window with a link like this for the timer as it is now, so it can be sent with any app on the device. In a browser with no share window, the link is copied instead.

@@ -217,8 +217,8 @@
     <h2>Queue</h2>
     <ul>
       <li>The queue is a list of sessions that run one after another. Open it with <strong>queue</strong>, the list under the timer, or <kbd>N</kbd>.</li>
-      <li>Each session has a name and a length in minutes, or a time of day written <code>&gt;14:30</code> to count down to it. In the list, a session with a time of day shows that time, a triangle with a bar, and the time left until then. <strong>+ Add</strong> adds one, <strong>&#xD7;</strong> removes one, and dragging a row changes the order.</li>
-      <li>As text (in a link or the remote's queue box), sessions are separated by <code>|</code>: <code>Talk@25|Break@5|Panel&gt;14:30</code>. A <code>|</code> in a name is written <code>\|</code>.</li>
+      <li>Each session has a name and a length in minutes, or a time of day written <code>[14:30]</code> to count down to it. The list shows each session's name, a triangle and its length; a session with a time of day shows a triangle with a bar, the time left until then, and that time in brackets. <strong>+ Add</strong> adds one, <strong>&#xD7;</strong> removes one, and dragging a row changes the order.</li>
+      <li>As text (in a link or the remote's queue box), sessions are separated by <code>|</code>: <code>Talk&gt;25|Break&gt;5|Panel&gt;[14:30]</code>. A <code>|</code> in a name is written <code>\|</code>.</li>
       <li>When a session ends, the next one starts by itself. <kbd>Ctrl+Enter</kbd> loads it sooner.</li>
     </ul>
     <h2>Target time</h2>
@@ -271,8 +271,8 @@
         </tr>
         <tr style="border-bottom:1px solid rgba(128,128,128,0.15)">
           <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>next</code></td>
-          <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>Title@25|10</code></td>
-          <td style="padding:0.35rem 0 0.35rem 0.5rem">The queue. Sessions are separated by <code>|</code>; each is <code>name@minutes</code> (<code>Talk@25</code>), only minutes (<code>25</code>), or a countdown to a time of day (<code>Panel&gt;14:30</code>): <code>Keynote@40|Break@5|Lunch&gt;12:30</code>. A <code>|</code> in a name is written <code>\|</code>.</td>
+          <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>Title&gt;25|10</code></td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem">The queue. Sessions are separated by <code>|</code>; each is <code>name&gt;minutes</code> (<code>Talk&gt;25</code>), only minutes (<code>25</code>), or a countdown to a time of day (<code>Panel&gt;[14:30]</code>): <code>Keynote&gt;40|Break&gt;5|Lunch&gt;[12:30]</code>. A <code>|</code> in a name is written <code>\|</code>.</td>
         </tr>
         <tr style="border-bottom:1px solid rgba(128,128,128,0.15)">
           <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>theme</code></td>
@@ -296,7 +296,7 @@
         </tr>
       </tbody>
     </table>
-    <p style="margin-top:0.6rem">Example:<br><code>#mins=25&amp;label=Keynote&amp;next=Break@5|QA@10&amp;theme=dark&amp;sound=1</code></p>
+    <p style="margin-top:0.6rem">Example:<br><code>#mins=25&amp;label=Keynote&amp;next=Break&gt;5|QA&gt;10&amp;theme=dark&amp;sound=1</code></p>
   </div>
 </div>
 
@@ -381,7 +381,7 @@
   <!-- On the grid: the box takes three columns and Set the fourth, so Set
        lines up with +10m above it. -->
   <div class="rc-grid">
-    <input type="text" id="rc-queue-input" class="rc-input span3" placeholder="No queue &#x2014; e.g. Talk@25|QA&gt;14:30" autocomplete="off" aria-label="Queue">
+    <input type="text" id="rc-queue-input" class="rc-input span3" placeholder="No queue &#x2014; e.g. Talk&gt;25|QA&gt;[14:30]" autocomplete="off" aria-label="Queue">
     <button class="rc-btn" id="rc-queue-send">Set</button>
   </div>
   <div class="rc-grid">

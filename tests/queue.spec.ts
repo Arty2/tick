@@ -1,18 +1,19 @@
 import { test, expect, open, digits, menu, visit } from './fixtures';
 
-// Queue notation: sessions separated by "|"; "name@minutes", "minutes",
-// "name>HH:MM" or ">HH:MM".
+// Queue notation: sessions separated by "|", each "name>length": minutes
+// ("Break>5", "Break>5:00") or a time of day in brackets ("Wrap>[23:30]");
+// "15" and "[23:30]" alone have no name.
 const q = (s: string) => '&next=' + encodeURIComponent(s);
 const rows = (page: import('@playwright/test').Page) => page.locator('.sq-queued');
 
 test('a pipe-separated queue reads, with commas and colons free in names', async ({ page }) => {
-	await open(page, '#mins=20' + q('Break@5|Q&A, panel@10|Panel>10:30|15'), '2026-11-14T10:12:00');
-	await expect(rows(page)).toHaveText(['05:00 Break', '10:00 Q&A, panel', /^10:30\s?\d\d:\d\d\sPanel$/, '15:00']);
+	await open(page, '#mins=20' + q('Break>5|Q&A, panel>10|Panel>[10:30]|15'), '2026-11-14T10:12:00');
+	await expect(rows(page)).toHaveText(['Break 05:00', 'Q&A, panel 10:00', /^Panel\s\d\d:\d\d\s\[10:30\]$/, '15:00']);
 });
 
 test('a >HH:MM session counts down to that time of day when it loads', async ({ page }) => {
 	await page.addInitScript(() => localStorage.setItem('tick_prefs', '{}'));
-	await open(page, '#mins=1&label=Talk' + q('Panel>10:30'), '2026-11-14T10:12:00');
+	await open(page, '#mins=1&label=Talk' + q('Panel>[10:30]'), '2026-11-14T10:12:00');
 	await page.keyboard.press('Space');
 	await page.clock.fastForward(61_500); // Talk runs out at 10:13:01
 	await page.clock.runFor(100);
@@ -24,40 +25,40 @@ test('a >HH:MM session counts down to that time of day when it loads', async ({ 
 });
 
 test('commas are part of a name, never a separator', async ({ page }) => {
-	await open(page, '#mins=20' + q('Q&A, panel@10'));
-	await expect(rows(page)).toHaveText(['10:00\u2002Q&A, panel']);
-	await open(page, '#mins=20&next=Break@5,QA@10'); // one session, named "Break@5,QA"
-	await expect(rows(page)).toHaveText(['10:00\u2002Break@5,QA']);
+	await open(page, '#mins=20' + q('Q&A, panel>10'));
+	await expect(rows(page)).toHaveText(['Q&A, panel 10:00']);
+	await open(page, '#mins=20&next=Break>5,QA>10'); // one session, named "Break>5,QA"
+	await expect(rows(page)).toHaveText(['Break>5,QA 10:00']);
 });
 
 test('share writes the queue with pipes, and a "|" in a name survives the trip', async ({ page, context }) => {
 	await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-	await open(page, '#mins=20' + q('Break@5|Panel>10:30'), '2026-11-14T10:12:00');
+	await open(page, '#mins=20' + q('Break>5|Panel>[10:30]'), '2026-11-14T10:12:00');
 	await page.keyboard.press('n');
 	await page.locator('.qr-label').first().fill('A|B');
 	await page.locator('#next-set').click();
 	await menu(page);
 	await page.locator('#btn-share').click();
 	const url = await page.evaluate(() => navigator.clipboard.readText());
-	expect(new URLSearchParams(new URL(url).hash.slice(1)).get('next')).toBe('A\\|B@5|Panel>10:30');
+	expect(new URLSearchParams(new URL(url).hash.slice(1)).get('next')).toBe('A\\|B>5|Panel>[10:30]');
 	const other = await context.newPage();
 	await visit(other, url);
-	await expect(rows(other)).toHaveText(['05:00 A|B', /^10:30\s?\d\d:\d\d\sPanel$/]);
+	await expect(rows(other)).toHaveText(['A|B 05:00', /^Panel\s\d\d:\d\d\s\[10:30\]$/]);
 });
 
 test('the queue window takes >HH:MM in the minutes box', async ({ page }) => {
-	await open(page, '#mins=20' + q('Break@5'), '2026-11-14T10:12:00');
+	await open(page, '#mins=20' + q('Break>5'), '2026-11-14T10:12:00');
 	await page.keyboard.press('n');
 	await page.locator('.qr-label').first().fill('Lunch');
-	await page.locator('.qr-mins').first().fill('>12:30');
+	await page.locator('.qr-mins').first().fill('[12:30]');
 	await page.locator('#next-set').click();
-	await expect(rows(page)).toHaveText([/^12:30\s?2:1[78]:\d\d\sLunch$/]);
+	await expect(rows(page)).toHaveText([/^Lunch\s2:1[78]:\d\d\s\[12:30\]$/]);
 	await page.keyboard.press('n');
-	await expect(page.locator('.qr-mins').first()).toHaveValue('>12:30');
+	await expect(page.locator('.qr-mins').first()).toHaveValue('[12:30]');
 });
 
 test("the remote's queue box writes and reads the same notation", async ({ page, context }) => {
-	await open(page, '#mins=20' + q('Break@5|Panel>10:30'), '2026-11-14T10:12:00');
+	await open(page, '#mins=20' + q('Break>5|Panel>[10:30]'), '2026-11-14T10:12:00');
 	await menu(page);
 	await page.locator('#btn-remote').click();
 	const code = (await page.locator('#remote-code-display').textContent())!.trim();
@@ -65,31 +66,34 @@ test("the remote's queue box writes and reads the same notation", async ({ page,
 	await visit(pad, '/#remote=' + code);
 	await pad.clock.runFor(200);
 	const box = pad.locator('#rc-queue-input');
-	await expect(box).toHaveValue('Break@5|Panel>10:30');
-	await expect(pad.locator('#rc-queue-display .rc-q-row')).toHaveText(['05:00 Break', /^10:30\s?\d\d:\d\d\sPanel$/]);
-	await box.fill('Wrap>11:00|QA@10');
+	await expect(box).toHaveValue('Break>5|Panel>[10:30]');
+	await expect(pad.locator('#rc-queue-display .rc-q-row')).toHaveText(['Break 05:00', /^Panel\s\d\d:\d\d\s\[10:30\]$/]);
+	await box.fill('Wrap>[11:00]|QA>10');
 	await box.press('Enter');
-	await expect(rows(page)).toHaveText([/^11:00\s?\d\d:\d\d\sWrap$/, '10:00 QA']);
+	await expect(rows(page)).toHaveText([/^Wrap\s\d\d:\d\d\s\[11:00\]$/, 'QA 10:00']);
 });
 
-test('in the list, a length has the queue triangle; a time of day has its time, a triangle with a bar, and the time left', async ({ page, context }) => {
-	await open(page, '#mins=20' + q('Break@5|Panel>10:30'), '2026-11-14T10:12:00');
-	const [length, timed] = [rows(page).nth(0), rows(page).nth(1)];
+test('in the list: the name, the icon, the time; a time of day has a triangle with a bar, the time left, then the target in brackets', async ({ page, context }) => {
+	await open(page, '#mins=20' + q('Break>5|Q&A>15|Wrap>[10:30]|7'), '2026-11-14T10:12:00');
+	const [length, timed] = [rows(page).nth(0), rows(page).nth(2)];
+	await expect(rows(page)).toHaveText(['Break 05:00', 'Q&A 15:00', /^Wrap\s1[78]:\d\d\s\[10:30\]$/, '07:00']);
 	await expect(length.locator('.ico')).toHaveClass(/ico-play/);
 	await expect(timed.locator('.ico')).toHaveClass(/ico-target/);
-	await expect(timed).toHaveText(/^10:30\s?1[78]:\d\d\sPanel$/);
-	// Left to right: the target time, the icon, the time left.
-	const order = await timed.evaluate((row) => [...row.childNodes].map((n) => (n.nodeType === 3 ? 'text' : (n as Element).className)));
-	expect(order).toEqual(['q-at', 'ico ico-target', 'q-left', 'text']);
-	// Every icon in one column, with the target time hanging to its left; and
-	// the NEXT heading starts on that column instead of being centred.
-	const x = (sel: string) => page.locator(sel).first().evaluate((el) => el.getBoundingClientRect().left);
-	const [play, target, at, head] = [await x('.sq-queued .ico-play'), await x('.sq-queued .ico-target'), await timed.locator('.q-at').evaluate((el) => el.getBoundingClientRect().right), await page.locator('.sq-next-header').evaluate((h) => {
-		const r = document.createRange(); r.selectNodeContents(h); return r.getBoundingClientRect().left;
-	})];
-	expect(Math.abs(play - target)).toBeLessThan(0.5);
-	expect(at).toBeLessThan(target);
-	expect(Math.abs(head - play)).toBeLessThan(0.5);
+	// Left to right in a row: the name, then the icon, the time, and the target.
+	const order = await timed.evaluate((row) => [...row.querySelectorAll('.q-name, .ico, .q-left')].map((n) => [n.className, Math.round(n.getBoundingClientRect().left)] as const));
+	expect(order.map((o) => o[0])).toEqual(['q-name', 'ico ico-target', 'q-left']);
+	expect(order.map((o) => o[1])).toEqual([...order.map((o) => o[1])].sort((a, b) => a - b));
+	// Every icon stands in one column, whatever the names' lengths (or none);
+	// names start on one edge, and NEXT starts there too rather than centred.
+	const lefts = (sel: string) => page.locator(sel).evaluateAll((els) => els.map((el) => el.getBoundingClientRect().left));
+	const icons = await lefts('.sq-queued .ico');
+	expect(icons).toHaveLength(4);
+	expect(Math.max(...icons) - Math.min(...icons)).toBeLessThan(0.5);
+	const names = (await lefts('.sq-queued .q-name')).slice(0, 3);
+	expect(Math.max(...names) - Math.min(...names)).toBeLessThan(0.5);
+	expect(names[0]).toBeLessThan(icons[0]);
+	const head = await page.locator('.sq-next-header').evaluate((h) => { const r = document.createRange(); r.selectNodeContents(h); return r.getBoundingClientRect().left; });
+	expect(Math.abs(head - names[0])).toBeLessThan(0.5);
 	// The same triangle as the menu's queue button, level with the figures beside it.
 	await menu(page);
 	const shape = (sel: string) => page.locator(sel).first().evaluate((i) => getComputedStyle(i).clipPath);
@@ -98,7 +102,7 @@ test('in the list, a length has the queue triangle; a time of day has its time, 
 		const ico = row.querySelector('.ico')!.getBoundingClientRect();
 		const probe = document.createElement('span');
 		probe.style.cssText = 'display:inline-block;width:0;height:1cap;vertical-align:baseline';
-		row.append(probe);
+		row.querySelector('.q-rest')!.append(probe);
 		const cap = probe.getBoundingClientRect();
 		probe.remove();
 		return Math.abs((ico.top + ico.bottom) / 2 - (cap.top + cap.bottom) / 2);
@@ -108,9 +112,9 @@ test('in the list, a length has the queue triangle; a time of day has its time, 
 	// The time left moves with the clock, without the row being rebuilt.
 	await timed.evaluate((row) => ((row as unknown as { mark: number }).mark = 1));
 	await page.clock.runFor(60_000);
-	await expect(timed).toHaveText(/^10:30\s?1[67]:\d\d\sPanel$/);
+	await expect(timed).toHaveText(/^Wrap\s1[67]:\d\d\s\[10:30\]$/);
 	expect(await timed.evaluate((row) => (row as unknown as { mark?: number }).mark)).toBe(1);
-	await expect(page.locator('#btn-next')).toHaveText('queue: 05:00 >10:30');
+	await expect(page.locator('#btn-next')).toHaveText('queue: 05:00 15:00 [10:30] 07:00');
 
 	// The pad lists it the same way.
 	await menu(page);
@@ -119,35 +123,39 @@ test('in the list, a length has the queue triangle; a time of day has its time, 
 	const pad = await context.newPage();
 	await visit(pad, '/#remote=' + code);
 	await pad.clock.runFor(200);
-	await expect(pad.locator('.rc-q-row').nth(1)).toHaveText(/^10:30\s?1[67]:\d\d\sPanel$/);
-	await expect(pad.locator('.rc-q-row').nth(1).locator('.ico')).toHaveClass(/ico-target/);
-	const px = (sel: string) => pad.locator(sel).first().evaluate((el) => el.getBoundingClientRect().left);
-	expect(Math.abs((await px('.rc-q-row .ico-play')) - (await px('.rc-q-row .ico-target')))).toBeLessThan(0.5);
+	await expect(pad.locator('.rc-q-row').nth(2)).toHaveText(/^Wrap\s1[67]:\d\d\s\[10:30\]$/);
+	await expect(pad.locator('.rc-q-row').nth(2).locator('.ico')).toHaveClass(/ico-target/);
+	const padIcons = await pad.locator('.rc-q-row .ico').evaluateAll((els) => els.map((el) => el.getBoundingClientRect().left));
+	expect(Math.max(...padIcons) - Math.min(...padIcons)).toBeLessThan(0.5);
 	const padHead = await pad.locator('.rc-q-head').evaluate((h) => { const r = document.createRange(); r.selectNodeContents(h); return r.getBoundingClientRect().left; });
-	expect(Math.abs(padHead - (await px('.rc-q-row .ico-play')))).toBeLessThan(0.5);
+	expect(Math.abs(padHead - (await pad.locator('.rc-q-row .q-name').first().evaluate((el) => el.getBoundingClientRect().left)))).toBeLessThan(0.5);
 });
 
-test('"@" before the minutes, ">" before a time of day; colons and "@" are free in names', async ({ page }) => {
-	await open(page, '#mins=20' + q('Q&A: part 2@15|me@example@5|>10:30|@7|12'), '2026-11-14T10:12:00');
-	await expect(rows(page)).toHaveText(['15:00 Q&A: part 2', '05:00 me@example', /^10:30\s?1[78]:\d\d$/, '07:00', '12:00']);
+test('the length follows the last ">": minutes, minutes:seconds, or a time of day in brackets; names keep colons, "@" and ">"', async ({ page }) => {
+	await open(page, '#mins=20' + q('Q&A: part 2>15|me@example>5:00|a>b>90|Long>7:40|[10:30]|7|12'), '2026-11-14T10:12:00');
+	await expect(rows(page)).toHaveText(['Q&A: part 2 15:00', 'me@example 05:00', 'a>b 90:00', 'Long 08:00', /^\s?1[78]:\d\d\s\[10:30\]$/, '07:00', '12:00']);
 });
 
 test.describe('on a narrow screen', () => {
 	test.use({ viewport: { width: 320, height: 568 } });
 	test('a long session name is cut with an ellipsis, on one line, on the kiosk and the pad', async ({ page, context }) => {
 		const name = 'An extraordinarily long session';
-		await open(page, '#mins=20&label=' + encodeURIComponent(name) + q('Another extraordinarily long name@5'));
+		await open(page, '#mins=20&label=' + encodeURIComponent(name) + q('Another extraordinarily long name>5'));
 		const cut = (loc: import('@playwright/test').Locator) => loc.evaluate((el) => {
 			const s = getComputedStyle(el);
 			return { cut: el.scrollWidth > el.clientWidth, lines: Math.round(el.getBoundingClientRect().height / parseFloat(s.lineHeight) || 1), right: el.getBoundingClientRect().right, overflow: s.textOverflow, wrap: s.whiteSpace };
 		});
-		for (const loc of [page.locator('#session-label'), rows(page).first()]) {
+		for (const loc of [page.locator('#session-label'), rows(page).first().locator('.q-name')]) {
 			const m = await cut(loc);
 			expect(m.overflow).toBe('ellipsis');
 			expect(m.wrap).toBe('nowrap');
 			expect(m.cut).toBe(true); // too long for 320 px, and cut
 			expect(m.right).toBeLessThanOrEqual(320);
 		}
+		// The icon and the time are never the part that is cut.
+		const rest = (await rows(page).first().locator('.q-rest').boundingBox())!;
+		await expect(rows(page).first().locator('.q-rest')).toHaveText('05:00');
+		expect(rest.x + rest.width).toBeLessThanOrEqual(320);
 		await menu(page);
 		await page.locator('#btn-remote').click();
 		const code = (await page.locator('#remote-code-display').textContent())!.trim();
@@ -156,7 +164,7 @@ test.describe('on a narrow screen', () => {
 		await visit(pad, '/#remote=' + code);
 		await pad.clock.runFor(200);
 		const frame = (await pad.locator('#rc-preview').boundingBox())!;
-		for (const loc of [pad.locator('#remote-label-display'), pad.locator('.rc-q-row').first()]) {
+		for (const loc of [pad.locator('#remote-label-display'), pad.locator('.rc-q-row').first().locator('.q-name')]) {
 			await expect(loc).toContainText('extraordinarily');
 			const m = await cut(loc);
 			expect(m.overflow).toBe('ellipsis');

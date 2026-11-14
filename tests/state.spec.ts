@@ -1,7 +1,7 @@
 import { test, expect, open, reopen, digits, settle, letStorageSettle, menu, freezeAt, visit } from './fixtures';
 
 test('settings in the link set duration, label, queue, theme and sound', async ({ page }) => {
-	await open(page, '#mins=25&label=Keynote&next=Break@5|10&theme=light&sound=1');
+	await open(page, '#mins=25&label=Keynote&next=Break>5|10&theme=light&sound=1');
 	await expect(digits(page)).toHaveText('25:00');
 	await expect(page.locator('#session-label')).toHaveText('Keynote');
 	await expect(page.locator('.sq-queued')).toHaveCount(2);
@@ -28,18 +28,18 @@ test('unreadable saved preferences fall back to defaults instead of breaking the
 
 test('share copies a URL that restores the same timer', async ({ page, context }) => {
 	await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-	await open(page, '#mins=12&label=Panel&next=QA@8');
+	await open(page, '#mins=12&label=Panel&next=QA>8');
 	await menu(page);
 	await page.locator('#btn-share').click();
 	const url = await page.evaluate(() => navigator.clipboard.readText());
 	expect(url).not.toContain('?'); // nothing a server would be sent
-	expect(new URLSearchParams(new URL(url).hash.slice(1)).get('next')).toBe('QA@8');
+	expect(new URLSearchParams(new URL(url).hash.slice(1)).get('next')).toBe('QA>8');
 
 	const other = await context.newPage();
 	await visit(other, url);
 	await expect(other.locator('#timer-display')).toHaveText('12:00');
 	await expect(other.locator('#session-label')).toHaveText('Panel');
-	await expect(other.locator('.sq-queued')).toHaveText(['08:00 QA']);
+	await expect(other.locator('.sq-queued')).toHaveText(['QA 08:00']);
 });
 
 test('the manual opens with the version CHANGELOG.md heads with', async ({ page }) => {
@@ -78,7 +78,7 @@ test('malformed saved presets and queue entries are dropped, not fatal', async (
 	);
 	await open(page);
 	await expect(digits(page)).toHaveText('10:00');
-	await expect(page.locator('.sq-queued')).toHaveText(['05:00 QA']);
+	await expect(page.locator('.sq-queued')).toHaveText(['QA 05:00']);
 	await expect(page.locator('.preset-btn')).toHaveText(['+', 'Talk', '+', '+', '+']);
 	await expect(page.locator('#btn-sound')).toHaveAttribute('aria-pressed', 'false');
 });
@@ -114,18 +114,18 @@ test("a share link's settings don't replace the user's own when something saves"
 			sessionStorage.setItem('seeded', '1');
 		}
 	});
-	await open(page, '#mins=1&next=Talk@2&theme=light&sound=1&label=Linked');
+	await open(page, '#mins=1&next=Talk>2&theme=light&sound=1&label=Linked');
 	await page.keyboard.press('Space');
 	await page.clock.fastForward(62_000); // the hand-over saves
 	await letStorageSettle(page);
 	await reopen(page);
 	await expect(page.locator('body')).not.toHaveClass(/light/);
 	await expect(page.locator('#btn-sound')).toHaveAttribute('aria-pressed', 'false');
-	await expect(page.locator('.sq-queued')).toHaveText(['05:00 Mine']);
+	await expect(page.locator('.sq-queued')).toHaveText(['Mine 05:00']);
 });
 
 test('deleting a queue row keeps what was typed into the others', async ({ page }) => {
-	await open(page, '#next=A@5|B@10');
+	await open(page, '#next=A>5|B>10');
 	await page.keyboard.press('n');
 	await page.locator('.qr-label').first().fill('Keynote');
 	await page.locator('.qr-del').nth(1).click();
@@ -155,7 +155,7 @@ test('labels with colons and commas survive a share link', async ({ page, contex
 	const url = await page.evaluate(() => navigator.clipboard.readText());
 	const other = await context.newPage();
 	await visit(other, url);
-	await expect(other.locator('.sq-queued')).toHaveText(['10:00 Q&A: panel, part 2']);
+	await expect(other.locator('.sq-queued')).toHaveText(['Q&A: panel, part 2 10:00']);
 });
 
 test("a hand-over saves the new slot's label with the shortened queue", async ({ page }) => {
@@ -173,7 +173,7 @@ test("a hand-over saves the new slot's label with the shortened queue", async ({
 	await letStorageSettle(page);
 	await page.reload();
 	await expect(page.locator('#session-label')).toHaveText('Talk');
-	await expect(page.locator('.sq-queued')).toHaveText(['10:00 QA']);
+	await expect(page.locator('.sq-queued')).toHaveText(['QA 10:00']);
 });
 
 

@@ -11,7 +11,7 @@ to a release, six at the very most. Plain text and `code` spans only.
 - Renamed Acari, the successor to /tick. Installs as an app, and opens offline once visited.
 - Several remotes and several kiosks on one timer; extra kiosks are read only, and one takes over if the first is lost.
 - QR codes drawn by the app itself, offline. PeerJS ships with it instead of coming from a CDN.
-- Link settings follow `#`, so they are never sent to the server. Queues are written `Talk@25|Panel>14:30`.
+- Link settings follow `#`, so they are never sent to the server. Queues are written `Talk>25|Wrap>[14:30]`.
 - Remote pad: a framed preview of the kiosk and its message, a green Start, a count of other remotes; it stays awake.
 - Menu icons drawn in CSS; sound is one switch; Share opens the device's share window; `remote: waiting` or `connected`.
 
