@@ -109,3 +109,42 @@ test('end resets to the starting duration', async ({ page }) => {
 	await page.keyboard.press('End');
 	await expect(digits(page)).toHaveText('04:00');
 });
+
+test('running past zero by hand hands over to the queue', async ({ page }) => {
+	await open(page, '?mins=1&label=Talk&next=Break:5');
+	await page.keyboard.press('Space');
+	await page.clock.fastForward(30_000);
+	await page.keyboard.press('ArrowRight'); // −1 min: 0:30 → −0:30
+	await expect(page.locator('#session-label')).toHaveText('Break');
+	await page.clock.runFor(2_000);
+	await expect(digits(page)).toHaveText('04:58');
+});
+
+test('holding the sound button rings the bell without changing the setting', async ({ page }) => {
+	await open(page);
+	await page.locator('#btn-menu').click();
+	await page.locator('#btn-sound').hover();
+	await page.mouse.down();
+	await page.clock.runFor(900);
+	await page.mouse.up();
+	await expect(page.locator('#btn-sound')).toHaveText('sound: off');
+	await page.locator('#btn-sound').click(); // a plain click still cycles
+	await expect(page.locator('#btn-sound')).toHaveText('sound: end');
+});
+
+test('the mouse wheel scrolls the manual instead of changing the timer', async ({ page }) => {
+	await open(page);
+	await page.keyboard.press('Space');
+	await page.keyboard.press('Home');
+	await page.locator('#manual').hover();
+	await page.mouse.wheel(0, 600);
+	await expect.poll(() => page.locator('#manual').evaluate((m) => m.scrollTop)).toBeGreaterThan(0);
+	await page.keyboard.press('Escape');
+	await expect(digits(page)).toHaveText('10:00');
+});
+
+test('out-of-range minutes in the URL are ignored', async ({ page }) => {
+	await open(page, '?mins=Infinity&next=Talk:0.01,QA:1e9,Break:5.5');
+	await expect(digits(page)).toHaveText('10:00');
+	await expect(page.locator('.sq-queued')).toHaveText(['▶ 05:00 Break']);
+});

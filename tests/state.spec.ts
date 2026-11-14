@@ -108,3 +108,19 @@ test('the page is served with the security policy from vercel.json', async ({ pa
 	expect(csp).toContain('https://api.qrserver.com');
 	expect(res!.headers()['x-frame-options']).toBe('DENY');
 });
+
+test("a share link's settings don't replace the user's own when something saves", async ({ page }) => {
+	await page.addInitScript(() => {
+		if (!sessionStorage.getItem('seeded')) {
+			localStorage.setItem('tick_prefs', JSON.stringify({ theme: 'dark', sound: 0, nextQueue: [{ label: 'Mine', mins: 5 }] }));
+			sessionStorage.setItem('seeded', '1');
+		}
+	});
+	await open(page, '?mins=1&next=Talk:2&theme=light&sound=2&label=Linked');
+	await page.keyboard.press('Space');
+	await page.clock.fastForward(62_000); // the hand-over saves
+	await page.goto('/tick.html');
+	await expect(page.locator('body')).not.toHaveClass(/light/);
+	await expect(page.locator('#btn-sound')).toHaveText('sound: off');
+	await expect(page.locator('.sq-queued')).toHaveText(['▶ 05:00 Mine']);
+});

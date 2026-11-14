@@ -553,7 +553,7 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
     <ul>
       <li><strong style="color:var(--c-idle)">Grey</strong> &#x2014; Idle.</li>
       <li><strong style="color:var(--c-run)">White</strong> &#x2014; Running.</li>
-      <li><strong style="color:var(--c-warn)">Orange</strong> &#x2014; First warning (default: 5 min remaining).</li>
+      <li><strong style="color:var(--c-warn)">Orange</strong> &#x2014; First warning (default: 2 min remaining).</li>
       <li><strong style="color:var(--c-warn)">Orange flash</strong> &#x2014; Second warning (default: 1 min remaining).</li>
       <li><strong style="color:var(--c-pause)">Amber</strong> &#x2014; Paused.</li>
       <li><strong style="color:var(--c-ot)">Red</strong> &#x2014; Overtime. Timer counts up.</li>
@@ -707,14 +707,18 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
 {
 // ── URL params ────────────────────────────────────────
 const usp          = new URLSearchParams(location.search);
-const DEFAULT_MINS = Math.max(1, +usp.get('mins') || 10);
+// Whole minutes, 1–999, or 0 for "not a duration". Every source of minutes
+// goes through this — URL, saved data, the remote's queue — so none of them
+// can produce a fractional, infinite or NaN countdown.
+const toMins       = v => { const n = Math.floor(+v); return n >= 1 && n <= 999 ? n : 0; };
+const DEFAULT_MINS = toMins(usp.get('mins')) || 10;
 const URL_LABEL    = usp.get('label') ?? '';
 // nextQueue: {label:string, mins:number}[]  — label may be ''
 const parseNextStr = str => str.split(',').map(s => {
   s = s.trim(); if (!s) return null;
   const col = s.indexOf(':');
-  if (col > 0) { const mins = +s.slice(col+1); return mins > 0 ? {label: s.slice(0,col).trim(), mins} : null; }
-  const mins = +s; return mins > 0 ? {label:'', mins} : null;
+  if (col > 0) { const mins = toMins(s.slice(col+1)); return mins ? {label: s.slice(0,col).trim().slice(0,32), mins} : null; }
+  const mins = toMins(s); return mins ? {label:'', mins} : null;
 }).filter(Boolean);
 const URL_NEXT_ITEMS = parseNextStr(usp.get('next') ?? '');
 const URL_THEME    = usp.get('theme') ?? '';
@@ -768,12 +772,22 @@ let longPressTid = null, wakeLock = null;
 // Saved data is migrated, not trusted: it may be an older version's shape
 // (a queue of plain numbers), hand-edited, or garbage. Each field is checked
 // on its own, so one bad field costs that field and not the rest.
-const toMins  = v => { const n = Math.floor(+v); return n >= 1 && n <= 999 ? n : 0; };
 const toEntry = e => typeof e === 'number' ? (toMins(e) ? {label:'', mins:toMins(e)} : null)
   : e && typeof e === 'object' && toMins(e.mins) ? {label: typeof e.label === 'string' ? e.label.slice(0,32) : '', mins: toMins(e.mins)} : null;
 let p = {};
 try { p = JSON.parse(localStorage.getItem('tick_prefs') ?? '{}') ?? {}; } catch {}
-if (typeof p !== 'object') p = {};
+if (!p || typeof p !== 'object') p = {};
+// Fields a URL parameter set for this visit. savePrefs() keeps the stored
+// value for these, so a share link's theme, sound, queue or label never
+// replaces the user's own; changing one by hand clears its flag (setPrefOwn).
+const fromUrl = {
+  theme: URL_THEME === 'light' || URL_THEME === 'dark',
+  sound: [0,1,2].includes(URL_SOUND),
+  nextQueue: URL_NEXT_ITEMS.length > 0,
+  customLabel: !!URL_LABEL,
+};
+const storedPrefs = p;
+const setPrefOwn = (...keys) => keys.forEach(k => { fromUrl[k] = false; });
 if (URL_THEME === 'light' || (!URL_THEME && p.theme === 'light'))
   document.body.classList.add('light');
 soundMode = [0,1,2].includes(URL_SOUND) ? URL_SOUND : [0,1,2].includes(p.sound) ? p.sound : 0;
@@ -787,10 +801,14 @@ warnSecs1 = toWarn(p.warnSecs1) ?? warnSecs1;
 warnSecs2 = toWarn(p.warnSecs2) ?? warnSecs2;
 if (!URL_LABEL && typeof p.customLabel === 'string') customLabel = p.customLabel;
 
-const savePrefs = () => { try { localStorage.setItem('tick_prefs', JSON.stringify({
-  theme: document.body.classList.contains('light') ? 'light' : 'dark',
-  sound: soundMode, nextQueue, presets, warnSecs1, warnSecs2, customLabel,
-})); } catch {} };
+const savePrefs = () => {
+  const now = {
+    theme: document.body.classList.contains('light') ? 'light' : 'dark',
+    sound: soundMode, nextQueue, presets, warnSecs1, warnSecs2, customLabel,
+  };
+  for (const k in fromUrl) if (fromUrl[k]) { if (k in storedPrefs) now[k] = storedPrefs[k]; else delete now[k]; }
+  try { localStorage.setItem('tick_prefs', JSON.stringify(now)); } catch {}
+};
 
 const hardReset = () => { try { localStorage.removeItem('tick_prefs'); } catch {} location.search = ''; };
 
@@ -1095,7 +1113,11 @@ function adjustMinutes(delta) {
   if (!running || untilTarget) return;
   remaining = Math.max(-(99*60+59), remaining + delta*60);
   resumeVal = remaining; resumeAbsSec = absSec(); lastRenderedSec = -1;
-  const d = stateFor(remaining); if (d !== uiState) applyState(d);
+  const d = stateFor(remaining);
+  // The loop only hands over to the queue on a state change, and this sets
+  // the state itself, so an adjustment past zero has to hand over here.
+  if (d === 'ot' && nextQueue.length) { loadNextTimer(); startTimer(); showHint((delta>0?'+':'')+delta+' min'); return; }
+  if (d !== uiState) applyState(d);
   if (remaining >= 0) bellRecord = null;
   renderDigits(remaining); showHint((delta>0?'+':'')+delta+' min');
 }
@@ -1132,13 +1154,7 @@ function toggleWatchMode() {
 }
 function exitWatchMode() {
   if (!watchMode) return;
-  // Delegate to toggle (handles all cleanup); skip the auto-load-next-timer behaviour
-  watchMode = true; // toggle will flip it
-  btnCW.classList.add('watch-on'); // toggle will remove
-  toggleWatchMode();
-  // toggleWatchMode would also call loadNextTimer+startTimer — undo that for Esc-key exit
-  // Actually we do want the same behaviour on Esc (exit clock, load next if queued).
-  // So full delegation is correct.
+  toggleWatchMode(); // does all the cleanup, and resumes the timer as it was
 }
 
 // ── Preset cycling ────────────────────────────────────
@@ -1172,7 +1188,7 @@ function startLabelEdit() {
 }
 function endLabelEdit() {
   if (!editingLabel) return; editingLabel = false; labelWrap.classList.remove('editing');
-  labelEl.contentEditable = 'false'; customLabel = labelEl.textContent.trim();
+  labelEl.contentEditable = 'false'; customLabel = labelEl.textContent.trim(); setPrefOwn('customLabel');
   sessionLabelEl.textContent = customLabel;
   savePrefs(); applyState(uiState);
 }
@@ -1338,6 +1354,7 @@ const closeNextModal = () => closeModal('next-modal');
 function nextCommit() {
   customLabel = $('queue-current-label').value.trim();
   nextQueue = collectQueueRows().filter(e => e.mins > 0);
+  setPrefOwn('customLabel', 'nextQueue');
   closeNextModal(); savePrefs(); renderSessionQueue(); applyState(uiState);
   showHint(customLabel || (nextQueue.length ? `next: ${nextQueue.map(e=>e.label||e.mins+'m').join(', ')}` : 'queue set'));
 }
@@ -1468,13 +1485,13 @@ function exitKiosk() {
 const toggleKiosk = () => kioskMode ? exitKiosk() : enterKiosk();
 
 // ── Theme & Sound ─────────────────────────────────────
-const toggleTheme = () => { document.body.classList.toggle('light'); savePrefs(); showHint(document.body.classList.contains('light') ? 'light' : 'dark'); };
+const toggleTheme = () => { document.body.classList.toggle('light'); setPrefOwn('theme'); savePrefs(); showHint(document.body.classList.contains('light') ? 'light' : 'dark'); };
 
 const SOUND_LABELS = ['sound: off','sound: end','sound: min'];
 const updateSoundBtn = () => { btnSound.textContent=SOUND_LABELS[soundMode]; btnSound.classList.toggle('sound-on', soundMode>0); };
 updateSoundBtn();
 function cycleSoundMode() {
-  soundMode = (soundMode+1)%3; updateSoundBtn(); savePrefs();
+  soundMode = (soundMode+1)%3; updateSoundBtn(); setPrefOwn('sound'); savePrefs();
   showHint(['SOUND: OFF','SOUND: END','SOUND: MIN'][soundMode]);
   const preview = soundMode===0 ? playDampBell : [null,playOTBell,playMinBell][soundMode];
   const ctx = getCtx(), fire = () => { try { preview(); } catch {} };
@@ -1487,9 +1504,10 @@ const showHint  = msg => { statusHint.textContent=msg; statusHint.classList.add(
 const showSwipe = icon => { swipeEl.textContent=icon; swipeEl.classList.add('show'); clearTimeout(swipeTid); swipeTid=setTimeout(()=>swipeEl.classList.remove('show'),700); };
 
 // ── Touch ─────────────────────────────────────────────
-const isUIChrome = el => !!(el.closest('#toolbar')||el.closest('#top-bar')||el.closest('#manual')||el.closest('.modal-overlay')||el.closest('#btn-menu')||el.closest('#btn-tick')||el.closest('#menu-backdrop'));
+const isUIChrome = el => !!(el.closest('#remote-pad')||el.closest('#toolbar')||el.closest('#top-bar')||el.closest('#manual')||el.closest('.modal-overlay')||el.closest('#btn-menu')||el.closest('#btn-tick')||el.closest('#menu-backdrop'));
 
 document.addEventListener('touchstart', e => {
+  if (IS_REMOTE) return;
   isTouching = true;
   if (!hasTouched) { hasTouched=true; if (['idle','reset'].includes(uiState)) applyState(uiState); }
   try { audioCtx?.resume().catch(()=>{}); } catch {}
@@ -1499,6 +1517,9 @@ document.addEventListener('touchstart', e => {
 }, {passive:true});
 
 document.addEventListener('touchend', e => {
+  // The pad's buttons need their synthesised click; cancelling touchend here
+  // made every tap on a phone a no-op.
+  if (IS_REMOTE) return;
   // Reset isTouching after the synthetic mouse-click window (~300 ms) so real
   // mouse users on hybrid devices aren't locked out permanently.
   setTimeout(() => { isTouching = false; }, 400);
@@ -1527,7 +1548,11 @@ app.addEventListener('click', e => {
   clearTimeout(clickTid);
   running ? (clickTid=setTimeout(doMainAction,160)) : doMainAction();
 });
-document.addEventListener('wheel', e => { e.preventDefault(); if (!running||untilTarget) return; adjustMinutes(e.deltaY<0?1:-1); }, {passive:false});
+document.addEventListener('wheel', e => {
+  // Only the stage turns the wheel into minutes; the manual, a long queue
+  // and the remote pad still need to scroll.
+  if (IS_REMOTE || isUIChrome(e.target)) return;
+  e.preventDefault(); if (!running||untilTarget) return; adjustMinutes(e.deltaY<0?1:-1); }, {passive:false});
 
 // ── Keyboard ──────────────────────────────────────────
 document.addEventListener('keydown', e => {
@@ -1551,7 +1576,7 @@ document.addEventListener('keydown', e => {
   if (/^[0-9]$/.test(e.key)&&!e.altKey){ e.preventDefault(); kbPushDigit(e.key); return; }
   switch(e.key) {
     case 'Enter':     e.preventDefault(); keyBuf ? kbCommit() : (fullReset(DEFAULT_MINS),startTimer()); break;
-    case ' ':         e.preventDefault(); clearKeyBuf(); remaining<0 ? (fullReset(DEFAULT_MINS),startTimer()) : running ? pauseTimer() : startTimer(); break;
+    case ' ':         e.preventDefault(); clearKeyBuf(); remaining<0 ? (nextQueue.length ? loadNextTimer() : fullReset(DEFAULT_MINS), startTimer()) : running ? pauseTimer() : startTimer(); break;
     case 'Escape':    clearKeyBuf();
       if (toolbar.classList.contains('visible')) { hideToolbar(); break; }
       untilTarget ? (exitUntilMode(),running=false,applyState('idle')) : watchMode ? exitWatchMode() : kioskMode ? exitKiosk() : fsEl()&&fsLeave(); break;
@@ -1582,7 +1607,7 @@ function tbBtn(id, fn, longFn) {
   el.addEventListener('mousedown',  start); el.addEventListener('mouseup',    cancel);
   el.addEventListener('mouseleave', cancel); el.addEventListener('touchstart', start, {passive:true});
   el.addEventListener('touchend',   cancel, {passive:true});
-  el.addEventListener('click', e => { if(fired){fired=false;e.stopImmediatePropagation();} });
+  el.addEventListener('click', e => { if(fired){fired=false;e.stopImmediatePropagation();} }, true);
 }
 
 tbBtn('btn-next',         openNextModal);
@@ -1606,7 +1631,7 @@ app.addEventListener('dblclick', e => { if (!isUIChrome(e.target)) toggleKiosk()
   el.addEventListener('touchstart',start,{passive:true}); el.addEventListener('mousedown',start);
   el.addEventListener('touchend',cancel,{passive:true});  el.addEventListener('mouseup',cancel);
   el.addEventListener('mouseleave',cancel);
-  el.addEventListener('click',e=>{if(fired){fired=false;e.stopImmediatePropagation();}});
+  el.addEventListener('click',e=>{if(fired){fired=false;e.stopImmediatePropagation();}},true);
 })();
 
 toolbar.addEventListener('click',      e=>e.stopPropagation());
@@ -1768,22 +1793,18 @@ function openRemoteModal() {
   const rcUrl = `${location.origin}${location.pathname}?rc=${rcHostCode}`;
 
   $('remote-code-display').textContent = rcHostCode;
-  renderQR(rcUrl);
-
-  // Re-render QR on connectivity change while modal is open
-  const onNet = () => renderQR(rcUrl);
-  window.addEventListener('online',  onNet);
-  window.addEventListener('offline', onNet);
-  const cleanupNet = () => {
-    window.removeEventListener('online',  onNet);
-    window.removeEventListener('offline', onNet);
-  };
-  $('remote-modal')._cleanupNet = cleanupNet;
-
-  updateRemoteStatus('waiting');
+  rcQrUrl = rcUrl; renderQR(rcUrl);
+  updateRemoteStatus(rcHostConnected ? 'connected' : 'waiting');
   openModal('remote-modal');
   startHostTransports();
 }
+
+// Registered once: re-render the QR when connectivity changes while the
+// modal is open. (Adding a pair per open leaked one per open.)
+let rcQrUrl = '', rcHostConnected = false;
+const onNetChange = () => { if (rcQrUrl && $('remote-modal').classList.contains('open')) renderQR(rcQrUrl); };
+window.addEventListener('online',  onNetChange);
+window.addEventListener('offline', onNetChange);
 
 function updateRemoteStatus(state, extra) {
   const el = $('remote-status');
@@ -1825,6 +1846,7 @@ const seenCmdIds = new Set();
 function handleHostMessage(msg, _transport) {
   if (!msg || typeof msg !== 'object') return;
   if (msg.type === 'hello' || msg.type === '_peerOpen') {
+    rcHostConnected = true;
     updateRemoteStatus('connected');
     remoteTransport?.send(stateSnap());
     return;
@@ -1855,8 +1877,9 @@ function execRemoteCmd(cmd) {
     const raw = cmd.slice(9);
     // Format: "Current Title|Slot1:25,Slot2:10" — pipe separates current label from queue
     const pipe = raw.indexOf('|');
+    setPrefOwn('nextQueue');
     if (pipe >= 0) {
-      customLabel = raw.slice(0, pipe).trim();
+      customLabel = raw.slice(0, pipe).trim().slice(0, 32); setPrefOwn('customLabel');
       nextQueue = parseNextStr(raw.slice(pipe + 1));
     } else {
       nextQueue = parseNextStr(raw);
@@ -1867,8 +1890,7 @@ function execRemoteCmd(cmd) {
 }
 
 function stopRemote() {
-  $('remote-modal')._cleanupNet?.();
-  rcGeneration++;
+  rcGeneration++; rcHostConnected = false; rcQrUrl = '';
   remoteTransport?.close(); remoteTransport = null; rcHostCode = '';
   closeModal('remote-modal');
 }
@@ -1882,10 +1904,6 @@ function showOpMsg(text) {
   $('op-msg-box').textContent = text;
   el.classList.add('show');
   opMsgTid = setTimeout(() => el.classList.remove('show'), 6000);
-}
-function sendOpMsg(text) {
-  remoteTransport?.send({type:'opMsg', text: text.trim()});
-  if (text.trim()) showOpMsg(text.trim()); // also show locally? No — host sends to remote only
 }
 
 wireBtn('op-msg-send', () => {
@@ -2003,6 +2021,7 @@ if (IS_REMOTE) {
     rcQueueInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendQueue(); } });
   }
 
+  let rcHeard = false;
   function connectRemote() {
     const code = RC_PARAM.toUpperCase();
     rcSetStatus('', 'connecting\u2026');
@@ -2010,7 +2029,7 @@ if (IS_REMOTE) {
     // Start BC immediately (same-browser)
     const bc = makeBCTransport(code, true);
     bc.onmessage = msg => {
-      if (msg.type === 'state')  { rcSetStatus('conn', '\u2713 connected (local)'); rcApplyState(msg); }
+      if (msg.type === 'state')  { rcHeard = true; rcSetStatus('conn', '\u2713 connected (local)'); rcApplyState(msg); }
       if (msg.type === 'opMsg') { rcShowOpMsg(msg.text); }
     };
 
@@ -2018,28 +2037,29 @@ if (IS_REMOTE) {
     makePeerTransport(code, true,
       t => {
         t.onmessage = msg => {
-          if (msg.type === 'state')    { rcSetStatus('conn', '\u2713 connected'); rcApplyState(msg); }
-          if (msg.type === '_peerOpen'){ rcSetStatus('conn', '\u2713 connected'); }
+          if (msg.type === 'state')    { rcHeard = true; rcSetStatus('conn', '\u2713 connected'); rcApplyState(msg); }
+          if (msg.type === '_peerOpen'){ rcHeard = true; rcSetStatus('conn', '\u2713 connected'); }
           if (msg.type === 'opMsg')   { rcShowOpMsg(msg.text); }
         };
-        // Prefer WebRTC when available; BC is still active as backup
-        const old = rcTransport;
+        // Send over both. Closing BroadcastChannel here (as this once did)
+        // lost the host for good if the WebRTC link to it then never opened;
+        // the host runs each command once whichever way it arrives.
         rcTransport = {
           send(msg) { t.send(msg); bc.send(msg); },
           close() { t.close(); bc.close(); }
         };
-        old?.close();
         t.send({type:'hello'});
       },
       err => {
-        // PeerJS failed — stick with BC only
-        if (!rcTransport) rcSetStatus('', 'local mode (same browser)');
+        // PeerJS failed — BroadcastChannel only, so only this browser's tabs.
+        if (!rcHeard) rcSetStatus('', 'local mode (same browser only)');
       }
     );
 
     // Start with BC as default transport
     rcTransport = { send(msg){bc.send(msg);}, close(){bc.close();} };
-    setTimeout(() => { if (!rcTransport) rcSetStatus('err','no connection'); }, 8000);
+    // rcTransport always exists by now, so "did anything answer" is the test.
+    setTimeout(() => { if (!rcHeard) rcSetStatus('err','no connection \u2014 check the code'); }, 8000);
   }
 
   connectRemote();

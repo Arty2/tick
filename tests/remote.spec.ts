@@ -1,5 +1,12 @@
 import { test, expect, open, digits } from './fixtures';
 
+async function hostWithRemote(page: import('@playwright/test').Page, query = '?mins=20') {
+	await open(page, query);
+	await page.locator('#btn-menu').click();
+	await page.locator('#btn-remote').click();
+	return (await page.locator('#remote-code-display').textContent())!.trim();
+}
+
 // Same-browser remote control runs over BroadcastChannel and needs no
 // network. The cross-device path (PeerJS) is aborted by the fixture, which
 // is also the honest test of "works offline in the same browser".
@@ -74,4 +81,39 @@ test('a tampered PeerJS is refused by the browser', async ({ page, errors }) => 
 	await expect.poll(() => errors.some((e) => /integrity/i.test(e))).toBe(true);
 	expect(await page.evaluate(() => typeof (window as unknown as { Peer?: unknown }).Peer)).toBe('undefined');
 	errors.length = 0;
+});
+
+test.describe('on a touch screen', () => {
+	test.use({ hasTouch: true });
+	test('tapping the pad sends the command', async ({ page, context }) => {
+		const code = await hostWithRemote(page);
+		const pad = await context.newPage();
+		await pad.goto('/tick.html?rc=' + code);
+		await expect(pad.locator('#remote-status-bar')).toContainText('connected');
+		await pad.locator('[data-rc="start"]').tap();
+		await expect(digits(page)).toHaveClass(/s-run/);
+	});
+});
+
+test('a pad whose code nobody answers says so', async ({ page }) => {
+	await open(page, '?rc=WRONG1');
+	await page.clock.runFor(8_500);
+	await expect(page.locator('#remote-status-bar')).toContainText('no connection');
+});
+
+test('reopening the remote while a pad is connected still says connected', async ({ page, context }) => {
+	const code = await hostWithRemote(page);
+	const pad = await context.newPage();
+	await pad.goto('/tick.html?rc=' + code);
+	await expect(page.locator('#remote-status')).toContainText('connected');
+	await page.locator('#remote-modal-close').click();
+	await page.locator('#btn-menu').click();
+	await page.locator('#btn-remote').click();
+	await expect(page.locator('#remote-status')).toContainText('connected');
+});
+
+test("the broker's WebSocket is blocked like any other off-site request", async ({ page, offsite }) => {
+	await page.route(PEER_URL, (r) => r.fulfill({ path: 'node_modules/peerjs/dist/peerjs.min.js', headers: { 'access-control-allow-origin': '*' } }));
+	await hostWithRemote(page);
+	await expect.poll(() => offsite.some((u) => u.startsWith('wss://'))).toBe(true);
 });

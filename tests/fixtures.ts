@@ -19,6 +19,14 @@ export const test = base.extend<{ offsite: string[]; errors: string[] }>({
 				return route.abort();
 			}
 		);
+		// context.route sees HTTP only; PeerJS's broker is a WebSocket.
+		await context.routeWebSocket(
+			(url) => url.hostname !== 'localhost',
+			(ws) => {
+				hits.push(ws.url());
+				return ws.close();
+			}
+		);
 		await use(hits);
 	}, { auto: true }],
 	// auto: set up for every test, not only those that name the fixture —
