@@ -381,6 +381,9 @@ code{background:rgba(128,128,128,0.16);padding:0.08em 0.33em;font-family:var(--f
    and pulsed its opacity, so the digits showed through and it was hard to
    read. It flashes bright once on arrival instead, and the time shrinks
    while it shows so that both fit. */
+#blackout{position:fixed;inset:0;z-index:600;background:var(--bg);cursor:none}
+#blackout[hidden]{display:none}
+.rc-btn.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
 #op-msg{
   display:none;background:var(--c-warn);color:#111;
   font-size:clamp(22px,min(6.5vw,9vh),72px);font-weight:700;line-height:1.15;
@@ -710,6 +713,7 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
     <ul>
       <li>The <strong>remote</strong> button shows a six-letter code and a QR code. Open the link or scan the code on another device to get a remote pad. Or, on that device, open /tick, choose <strong>remote</strong>, then <em>Control another timer instead</em>, type the code and choose <strong>Join</strong>. The remote pad's top bar shows the code; typing another one there switches to that timer. This screen then changes to kiosk mode, and stays in it if the remote disconnects.</li>
       <li>The remote pad shows the time left and the queue. Its buttons reset, start or pause, ring the bell, load the next or the previous session, and change the time. On phones they vibrate.</li>
+      <li><strong>Black</strong> covers this screen in the background colour while the timer runs on underneath; changes from the remote pad stay hidden until it is pressed again. <code>Esc</code> here also lifts it.</li>
       <li>Its queue box holds the current queue. Change it and press <strong>Set</strong>; an empty box clears the queue.</li>
       <li>A message typed on the remote pad appears on this screen for 6 seconds, on an orange band above the time. The time gets smaller while it shows. <strong>Clear</strong> removes it sooner.</li>
       <li>If this screen stops answering, the remote pad says <strong>Kiosk lost</strong>. The small screen button (&#x1F5A5;&#xFE0F;) next to its status shows a link and QR code for a new screen, which continues the timer.</li>
@@ -803,6 +807,10 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
 </div>
 
 <!-- Remote pad (shown when ?rc=CODE) -->
+<!-- Blackout: covers the whole kiosk in the theme's background colour. The
+     timer runs on underneath; switched from the remote, or off with Esc. -->
+<div id="blackout" hidden></div>
+
 <div id="remote-pad">
   <div id="rc-top">
     <div id="remote-status-bar">connecting&#x2026;</div>
@@ -839,7 +847,8 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
          rather than drawing emoji. -->
     <button class="rc-btn wide" data-rc="prev" id="rc-prev">&#x25C0;&#xFE0E; Prev</button>
     <button class="rc-btn wide" data-rc="next" id="rc-next">&#x25B6;&#xFE0E; Next</button>
-    <button class="rc-btn full" data-rc="bell">&#x1F514; Bell</button>
+    <button class="rc-btn wide" data-rc="black" id="rc-black">Black</button>
+    <button class="rc-btn wide" data-rc="bell">&#x1F514; Bell</button>
   </div>
   <div class="rc-row">
     <input type="text" id="rc-msg-input" class="rc-input" placeholder="Message to the kiosk&#x2026;" maxlength="40" autocomplete="off" aria-label="Message to the kiosk">
@@ -934,7 +943,10 @@ let soundMode = 0, bellRecord = null;
 let nextQueue = URL_NEXT_ITEMS.length ? URL_NEXT_ITEMS.slice() : [{label:'', mins:10}];
 let untilTarget = null, untilLabel = '';
 let watchMode = false;
-let kioskMode = false, kioskByRemote = false;
+let kioskMode = false, kioskByRemote = false, blackout = false;
+// Blackout covers the screen (in the theme's background colour) without
+// touching the timer, so changes made from the remote don't show until it lifts.
+function setBlackout(on) { blackout = !!on; $('blackout').hidden = !blackout; }
 const DEFAULT_PRESETS = [
   {label:'5 min',mins:5},{label:'10 min',mins:10},{label:'25 min',mins:25},
   {label:'',mins:0},{label:'',mins:0},
@@ -1804,6 +1816,8 @@ document.addEventListener('keydown', e => {
     case 'Enter':     e.preventDefault(); keyBuf ? kbCommit() : (fullReset(DEFAULT_MINS),startTimer()); break;
     case ' ':         e.preventDefault(); clearKeyBuf(); remaining<0 ? (nextQueue.length ? loadNextTimer() : fullReset(DEFAULT_MINS), startTimer()) : running ? pauseTimer() : startTimer(); break;
     case 'Escape':    clearKeyBuf();
+      // A blackout lifts first, so a kiosk can't be left covered if its remote is gone.
+      if (blackout) { setBlackout(false); remoteTransport?.send(stateSnap()); break; }
       if (toolbar.classList.contains('visible')) { hideToolbar(); break; }
       untilTarget ? (exitUntilMode(),running=false,applyState('idle')) : watchMode ? exitWatchMode() : kioskMode ? exitKiosk() : fsEl()&&fsLeave(); break;
     case 'ArrowUp':   e.preventDefault(); adjustMinutes(10);  break;
@@ -1947,7 +1961,7 @@ function makeCode() {
 function stateSnap() {
   return { type:'state', uiState, remaining, totalSecs, customLabel, running, nextQueue: nextQueue.slice(),
     untilTarget, untilLabel, fresh: awaitingRestore, prevCount: prevSessions.length,
-    warn1: firstWarnSecs(), warn2: warnSecs2 };
+    warn1: firstWarnSecs(), warn2: warnSecs2, black: blackout };
 }
 
 // ── Remote transport abstraction ───────────────────────────────────
@@ -2139,6 +2153,7 @@ function applySync(snap) {
   awaitingRestore = false;
   if (Array.isArray(snap.nextQueue)) nextQueue = snap.nextQueue.map(toEntry).filter(Boolean);
   if (typeof snap.customLabel === 'string') customLabel = snap.customLabel.slice(0, 32);
+  if (typeof snap.black === 'boolean') setBlackout(snap.black);
   if (typeof snap.untilTarget === 'number' && snap.untilTarget > Date.now()) {
     enterUntilMode(snap.untilTarget, String(snap.untilLabel ?? '').slice(0, 12));
   } else if (Number.isFinite(snap.remaining)) {
@@ -2158,6 +2173,7 @@ function execRemoteCmd(cmd) {
   if (cmd === 'pause') { if (running) pauseTimer(); return; }
   if (cmd === 'reset') { fullReset(); return; }
   if (cmd === 'bell')  { playOTBell(); return; }
+  if (cmd === 'black') { setBlackout(!blackout); return; }
   if (cmd === 'next')  { if (nextQueue.length) { running=false; loadNextTimer(); } return; }
   if (cmd === 'prev')  { loadPrevTimer(); return; }
   if (cmd.startsWith('adj:')) {
@@ -2285,6 +2301,9 @@ if (IS_REMOTE) {
     // link uses), unless it is being edited.
     if (!rcQueueDirty && document.activeElement !== rcQueueInput && Array.isArray(snap.nextQueue))
       rcQueueInput.value = snap.nextQueue.map(e => e.label ? `${String(e.label).replaceAll(',', '\\,')}:${e.mins}` : e.mins).join(',');
+    // Black is lit while the kiosk is covered.
+    $('rc-black').classList.toggle('on', !!snap.black);
+    $('rc-black').setAttribute('aria-pressed', String(!!snap.black));
     // Prev and Next are greyed out when there's nowhere to go.
     $('rc-prev').disabled = !snap.prevCount || kioskLost(); // the history lives on the kiosk
     $('rc-next').disabled = !(snap.nextQueue?.length);
@@ -2407,6 +2426,8 @@ if (IS_REMOTE) {
         running: false, untilTarget: null, untilLabel: '', uiState: 'next'});
     } else if (cmd.startsWith('setQueue:')) {
       m.nextQueue = parseNextStr(cmd.slice(9).split('|').pop());
+    } else if (cmd === 'black') {
+      m.black = !m.black; // takes effect on the kiosk with the sync when it's back
     }
     rcRender();
   }

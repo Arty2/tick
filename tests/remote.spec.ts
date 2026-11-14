@@ -257,7 +257,7 @@ test('the pad shows the queue with each session’s length and name', async ({ p
 	await expect(pad.locator('#rc-prev')).toHaveText('\u25C0\uFE0E Prev');
 });
 
-test('the pad reads top to bottom: status and kiosk icon, time, queue, controls, queue box and set, prev and next, bell', async ({ page }) => {
+test('the pad reads top to bottom: status and kiosk icon, time, queue, controls, queue box and set, prev and next, black and bell', async ({ page }) => {
 	await page.goto('/tick.html?rc=ABCDEF');
 	const top = async (sel: string) => (await page.locator(sel).first().boundingBox())!;
 	const order = ['#remote-status-bar', '#remote-state-display', '#rc-queue-display', '#rc-toggle', '[data-rc="adj:10"]', '#rc-queue-input', '#rc-queue-send', '[data-rc="bell"]', '#rc-msg-input', '#rc-msg-send'];
@@ -280,7 +280,11 @@ test('the pad reads top to bottom: status and kiosk icon, time, queue, controls,
 	expect(prev.y).toBe(next.y);
 	expect(prev.x).toBeLessThan(next.x); // prev on the left, next on the right
 	expect(prev.y).toBeGreaterThan(set.y);
-	expect(bell.width).toBeGreaterThan(next.width * 1.8); // bell is the big one
+	const black = await top('#rc-black');
+	expect(black.y).toBe(bell.y); // Black and Bell share the row below Prev | Next
+	expect(black.x).toBeLessThan(bell.x); // Black on the left
+	expect(Math.abs(black.width - bell.width)).toBeLessThan(1);
+	expect(bell.y).toBeGreaterThan(next.y);
 	expect(reset.x).toBeLessThan((await top('#rc-toggle')).x);
 });
 
@@ -551,4 +555,45 @@ test('a kiosk adopts the timer a pad syncs to it', async ({ page, context }) => 
 	await expect(page.locator('#session-label')).toHaveText('Panel');
 	await expect(page.locator('#label-text')).toHaveText('PAUSED');
 	await expect(page.locator('.sq-queued')).toHaveText(['▶ 05:00 QA']);
+});
+
+test('Black covers the kiosk in the theme colour; the timer runs on under it, and Black or Esc lifts it', async ({ page, context }) => {
+	const code = await hostWithRemote(page, '?mins=20');
+	const pad = await context.newPage();
+	await pad.goto('/tick.html?rc=' + code);
+	await pad.clock.runFor(200);
+	await pad.locator('#rc-toggle').click();
+	await pad.locator('#rc-black').click();
+	const cover = page.locator('#blackout');
+	await expect(cover).toBeVisible();
+	const [bg, body] = await page.evaluate(() => [getComputedStyle(document.getElementById('blackout')!).backgroundColor, getComputedStyle(document.body).backgroundColor]);
+	expect(bg).toBe(body); // black in the dark theme, white in the light one
+	const box = (await cover.boundingBox())!;
+	expect([box.x, box.y, box.width, box.height]).toEqual([0, 0, 1280, 720]); // the whole screen
+	const top = await page.evaluate(() => document.elementFromPoint(640, 360)!.id);
+	expect(top).toBe('blackout'); // over the time, and everything else
+	await page.clock.runFor(600);
+	await expect(pad.locator('#rc-black')).toHaveClass(/\bon\b/); // lit on the pad
+	await pad.locator('[data-rc="adj:10"]').click(); // a change made under the cover...
+	await page.clock.runFor(1_000);
+	await expect(cover).toBeVisible();
+	await pad.locator('#rc-black').click(); // ...shows when it lifts
+	await expect(cover).toBeHidden();
+	await expect(digits(page)).toHaveText(/^29:5\d$/);
+	await pad.locator('#rc-black').click();
+	await expect(cover).toBeVisible();
+	await page.keyboard.press('Escape'); // on the kiosk itself
+	await expect(cover).toBeHidden();
+	await expect(page.locator('body')).toHaveClass(/kiosk/); // Esc lifted the cover only
+});
+
+test('in the light theme Black is a white-out', async ({ page, context }) => {
+	const code = await hostWithRemote(page, '?mins=20&theme=light');
+	const pad = await context.newPage();
+	await pad.goto('/tick.html?rc=' + code);
+	await pad.clock.runFor(200);
+	await pad.locator('#rc-black').click();
+	const bg = await page.locator('#blackout').evaluate((el) => getComputedStyle(el).backgroundColor);
+	const [r, g, b] = bg.match(/\d+/g)!.map(Number);
+	expect(Math.min(r, g, b)).toBeGreaterThan(200); // light
 });
