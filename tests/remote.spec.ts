@@ -270,6 +270,10 @@ test('the pad reads top to bottom: status and kiosk icon, time, queue, controls,
 	const [input, set, prev, next, bell, reset] = [await top('#rc-queue-input'), await top('#rc-queue-send'), await top('#rc-prev'), await top('#rc-next'), await top('[data-rc="bell"]'), await top('[data-rc="reset"]')];
 	expect(Math.abs(set.y + set.height / 2 - (input.y + input.height / 2))).toBeLessThan(4); // set on the queue's line
 	expect(set.x).toBeGreaterThan(input.x); // to its right
+	const plus10 = await top('[data-rc="adj:10"]');
+	expect(Math.abs(set.x - plus10.x)).toBeLessThan(1); // on the grid: the same column as +10m
+	expect(Math.abs(set.width - plus10.width)).toBeLessThan(1);
+	expect(Math.abs(input.x - (await top('[data-rc="adj:-1"]')).x)).toBeLessThan(1);
 	expect(prev.y).toBe(next.y);
 	expect(prev.x).toBeLessThan(next.x); // prev on the left, next on the right
 	expect(prev.y).toBeGreaterThan(set.y);

@@ -433,6 +433,7 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
 .rc-row{display:flex;gap:0.5rem;width:100%;max-width:640px}
 .rc-row .rc-btn{flex-shrink:0;padding-left:0.8rem;padding-right:0.8rem}
 .rc-row-btns .rc-btn{flex:1}
+.rc-input.span3{grid-column:span 3}
 .rc-btn:disabled{opacity:0.35;cursor:default}
 #rc-queue-display .rc-q-head{color:var(--dim);font-size:0.85em}
 #rc-queue-display .rc-q-row{color:var(--c-next)}
@@ -773,8 +774,10 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
   </div>
   <!-- The queue box holds the queue as it is, so editing it is a change and
        Set; an empty box clears the queue. -->
-  <div class="rc-row">
-    <input type="text" id="rc-queue-input" class="rc-input" placeholder="No queue &#x2014; e.g. Talk:25,QA:10" autocomplete="off" aria-label="Queue">
+  <!-- On the grid: the box takes three columns and Set the fourth, so Set
+       lines up with +10m above it. -->
+  <div class="rc-grid">
+    <input type="text" id="rc-queue-input" class="rc-input span3" placeholder="No queue &#x2014; e.g. Talk:25,QA:10" autocomplete="off" aria-label="Queue">
     <button class="rc-btn" id="rc-queue-send">Set</button>
   </div>
   <div class="rc-grid">
