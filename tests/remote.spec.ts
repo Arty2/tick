@@ -251,7 +251,7 @@ test('the pad shows the queue with each session’s length and name', async ({ p
 	await expect(pad.locator('#rc-queue-display .rc-q-row')).toHaveText(['\u25B6 05:00\u2002Break', '\u25B6 10:00\u2002QA', '\u25B6 15:00']);
 });
 
-test('the pad reads top to bottom: status and kiosk icon, time, queue, controls, queue box, set and next, bell', async ({ page }) => {
+test('the pad reads top to bottom: status and kiosk icon, time, queue, controls, queue box and set, prev and next, bell', async ({ page }) => {
 	await page.goto('/tick.html?rc=ABCDEF');
 	const top = async (sel: string) => (await page.locator(sel).first().boundingBox())!;
 	const order = ['#remote-status-bar', '#remote-state-display', '#rc-queue-display', '#rc-toggle', '[data-rc="adj:10"]', '#rc-queue-input', '#rc-queue-send', '[data-rc="bell"]', '#rc-msg-input', '#rc-msg-send'];
@@ -261,10 +261,13 @@ test('the pad reads top to bottom: status and kiosk icon, time, queue, controls,
 	const [status, icon] = [await top('#remote-status-bar'), await top('#rc-new-kiosk')];
 	expect(Math.abs(status.y + status.height / 2 - (icon.y + icon.height / 2))).toBeLessThan(4); // same line
 	expect(icon.width).toBeLessThan(60); // a small icon, not a big button
-	const [set, next, bell, reset] = [await top('#rc-queue-send'), await top('[data-rc="next"]'), await top('[data-rc="bell"]'), await top('[data-rc="reset"]')];
-	expect(set.y).toBe(next.y);
-	expect(set.x).toBeLessThan(next.x); // set on the left, next on the right
-	expect(bell.width).toBeGreaterThan(set.width * 1.8); // bell is the big one
+	const [input, set, prev, next, bell, reset] = [await top('#rc-queue-input'), await top('#rc-queue-send'), await top('#rc-prev'), await top('#rc-next'), await top('[data-rc="bell"]'), await top('[data-rc="reset"]')];
+	expect(Math.abs(set.y + set.height / 2 - (input.y + input.height / 2))).toBeLessThan(4); // set on the queue's line
+	expect(set.x).toBeGreaterThan(input.x); // to its right
+	expect(prev.y).toBe(next.y);
+	expect(prev.x).toBeLessThan(next.x); // prev on the left, next on the right
+	expect(prev.y).toBeGreaterThan(set.y);
+	expect(bell.width).toBeGreaterThan(next.width * 1.8); // bell is the big one
 	expect(reset.x).toBeLessThan((await top('#rc-toggle')).x);
 });
 
@@ -283,4 +286,41 @@ test('the queue box holds the current queue, so an edit and Set changes it, and 
 	await box.fill('');
 	await box.press('Enter');
 	await expect(page.locator('.sq-queued')).toHaveCount(0);
+});
+
+test('Prev steps back to the session before, and Next steps forward again', async ({ page, context }) => {
+	const code = await hostWithRemote(page, '?mins=20&label=Talk&next=Break:5,QA:10');
+	const pad = await context.newPage();
+	await pad.goto('/tick.html?rc=' + code);
+	await pad.clock.runFor(200);
+	await expect(pad.locator('#rc-prev')).toBeDisabled(); // nothing has run before
+	await pad.locator('#rc-next').click();
+	await expect(page.locator('#session-label')).toHaveText('Break');
+	await page.clock.runFor(600);
+	await expect(pad.locator('#rc-prev')).toBeEnabled();
+	await pad.locator('#rc-prev').click();
+	await expect(page.locator('#session-label')).toHaveText('Talk');
+	await expect(digits(page)).toHaveText('20:00');
+	await expect(digits(page)).toHaveClass(/s-next/); // loaded, waiting to start
+	await expect(page.locator('.sq-queued')).toHaveText(['\u25B6 05:00\u2002Break', '\u25B6 10:00\u2002QA']);
+	await page.clock.runFor(600);
+	await expect(pad.locator('#rc-prev')).toBeDisabled();
+	await pad.locator('#rc-next').click();
+	await expect(page.locator('#session-label')).toHaveText('Break');
+});
+
+test('the queue box shows the queue itself; its hint appears only when there is no queue', async ({ page, context }) => {
+	await page.addInitScript(() => localStorage.setItem('tick_prefs', JSON.stringify({ nextQueue: [] })));
+	const code = await hostWithRemote(page, '?mins=20');
+	const pad = await context.newPage();
+	await pad.goto('/tick.html?rc=' + code);
+	await pad.clock.runFor(200);
+	const box = pad.locator('#rc-queue-input');
+	await expect(box).toHaveValue('');
+	await expect(box).toHaveAttribute('placeholder', /^No queue/);
+	await box.fill('Talk:25');
+	await box.press('Enter');
+	await page.clock.runFor(600);
+	await expect(box).toHaveValue('Talk:25');
+	await expect(pad.locator('#rc-next')).toBeEnabled();
 });
