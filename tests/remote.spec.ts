@@ -741,3 +741,27 @@ test('with the kiosk lost, Next on the pad loads an @HH:MM session as a countdow
 	await expect(page.locator('#remote-state-display')).toHaveText(/^17:5\d$/); // to 10:30
 	await expect(page.locator('#rc-queue-display .rc-q-row')).toHaveCount(0);
 });
+
+test("the session's name is the size of the queue rows, on the pad and on the kiosk", async ({ page, context }) => {
+	const code = await hostWithRemote(page, '?mins=20&label=Keynote&next=Break:5');
+	const pad = await context.newPage();
+	await pad.setViewportSize({ width: 390, height: 844 });
+	await pad.goto('/tick.html?rc=' + code);
+	await pad.clock.runFor(200);
+	const fs = (p: typeof page, sel: string) => p.locator(sel).first().evaluate((el) => getComputedStyle(el).fontSize);
+	expect(await fs(pad, '#remote-label-display')).toBe(await fs(pad, '#rc-queue-display .rc-q-row'));
+	expect(await fs(page, '#session-label')).toBe(await fs(page, '.sq-queued'));
+});
+
+test('the pad’s fields are as tall as its buttons, on the page colour rather than the buttons’', async ({ page }) => {
+	await page.setViewportSize({ width: 390, height: 844 });
+	await page.goto('/tick.html?rc=ABCDEF');
+	const h = (sel: string) => page.locator(sel).evaluate((el) => el.getBoundingClientRect().height);
+	const button = await h('#rc-queue-send');
+	for (const field of ['#rc-queue-input', '#rc-msg-input']) expect(Math.abs((await h(field)) - button)).toBeLessThan(0.5);
+	expect(Math.abs((await h('[data-rc="reset"]')) - button)).toBeLessThan(0.5);
+	const bg = (sel: string) => page.locator(sel).evaluate((el) => getComputedStyle(el).backgroundColor);
+	const pageBg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+	for (const field of ['#rc-queue-input', '#rc-msg-input', '#rc-code-input']) expect(await bg(field)).toBe(pageBg);
+	expect(await bg('#rc-queue-send')).not.toBe(pageBg);
+});

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="version" content="0.3.5">
+<meta name="version" content="0.3.6">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0a0a0a">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -60,8 +60,11 @@ html,body{
 }
 :is(#label-wrap.s-next,#label-wrap.s-until,#label-wrap.s-pause,#label-wrap.s-ot) #label-sub{opacity:1}
 
+/* The session's name and the queue rows under it read as one list: same
+   size and spacing (--list-fs), on the kiosk and, larger, on the pad. */
+:root{--list-fs:12px}
 #session-label{
-  font-size:12px;font-weight:500;letter-spacing:0.12em;
+  font-size:var(--list-fs);font-weight:500;letter-spacing:0.12em;
   text-transform:uppercase;text-align:center;margin-top:0.3em;
   transition:color 0.2s;pointer-events:none;min-height:0;
 }
@@ -225,13 +228,13 @@ body.kiosk #swipe-hint{display:none}
   display:inline-flex;flex-direction:column;align-items:flex-start;gap:0.18rem;
 }
 .sq-item{
-  font-size:12px;letter-spacing:0.12em;color:var(--c-next);
+  font-size:var(--list-fs);letter-spacing:0.12em;color:var(--c-next);
   text-transform:uppercase;white-space:nowrap;opacity:0.8;transition:opacity 0.15s;
   font-variant-numeric:tabular-nums;
 }
 .sq-item:hover{opacity:1}
 .sq-empty{color:var(--dim);opacity:0.35;font-size:12px}
-.sq-next-header{color:var(--dim);opacity:0.5;font-size:12px;letter-spacing:0.12em;cursor:pointer}
+.sq-next-header{color:var(--dim);opacity:0.5;font-size:var(--list-fs);letter-spacing:0.12em;cursor:pointer}
 .sq-current-label{font-size:clamp(10px,1.3vw,13px);letter-spacing:0.24em;text-transform:uppercase;color:inherit;opacity:0.7;cursor:pointer;white-space:nowrap}
 
 /* Queue modal rows */
@@ -437,7 +440,7 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
 .rc-code{
   /* The kiosk button's height, so the two read as one pair in the bar. */
   height:2.4rem;box-sizing:border-box;width:calc(6ch + 0.8em + 0.8rem + 2px);
-  background:rgba(128,128,128,0.1);border:1px solid var(--dim);color:var(--fg);
+  background:var(--bg);border:1px solid var(--dim);color:var(--fg);
   font-family:var(--font);font-size:clamp(15px,4vw,18px);letter-spacing:0.12em;text-transform:uppercase;
   padding:0 0.4rem;outline:none;text-align:center;
   user-select:text;-webkit-user-select:text;
@@ -460,7 +463,7 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
 /* While the kiosk is lost the pad's time is its own copy: dotted underline. */
 #remote-state-display.local{text-decoration:underline dotted;text-decoration-thickness:0.04em;text-underline-offset:0.12em}
 #remote-label-display{
-  font-size:clamp(11px,2.5vw,18px);letter-spacing:0.3em;text-transform:uppercase;
+  font-size:var(--rc-list-fs);letter-spacing:0.1em;text-transform:uppercase;
   color:var(--dim);min-height:1.2em;text-align:center;
 }
 /* One line, always: the messages are kept short, and anything longer is cut
@@ -488,13 +491,18 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
 .rc-btn:disabled{opacity:0.35;cursor:default}
 #rc-queue-display .rc-q-head{color:var(--dim);font-size:0.85em}
 #rc-queue-display .rc-q-row{color:var(--c-next)}
+/* Fields are as tall as the buttons (--rc-h, from the button's own font
+   size, padding and border) but on the page's colour, so they read as
+   places to type rather than things to press. */
+#remote-pad{--rc-fs:clamp(22px,5vw,32px);--rc-h:calc(1.15 * var(--rc-fs) + 1.6rem + 2px);--rc-list-fs:clamp(16px,4vw,22px)}
 .rc-input{
-  flex:1;min-width:0;background:rgba(128,128,128,0.1);border:1px solid var(--dim);color:var(--fg);
+  box-sizing:border-box;height:var(--rc-h);
+  flex:1;min-width:0;background:var(--bg);border:1px solid var(--dim);color:var(--fg);
   font-family:var(--font);font-size:clamp(18px,4.5vw,26px);letter-spacing:0.04em;padding:0.5rem 0.6rem;
   outline:none;user-select:text;-webkit-user-select:text;
 }
 .rc-input:focus{border-color:var(--fg)}
-#rc-queue-display{font-size:clamp(16px,4vw,22px);letter-spacing:0.1em;text-transform:uppercase;line-height:1.45;text-align:left;align-self:center}
+#rc-queue-display{font-size:var(--rc-list-fs);letter-spacing:0.1em;text-transform:uppercase;line-height:1.45;text-align:left;align-self:center}
 #remote-pad .modal-box{width:min(560px,calc(100vw - 2rem));padding:1.4rem}
 #remote-pad .modal-title{font-size:22px}
 #remote-pad .modal-btn{font-size:clamp(18px,4.5vw,24px);padding:0.7rem 0.3rem;white-space:nowrap}
@@ -503,8 +511,9 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
 #rc-kiosk-qr img{width:min(400px,100%);height:auto;aspect-ratio:1;box-sizing:border-box}
 #rc-kiosk-url{font-size:14px;word-break:break-all;text-align:center;color:var(--dim);user-select:text;-webkit-user-select:text}
 .rc-btn{
+  box-sizing:border-box;height:var(--rc-h);
   background:rgba(128,128,128,0.1);border:1px solid var(--dim);
-  color:var(--fg);font-family:var(--font);font-size:clamp(22px,5vw,32px);
+  color:var(--fg);font-family:var(--font);font-size:var(--rc-fs);
   letter-spacing:0.04em;padding:0.8rem 0.3rem;cursor:pointer;text-align:center;line-height:1.15;
   white-space:nowrap; /* one line each: the labels are kept short to fit a 320px phone */
   text-transform:uppercase;transition:background 0.1s,border-color 0.1s,color 0.1s;
