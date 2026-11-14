@@ -4,13 +4,16 @@ A single-file countdown timer for presentations, streams, and stage use.
 
 No install. No build step. No server. Open `tick.html` and go.
 
+- Live: [acari.vercel.app](https://acari.vercel.app)
+- Source: [github.com/Arty2/tick](https://github.com/Arty2/tick)
+
 ![/tick counting down a 25-minute keynote, with a break and Q&A queued next](./screenshots/ticker-screenshot_01.png)
 
 ---
 
 ## Quick start
 
-Download `tick.html` and open it in any browser. That's it.
+Open [acari.vercel.app](https://acari.vercel.app), or download `tick.html` and open it in any browser. That's it.
 
 Or serve it from anywhere — it's one file with no external dependencies at load time.
 
@@ -250,9 +253,18 @@ The version lives in one place, `<meta name="version">` in `tick.html`; the manu
 | `AGENTS.md` | How to work on this repository, for people and agents |
 | `tests/` | Browser tests (Playwright) |
 | `scripts/` | The gates, a test server, the feedback stub |
+| `vercel.json` | How the live site is built, redirected and secured |
 
 ---
 
-## Credits and licence
+## Deployment
 
-By Heracles Papatheodorou. MIT licence — see [LICENSE](./LICENSE).
+[acari.vercel.app](https://acari.vercel.app) is built by Vercel from `vercel.json`: no install, and the build copies `tick.html` alone into the site, so the tests and docs aren't published. The bare domain redirects to `/tick.html`, carrying any query string with it, so `https://acari.vercel.app/?mins=25` opens a 25-minute timer. Every response carries the security headers in `vercel.json`, including a Content-Security-Policy that allows only the remote control's hosts listed above. Pushes that don't touch `tick.html` or `vercel.json` don't redeploy.
+
+---
+
+## Credit and licence
+
+Dialectic Acheiropoieton of Heracles Papatheodorou and Claude.
+
+MIT licence — see [LICENSE](./LICENSE).

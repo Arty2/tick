@@ -141,6 +141,21 @@ else
 	fi
 fi
 
+# ── 7. The live site keeps its security headers and its front door ──────────
+# A generic edit to vercel.json (a new redirect, a cache rule) is an easy
+# place to lose the headers block, or the redirect that makes the bare domain
+# open the timer. The tests apply the same file, so they'd still pass.
+missing=""
+for key in Strict-Transport-Security X-Content-Type-Options X-Frame-Options Content-Security-Policy; do
+	grep -q "\"$key\"" vercel.json 2>/dev/null || missing="$missing $key"
+done
+grep -q '"destination": "/tick.html"' vercel.json 2>/dev/null || missing="$missing redirect-to-tick.html"
+if [ -n "$missing" ]; then
+	fail "vercel.json is missing what the live site needs" "$(echo "$missing" | xargs)" "vercel-headers-and-redirect"
+else
+	pass "vercel.json has the security headers and the / redirect" "vercel-headers-and-redirect"
+fi
+
 mkdir -p .claude/logs
 joined=$(IFS=,; echo "${checks[*]}")
 printf '{"ts":"%s","sha":"%s","status":"%s","checks":[%s]}\n' \

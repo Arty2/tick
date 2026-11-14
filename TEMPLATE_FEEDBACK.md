@@ -58,6 +58,17 @@ starts with nothing below the line.
 
 <!-- Newest entries go directly below this line. -->
 
+## 2026-11-14 — The CSP allows inline script and style
+
+osseus's policy is `script-src 'self'`, with SvelteKit hashing what is
+inline. tick.html is nothing but inline script and style, and a hash in
+vercel.json would have to change with every edit, so the header says
+`'unsafe-inline'` and keeps the rest strict: third-party hosts limited to the
+remote's, no objects, no base, no framing. The defence against injection is
+the gate that keeps user text out of `innerHTML`. osseus could ship a
+"no build" CSP with this trade-off written down, or a gate that computes the
+inline hash.
+
 ## 2026-11-14 — A Playwright fixture nobody names never runs
 
 The fixtures that abort off-site requests and fail on console errors were

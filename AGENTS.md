@@ -33,6 +33,10 @@ server left running from before.
   host; the gates fail when the code contacts one it doesn't. A third-party
   script is the exception that needs the most justification — PeerJS is the
   one there is, loaded only when the remote is opened.
+- **The live site is acari.vercel.app**, configured by `vercel.json`. The
+  test server applies its headers and redirect, so the suite runs under the
+  production CSP; a new resource the app loads needs a directive there and a
+  row in README § What leaves this machine.
 - **No route from user text to markup.** Labels, queue names and operator
   messages arrive from URLs and from a remote pad; they go in through
   `textContent`. `innerHTML` is for digits only, and the gates enforce it.
@@ -92,4 +96,4 @@ that keeps firing promoted.
 
 ## Credits
 
-By Heracles Papatheodorou, with Claude.
+Dialectic Acheiropoieton of Heracles Papatheodorou and&nbsp;Claude

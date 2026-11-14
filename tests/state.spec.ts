@@ -90,3 +90,21 @@ test('malformed saved presets and queue entries are dropped, not fatal', async (
 	await expect(page.locator('.preset-btn')).toHaveText(['+', 'Talk', '+', '+', '+']);
 	await expect(page.locator('#btn-sound')).toHaveText('sound: off');
 });
+
+test('the bare domain redirects to tick.html and keeps the timer in the query', async ({ page }) => {
+	await page.clock.install({ time: new Date('2026-11-14T10:12:00') });
+	await page.goto('/?mins=7&label=Short');
+	await expect(page).toHaveURL(/\/tick\.html\?mins=7&label=Short$/);
+	await expect(page.locator('#timer-display')).toHaveText('07:00');
+});
+
+test('the page is served with the security policy from vercel.json', async ({ page }) => {
+	const res = await page.goto('/tick.html');
+	const csp = res!.headers()['content-security-policy'];
+	expect(csp).toContain("frame-ancestors 'none'");
+	expect(csp).toContain("object-src 'none'");
+	// The remote's third parties, and only those (see README § What leaves this machine).
+	expect(csp).toContain('https://cdn.jsdelivr.net');
+	expect(csp).toContain('https://api.qrserver.com');
+	expect(res!.headers()['x-frame-options']).toBe('DENY');
+});
