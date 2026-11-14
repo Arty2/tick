@@ -391,6 +391,18 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
   align-items:center;justify-content:center;gap:1.2rem;padding:1.5rem;
 }
 #remote-pad.open{display:flex}
+/* Centred when it fits, scrollable from the top when it doesn't: auto
+   margins on the ends instead of justify-content:center, which would push
+   the top out of reach on a short screen. */
+#remote-pad{justify-content:flex-start;overflow-y:auto;gap:0.9rem}
+#remote-pad > :first-child{margin-top:auto}
+#remote-pad > :last-child{margin-bottom:auto}
+#rc-top{display:flex;align-items:center;justify-content:center;gap:0.8rem;width:100%;max-width:640px}
+.rc-icon-btn{
+  background:rgba(128,128,128,0.1);border:1px solid var(--dim);color:var(--fg);cursor:pointer;
+  font-size:20px;line-height:1;width:2.4rem;height:2.4rem;padding:0;flex-shrink:0;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+}
 #remote-state-display{
   font-size:clamp(48px,16vw,120px);font-weight:900;letter-spacing:-0.03em;
   font-variant-numeric:tabular-nums;color:var(--c-idle);transition:color 0.25s;
@@ -657,8 +669,9 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
     <ul>
       <li>The <strong>remote</strong> button shows a six-letter code and a QR code. Open the link or scan the code on another device to get a remote pad. This screen then changes to kiosk mode, and stays in it if the remote disconnects.</li>
       <li>The remote pad shows the time left and the queue. Its buttons reset, start or pause, ring the bell, load the next session and change the time. On phones they vibrate.</li>
+      <li>Its queue box holds the current queue. Change it and press <strong>Set</strong>; an empty box clears the queue.</li>
       <li>A message typed on the remote pad appears on this screen for 6 seconds, on an orange band above the time. The time gets smaller while it shows. <strong>Clear</strong> removes it sooner.</li>
-      <li>If this screen stops answering, the remote pad says <strong>Kiosk disconnected</strong>. Its <strong>Kiosk</strong> button shows a link and QR code for a new screen, which continues the timer.</li>
+      <li>If this screen stops answering, the remote pad says <strong>Kiosk disconnected</strong>. The small screen button (&#x1F5A5;&#xFE0F;) next to its status shows a link and QR code for a new screen, which continues the timer.</li>
       <li>Two tabs in the same browser connect without the internet. Two devices need the internet, and connect through a service called PeerJS. This may not work on some school or office networks.</li>
     </ul>
     <h2>Share</h2>
@@ -705,7 +718,7 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
         <tr>
           <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>host</code></td>
           <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>XXXXXX</code></td>
-          <td style="padding:0.35rem 0 0.35rem 0.5rem">A six-letter remote code. The page opens as a new timer screen for that code and continues the timer. The <strong>Kiosk</strong> button on the remote pad makes these links.</td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem">A six-letter remote code. The page opens as a new timer screen for that code and continues the timer. The small screen button on the remote pad makes these links.</td>
         </tr>
       </tbody>
     </table>
@@ -732,9 +745,14 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
 
 <!-- Remote pad (shown when ?rc=CODE) -->
 <div id="remote-pad">
-  <div id="remote-status-bar">connecting&#x2026;</div>
+  <div id="rc-top">
+    <div id="remote-status-bar">connecting&#x2026;</div>
+    <!-- Rarely needed (a lost kiosk), so a small icon beside the status. -->
+    <button id="rc-new-kiosk" class="rc-icon-btn" aria-label="New kiosk" title="New kiosk">&#x1F5A5;&#xFE0F;</button>
+  </div>
   <div id="remote-label-display"></div>
   <div id="remote-state-display">&#x2014;</div>
+  <div id="rc-queue-display"></div>
   <div class="rc-grid">
     <button class="rc-btn hi-reset wide" data-rc="reset">&#x23F9; Reset</button>
     <!-- One button for start and pause: it follows the kiosk's state. -->
@@ -743,21 +761,23 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
     <button class="rc-btn" data-rc="adj:1">+1m</button>
     <button class="rc-btn" data-rc="adj:-5">&#x2212;5m</button>
     <button class="rc-btn" data-rc="adj:10">+10m</button>
+  </div>
+  <!-- The queue box holds the queue as it is, so editing it is a change and
+       Set; an empty box clears the queue. -->
+  <div class="rc-row">
+    <input type="text" id="rc-queue-input" class="rc-input" placeholder="Queue, e.g. Talk:25,QA:10" autocomplete="off" aria-label="Queue">
+  </div>
+  <div class="rc-grid">
+    <button class="rc-btn wide" id="rc-queue-send">Set</button>
     <button class="rc-btn wide" data-rc="next">&#x23ED; Next</button>
-    <button class="rc-btn wide" data-rc="bell">&#x1F514; Bell</button>
-    <button class="rc-btn full" id="rc-new-kiosk">&#x1F5A5;&#xFE0F; Kiosk</button>
+    <button class="rc-btn full" data-rc="bell">&#x1F514; Bell</button>
   </div>
   <div class="rc-row">
-    <input type="text" id="rc-msg-input" class="rc-input" placeholder="Message to the kiosk&#x2026;" maxlength="40" autocomplete="off">
+    <input type="text" id="rc-msg-input" class="rc-input" placeholder="Message to the kiosk&#x2026;" maxlength="40" autocomplete="off" aria-label="Message to the kiosk">
   </div>
   <div class="rc-row rc-row-btns">
     <button class="rc-btn" id="rc-msg-clear">Clear</button>
     <button class="rc-btn" id="rc-msg-send">Send</button>
-  </div>
-  <div id="rc-queue-display"></div>
-  <div class="rc-row">
-    <input type="text" id="rc-queue-input" class="rc-input" placeholder="Queue: Talk:25,QA:10&#x2026;" autocomplete="off">
-    <button class="rc-btn" id="rc-queue-send">Set</button>
   </div>
   <!-- A replacement kiosk, for when the timer screen is lost: it opens with
        ?host=CODE, takes over this code, and this pad hands it the timer. -->
@@ -2134,6 +2154,10 @@ if (IS_REMOTE) {
         qd.append(row);
       }
     }
+    // The queue box: written in the same form the box reads (and a share
+    // link uses), unless it is being edited.
+    if (!rcQueueDirty && document.activeElement !== rcQueueInput && Array.isArray(snap.nextQueue))
+      rcQueueInput.value = snap.nextQueue.map(e => e.label ? `${String(e.label).replaceAll(',', '\\,')}:${e.mins}` : e.mins).join(',');
     // Start and pause share one button, which says what a press will do.
     const tg = $('rc-toggle');
     tg.textContent = snap.running ? '\u23F8 Pause' : '\u25B6 Start';
@@ -2161,16 +2185,17 @@ if (IS_REMOTE) {
   });
 
   // Queue edit from remote
+  // The queue box follows the kiosk's queue until someone starts editing it;
+  // Set sends it back, and an empty box clears the queue.
   const rcQueueSend = $('rc-queue-send'), rcQueueInput = $('rc-queue-input');
-  if (rcQueueSend && rcQueueInput) {
-    const sendQueue = () => {
-      const raw = rcQueueInput.value.trim(); if (!raw) return;
-      haptic(); sendCmd('setQueue:' + raw); rcQueueInput.value = '';
-      showHint('QUEUE SENT');
-    };
-    rcQueueSend.addEventListener('click', sendQueue);
-    rcQueueInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendQueue(); } });
-  }
+  let rcQueueDirty = false;
+  rcQueueInput.addEventListener('input', () => { rcQueueDirty = true; });
+  const sendQueue = () => {
+    haptic(); sendCmd('setQueue:' + rcQueueInput.value.trim());
+    rcQueueDirty = false; rcQueueInput.blur();
+  };
+  rcQueueSend.addEventListener('click', sendQueue);
+  rcQueueInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendQueue(); } });
 
   // Operator message: typed here, shown on the kiosk for the presenter.
   const rcMsgInput = $('rc-msg-input');

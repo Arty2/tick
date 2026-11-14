@@ -250,3 +250,37 @@ test('the pad shows the queue with each session’s length and name', async ({ p
 	await expect(pad.locator('#rc-queue-display .rc-q-head')).toHaveText('Next');
 	await expect(pad.locator('#rc-queue-display .rc-q-row')).toHaveText(['\u25B6 05:00\u2002Break', '\u25B6 10:00\u2002QA', '\u25B6 15:00']);
 });
+
+test('the pad reads top to bottom: status and kiosk icon, time, queue, controls, queue box, set and next, bell', async ({ page }) => {
+	await page.goto('/tick.html?rc=ABCDEF');
+	const top = async (sel: string) => (await page.locator(sel).first().boundingBox())!;
+	const order = ['#remote-status-bar', '#remote-state-display', '#rc-queue-display', '#rc-toggle', '[data-rc="adj:10"]', '#rc-queue-input', '#rc-queue-send', '[data-rc="bell"]', '#rc-msg-input', '#rc-msg-send'];
+	const ys = [];
+	for (const sel of order) ys.push((await top(sel)).y);
+	expect(ys).toEqual([...ys].sort((a, b) => a - b));
+	const [status, icon] = [await top('#remote-status-bar'), await top('#rc-new-kiosk')];
+	expect(Math.abs(status.y + status.height / 2 - (icon.y + icon.height / 2))).toBeLessThan(4); // same line
+	expect(icon.width).toBeLessThan(60); // a small icon, not a big button
+	const [set, next, bell, reset] = [await top('#rc-queue-send'), await top('[data-rc="next"]'), await top('[data-rc="bell"]'), await top('[data-rc="reset"]')];
+	expect(set.y).toBe(next.y);
+	expect(set.x).toBeLessThan(next.x); // set on the left, next on the right
+	expect(bell.width).toBeGreaterThan(set.width * 1.8); // bell is the big one
+	expect(reset.x).toBeLessThan((await top('#rc-toggle')).x);
+});
+
+test('the queue box holds the current queue, so an edit and Set changes it, and empty clears it', async ({ page, context }) => {
+	const code = await hostWithRemote(page, '?mins=20&next=Break:5,QA:10,15');
+	const pad = await context.newPage();
+	await pad.goto('/tick.html?rc=' + code);
+	await pad.clock.runFor(200);
+	const box = pad.locator('#rc-queue-input');
+	await expect(box).toHaveValue('Break:5,QA:10,15');
+	await box.fill('Break:5,Q&A\\, panel:20');
+	await pad.clock.runFor(2_500); // a heartbeat arrives while editing: the edit survives
+	await expect(box).toHaveValue('Break:5,Q&A\\, panel:20');
+	await pad.locator('#rc-queue-send').click();
+	await expect(page.locator('.sq-queued')).toHaveText(['\u25B6 05:00\u2002Break', '\u25B6 20:00\u2002Q&A, panel']);
+	await box.fill('');
+	await box.press('Enter');
+	await expect(page.locator('.sq-queued')).toHaveCount(0);
+});

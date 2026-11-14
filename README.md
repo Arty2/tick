@@ -148,11 +148,11 @@ The remote control lets another device start, pause and change the timer.
 2. On the other device, scan the QR code or open the link.
 3. The other device now shows a **remote pad**, and the timer screen changes to kiosk mode. It stays in kiosk mode if the remote pad disconnects.
 
-The remote pad shows the time left, the session name and the queue. Its buttons reset, start or pause (one button, which changes between the two), ring the bell, load the next session, and add or take away time. It also has a box for changing the queue. A queue is written as names and minutes, such as `Talk:25,QA:10`. On phones, the buttons vibrate when pressed.
+The remote pad shows the time left, the session name and the queue. Its buttons reset, start or pause (one button, which changes between the two), ring the bell, load the next session, and add or take away time. Its queue box shows the current queue, written as names and minutes, such as `Talk:25,QA:10`. Changing it and pressing **Set** changes the queue; emptying it and pressing **Set** clears the queue. On phones, the buttons vibrate when pressed.
 
 The remote pad has a message box. A message typed there appears on the timer screen for 6 seconds, in large dark letters on an orange band above the time. The time gets smaller while the message shows, so both can be read. It can tell the speaker, for example, to finish soon. **Clear** removes it sooner.
 
-If the timer screen stops answering for a few seconds, the remote pad says **Kiosk disconnected**. Its **Kiosk** button shows a link and a QR code. Opening it on any screen starts a new timer screen with the same code. The new screen continues the timer from where the old one stopped.
+If the timer screen stops answering for a few seconds, the remote pad says **Kiosk disconnected**. The small screen button (🖥️) next to the connection status shows a link and a QR code. Opening it on any screen starts a new timer screen with the same code. The new screen continues the timer from where the old one stopped.
 
 Two tabs in the same browser connect straight away, without the internet. Two different devices need the internet. They are connected through a free service called [PeerJS](https://peerjs.com). This may not work on some school or office networks.
 
@@ -170,7 +170,7 @@ A link to /tick can include settings after a `?`. These settings are used for th
 | `theme` | `dark` or `light` | The theme. |
 | `sound` | `0`, `1` or `2` | The sound setting: off, bell at the end, or a bell every minute of overtime. |
 | `rc` | a six-letter code | Opens the remote pad for that code. The **remote** button makes these links. |
-| `host` | a six-letter code | Opens a new timer screen for that code, which continues the timer. The **Kiosk** button on the remote pad makes these links. |
+| `host` | a six-letter code | Opens a new timer screen for that code, which continues the timer. The small screen button (🖥️) on the remote pad makes these links. |
 
 For example, this link opens a 25-minute keynote with a break and questions after it:
 
@@ -228,7 +228,7 @@ A downloaded copy of `tick.html` works with no internet connection. The live ver
 
 Nothing is sent anywhere until the remote control is opened. The timer, queue, presets and settings are kept only in this browser.
 
-When **remote** is chosen, or **Kiosk** on the remote pad, /tick contacts these services, and no others:
+When **remote** is chosen, or the small screen button on the remote pad, /tick contacts these services, and no others:
 
 | Service | Why |
 |---|---|
