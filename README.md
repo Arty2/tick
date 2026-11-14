@@ -28,7 +28,7 @@ The file can also be put on any web server. It needs no other files.
 - Can count down to a time of day, such as 14:30.
 - Has a **clock mode** that shows the time of day while the timer keeps running.
 - Can be controlled from a phone or another computer (**remote control**).
-- Changes colour at two warning points before the end.
+- Changes colour at two warning points before the end. For sessions longer than 10 minutes, the first warning comes 5 minutes before the end.
 - Can ring a bell. The bell sound is made by the program, not played from a recording.
 - Has five **presets**: saved lengths that load with one click.
 - Has a **kiosk mode** that hides everything except the time.
@@ -131,10 +131,10 @@ Holding down the **reset** button for about one second removes everything /tick 
 
 The timer changes colour before the end, at two points:
 
-- At the **first warning** the numbers turn orange. This is 2 minutes before the end at first.
+- At the **first warning** the numbers turn orange. This is 2 minutes before the end. For a session longer than 10 minutes, it is 5 minutes before the end.
 - At the **second warning** the numbers also flash. This is 1 minute before the end at first.
 
-The **warn** button (or `W`) changes these points. They are set in seconds. Setting one to `0` turns it off.
+The **warn** button (or `W`) changes these points. They are set in seconds. Setting one to `0` turns it off. If the first warning's box is left empty, it goes back to 2 or 5 minutes, as above.
 
 ---
 

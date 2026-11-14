@@ -210,3 +210,65 @@ test.describe('on a touch screen', () => {
 		await expect(digits(page)).toHaveClass(/s-run/);
 	});
 });
+
+test('a session longer than 10 minutes warns 5 minutes before the end', async ({ page }) => {
+	await open(page, '?mins=25&next=');
+	await page.keyboard.press('Space');
+	await page.clock.fastForward(19 * 60_000 + 59_000); // 5:01 left
+	await page.clock.runFor(100);
+	await expect(digits(page)).toHaveClass(/s-run/);
+	await page.clock.runFor(1_000); // 5:00 left
+	await expect(digits(page)).toHaveClass(/s-warn\b/);
+});
+
+test('a 10-minute session still warns 2 minutes before the end', async ({ page }) => {
+	await open(page, '?mins=10');
+	await page.keyboard.press('Space');
+	await page.clock.fastForward(5 * 60_000 + 1_000); // 4:59 left
+	await page.clock.runFor(100);
+	await expect(digits(page)).toHaveClass(/s-run/);
+	await page.clock.fastForward(3 * 60_000); // 1:59 left
+	await page.clock.runFor(100);
+	await expect(digits(page)).toHaveClass(/s-warn\b/);
+});
+
+test('a first warning set by hand replaces the automatic one; empty restores it', async ({ page }) => {
+	await open(page, '?mins=25');
+	await page.keyboard.press('w');
+	await expect(page.locator('#warn1-input')).toHaveValue('');
+	await page.locator('#warn1-input').fill('60');
+	await page.locator('#warn2-input').fill('0');
+	await page.locator('#warn1-input').press('Enter');
+	await page.keyboard.press('Space');
+	await page.clock.fastForward(23 * 60_000); // 2:00 left: past 5 min, not yet 60 s
+	await page.clock.runFor(100);
+	await expect(digits(page)).toHaveClass(/s-run/);
+	await page.keyboard.press('Space'); // pause, then go back to automatic
+	await page.keyboard.press('w');
+	await page.locator('#warn1-input').fill('');
+	await page.locator('#warn1-input').press('Enter');
+	await page.keyboard.press('Space');
+	await page.clock.runFor(1_100);
+	await expect(digits(page)).toHaveClass(/s-warn\b/);
+});
+
+test('a target time more than 10 minutes away also warns at 5 minutes', async ({ page }) => {
+	await open(page, '', '2026-11-14T10:12:00'); // the target defaults to 10:30
+	await page.keyboard.press('u');
+	await page.locator('#until-hour').press('Enter');
+	await page.clock.fastForward(13 * 60_000); // 10:25, 5:00 left
+	await page.clock.runFor(100);
+	await expect(digits(page)).toHaveClass(/s-warn\b/);
+});
+
+test('shortcuts work straight after a window is closed with Enter or Escape', async ({ page }) => {
+	await open(page, '?mins=25');
+	await page.keyboard.press('n');
+	await page.keyboard.press('Enter'); // the queue window has the cursor; Enter saves
+	await page.keyboard.press('Space');
+	await expect(digits(page)).toHaveClass(/s-run/);
+	await page.keyboard.press('w');
+	await page.keyboard.press('Escape');
+	await page.keyboard.press('Space');
+	await expect(page.locator('#label-text')).toHaveText('PAUSED');
+});

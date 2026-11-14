@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="version" content="0.2.1">
+<meta name="version" content="0.3.0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0a0a0a">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -505,7 +505,7 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
     <div class="modal-row">
       <div style="flex:1">
         <label>First warning (sec)</label>
-        <input type="number" id="warn1-input" class="modal-input" min="0" max="7200" placeholder="300">
+        <input type="number" id="warn1-input" class="modal-input" min="0" max="7200" placeholder="auto">
       </div>
       <div style="flex:1">
         <label>Second warning (sec)</label>
@@ -513,7 +513,8 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
       </div>
     </div>
     <div style="font-size:11px;color:var(--dim);text-align:center;letter-spacing:0.08em">
-      e.g. 300 = 5 min &nbsp;&#xB7;&nbsp; 60 = 1 min &nbsp;&#xB7;&nbsp; 0 = disabled
+      e.g. 300 = 5 min &nbsp;&#xB7;&nbsp; 60 = 1 min &nbsp;&#xB7;&nbsp; 0 = off<br>
+      First warning left empty: 2 min, or 5 min for sessions over 10 min
     </div>
     <div class="modal-actions">
       <button class="modal-btn" id="warn-cancel">Cancel</button>
@@ -554,7 +555,7 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
     <ul>
       <li><strong style="color:var(--c-idle)">Grey</strong> &#x2014; not started.</li>
       <li><strong style="color:var(--c-run)">White</strong> &#x2014; running.</li>
-      <li><strong style="color:var(--c-warn)">Orange</strong> &#x2014; first warning (2 minutes left, at first).</li>
+      <li><strong style="color:var(--c-warn)">Orange</strong> &#x2014; first warning (2 minutes left, or 5 for sessions over 10 minutes).</li>
       <li><strong style="color:var(--c-warn)">Flashing orange</strong> &#x2014; second warning (1 minute left, at first).</li>
       <li><strong style="color:var(--c-pause)">Amber</strong> &#x2014; paused.</li>
       <li><strong style="color:var(--c-ot)">Red</strong> &#x2014; overtime. The time has run out, and the timer counts up.</li>
@@ -566,7 +567,7 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
     <h2>Warnings</h2>
     <ul>
       <li>The <strong>warn</strong> button (or <code>W</code>) sets two warning points, in seconds.</li>
-      <li>At the <strong>first warning</strong> the numbers turn orange. At first this is 120 seconds (2 minutes) before the end.</li>
+      <li>At the <strong>first warning</strong> the numbers turn orange. It comes 2 minutes before the end, or 5 minutes before the end of a session longer than 10 minutes. A number typed in the box is used instead; leaving the box empty goes back to this.</li>
       <li>At the <strong>second warning</strong> the numbers also flash. At first this is 60 seconds (1 minute) before the end.</li>
       <li>Setting a warning to 0 turns it off. The settings are saved.</li>
     </ul>
@@ -751,8 +752,17 @@ const app          = $('app'),
       btnCW        = $('btn-clock-watch');
 
 // ── State ─────────────────────────────────────────────
-let warnSecs1 = 120, warnSecs2 = 60;  // configurable warning thresholds
+// warnSecs1 null = automatic: AUTO_WARN_SHORT before the end, or AUTO_WARN_LONG
+// for a session longer than LONG_SESSION — two minutes' notice is too little
+// to wrap up a 45-minute talk. A number set in the warn window replaces it.
+const AUTO_WARN_SHORT = 120, AUTO_WARN_LONG = 300, LONG_SESSION = 10 * 60;
+let warnSecs1 = null, warnSecs2 = 60;
 let totalSecs = DEFAULT_MINS * 60, remaining = totalSecs;
+// The length of the countdown under way: totalSecs, or for a target time the
+// time to it when it was set.
+let untilLenSecs = 0;
+const sessionLen = () => untilTarget ? untilLenSecs : totalSecs;
+const firstWarnSecs = () => warnSecs1 ?? (sessionLen() > LONG_SESSION ? AUTO_WARN_LONG : AUTO_WARN_SHORT);
 let running = false, editingLabel = false;
 let customLabel = URL_LABEL, uiState = 'idle';
 // null, not -1, for "nothing drawn yet": -1 is a real value (one second
@@ -803,7 +813,9 @@ if (!URL_NEXT_ITEMS.length && Array.isArray(p.nextQueue)) nextQueue = p.nextQueu
 if (Array.isArray(p.presets) && p.presets.length === 5)
   presets = p.presets.map(e => toEntry(e) ?? {label:'', mins:0});
 const toWarn = v => typeof v === 'number' && v >= 0 && v <= 7200 ? Math.floor(v) : null;
-warnSecs1 = toWarn(p.warnSecs1) ?? warnSecs1;
+// 120 was the fixed default before the automatic warning, and every save
+// wrote it, so a stored 120 almost always means "never changed": automatic.
+warnSecs1 = p.warnSecs1 === 120 ? null : toWarn(p.warnSecs1);
 warnSecs2 = toWarn(p.warnSecs2) ?? warnSecs2;
 if (!URL_LABEL && typeof p.customLabel === 'string') customLabel = p.customLabel;
 
@@ -866,7 +878,7 @@ const COLON_RE = /:/g;
 const withColons = s => s.replace(COLON_RE, '<span class="colon">:</span>');
 const isTouchDev = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 const startHint  = () => (isTouchDev || hasTouched) ? 'tap to start' : 'click or enter to start';
-const stateFor = rem => rem < 0 ? 'ot' : (warnSecs2 > 0 && rem <= warnSecs2) ? 'warn2' : (warnSecs1 > 0 && rem <= warnSecs1) ? 'warn' : 'run';
+const stateFor = rem => rem < 0 ? 'ot' : (warnSecs2 > 0 && rem <= warnSecs2) ? 'warn2' : (firstWarnSecs() > 0 && rem <= firstWarnSecs()) ? 'warn' : 'run';
 
 function fmt(secs) {
   const sign = secs < 0 ? '+' : '', abs = Math.abs(secs);
@@ -1136,7 +1148,7 @@ function adjustMinutes(delta) {
 // ── Until mode ────────────────────────────────────────
 function enterUntilMode(targetMs, label) {
   untilTarget = targetMs; untilLabel = label; running = false; lastRenderedSec = null;
-  remaining = resumeVal = Math.round((targetMs - Date.now())/1000); bellRecord = null;
+  remaining = resumeVal = untilLenSecs = Math.round((targetMs - Date.now())/1000); bellRecord = null;
   applyState('until'); renderUntilBtn(); renderSessionQueue(); renderDigits(remaining); startTimer();
 }
 function exitUntilMode() {
@@ -1242,7 +1254,13 @@ function copyShareUrl() {
 
 // ── Modals ────────────────────────────────────────────
 const openModal  = id => $(id).classList.add('open');
-const closeModal = id => $(id).classList.remove('open');
+// Closing a window also takes the cursor out of it: a hidden field that
+// kept focus swallowed every shortcut until the page was clicked.
+const closeModal = id => {
+  const m = $(id);
+  if (m.contains(document.activeElement)) document.activeElement.blur();
+  m.classList.remove('open');
+};
 const isAnyModalOpen = () => !!document.querySelector('.modal-overlay.open');
 const wireBtn = (id, fn) => $(id)?.addEventListener('click', e => { e.stopPropagation(); fn(); });
 const backdropClose = (id, fn) => $(id).addEventListener('click', e => { if (e.target === $(id)) fn(); });
@@ -1575,7 +1593,7 @@ document.addEventListener('keydown', e => {
   // closes its modal first, so without this the same press reached the
   // shortcuts below too: Enter in any modal restarted the timer.
   if (e.defaultPrevented || IS_REMOTE) return;
-  if (isAnyModalOpen()) { if (e.key==='Escape') { e.preventDefault(); document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open')); } return; }
+  if (isAnyModalOpen()) { if (e.key==='Escape') { e.preventDefault(); document.querySelectorAll('.modal-overlay.open').forEach(m=>closeModal(m.id)); } return; }
   if (editingLabel) { if (e.key==='Enter'||e.key==='Escape') { e.preventDefault(); endLabelEdit(); } return; }
   if (isManualOpen()) { if (e.key==='Escape') { e.preventDefault(); closeManual(); } return; }
   if (e.target instanceof Element && e.target.matches('input, textarea, select')) return;
@@ -1661,15 +1679,15 @@ manual.addEventListener('click', e=>{ if(e.target===manual) closeManual(); });
 
 // ── Warn modal ────────────────────────────────────────
 function openWarnModal() {
-  $('warn1-input').value = warnSecs1;
+  $('warn1-input').value = warnSecs1 ?? ''; // empty shows "auto"
   $('warn2-input').value = warnSecs2;
   openModal('warn-modal');
   $('warn1-input').focus();
 }
 function saveWarnModal() {
-  const v1 = parseInt($('warn1-input').value) || 0;
+  const v1 = parseInt($('warn1-input').value);
   const v2 = parseInt($('warn2-input').value) || 0;
-  warnSecs1 = Math.max(0, Math.min(7200, v1));
+  warnSecs1 = isNaN(v1) ? null : Math.max(0, Math.min(7200, v1)); // empty: automatic
   warnSecs2 = Math.max(0, Math.min(7200, v2));
   savePrefs();
   closeModal('warn-modal');

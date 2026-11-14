@@ -179,3 +179,10 @@ test("a hand-over saves the new slot's label with the shortened queue", async ({
 	await expect(page.locator('#session-label')).toHaveText('Talk');
 	await expect(page.locator('.sq-queued')).toHaveText(['▶ 10:00 QA']);
 });
+
+test('a first warning saved as the old fixed default becomes automatic', async ({ page }) => {
+	await page.addInitScript(() => localStorage.setItem('tick_prefs', JSON.stringify({ warnSecs1: 120 })));
+	await open(page);
+	await page.keyboard.press('w');
+	await expect(page.locator('#warn1-input')).toHaveValue('');
+});
