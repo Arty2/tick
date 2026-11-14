@@ -44,7 +44,7 @@ The file can also be put on any web server. It needs no other files.
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│  00:00 (since start)   v0.3.2   HH:MM:SS (clock)    │
+│  00:00 (since start)   v0.3.6   HH:MM:SS (clock)    │
 │                                                     │
 │              STATUS                                 │
 │              25:00                                  │
@@ -109,9 +109,22 @@ The keys only change the timer when no text box is being typed in.
 The queue is a list of sessions that run one after another. To open it, press `N`, choose **▶ queue** in the menu, or click the list under the timer.
 
 - **Current session** is the name shown under the timer.
-- **Up next** is the list of sessions. Each one has a name and a length in minutes. **+ Add** adds a session, **×** removes one, and dragging a row changes the order.
+- **Up next** is the list of sessions. Each one has a name and a length in minutes, or a time of day written `@14:30`, which makes that session count down to 14:30. **+ Add** adds a session, **×** removes one, and dragging a row changes the order.
 - When a session ends, the next one loads and starts by itself. A short sound plays.
 - The queue and the session name are saved in the browser. They are still there the next time /tick is opened.
+
+### Writing a queue
+
+A queue can also be written as text: in a link, or in the queue box on the remote pad. Sessions are separated by `|` (a vertical bar), and each session is one of these:
+
+| Written | Means |
+|---|---|
+| `Talk:25` | A session called Talk, 25 minutes long |
+| `25` | A 25-minute session with no name |
+| `Panel@14:30` | A session called Panel that counts down to 14:30 (the next 14:30, which may be tomorrow) |
+| `@14:30` | A countdown to 14:30 with no name |
+
+For example, `Keynote:40|Break:5|Q&A, panel:15|Lunch@12:30`. Names may contain commas and colons. A `|` inside a name is written `\|`.
 
 ---
 
@@ -145,12 +158,16 @@ The **warn** button (or `W`) changes these points. They are set in seconds. Sett
 The remote control lets another device start, pause and change the timer.
 
 1. Choose **remote** in the menu. A code of six letters and numbers appears, with a QR code.
-2. On the other device, scan the QR code or open the link.
-3. The other device now shows a **remote pad**.
+2. On the other device, scan the QR code or open the link. Without a camera, open /tick on that device, choose **remote**, then **Control another timer instead**, type the code and choose **Join**.
+3. The other device now shows a **remote pad**, and the timer screen changes to kiosk mode. It stays in kiosk mode if the remote pad disconnects.
 
-The remote pad shows the time left and the session name. Its buttons start, pause, reset, ring the bell, load the next session, and add or take away time. It also has a box for changing the queue. A queue is written as names and minutes, such as `Talk:25,QA:10`. On phones, the buttons vibrate when pressed.
+The remote pad's top bar shows the connection, the timer's code and a small screen button (🖥️). Typing another code into the bar and pressing Enter switches the pad to that timer. Under the top bar, the remote pad shows the same line as the timer screen: the time since the session started on the left, and the time of day on the right. Below that it shows the time left, the session name and the queue. Its buttons reset, start or pause (one button, which changes between the two), ring the bell, load the next or the previous session, and add or take away time. **Prev** goes back to the session that ran before and puts the current one back at the front of the queue; it is greyed out until a session has handed over to the next. **Black** covers the whole timer screen in the theme's background colour (black in the dark theme, white in the light one). The timer keeps running underneath, and changes made from the remote pad don't show until **Black** is pressed again. The button is lit while the screen is covered. On the timer screen itself, `Escape`, a double tap or a double-click also lifts the cover, so it can be lifted without the remote or a keyboard; single taps and clicks on the cover do nothing. Its queue box shows the current queue, written as described in [Writing a queue](#writing-a-queue), such as `Talk:25|QA@14:30`. Changing it and pressing **Set** changes the queue; emptying it and pressing **Set** clears the queue. On phones, the buttons vibrate when pressed.
 
-The remote control window on the timer has a message box. A message typed there appears on the remote pad for 6 seconds. **Clear** removes it sooner.
+The remote pad has a message box. A message typed there appears on the timer screen for 6 seconds, in large dark letters on an orange band above the time. The time gets smaller while the message shows, so both can be read. It can tell the speaker, for example, to finish soon. **Clear** removes it sooner.
+
+If the timer screen stops answering for a few seconds, the remote pad says **Kiosk lost**. The small screen button (🖥️) next to the connection status shows a link and a QR code. Opening it on any screen starts a new timer screen with the same code. The new screen continues the timer from where the old one stopped.
+
+The timer does not stop when the kiosk is lost. The remote pad keeps counting on its own, and its buttons (start, pause, the minute buttons, reset, Next and the queue box) work on the pad's copy; the time is underlined with dots while this is so. When the kiosk answers again, the pad's timer is sent to it and replaces the kiosk's, because the pad kept going while the kiosk was out of touch. There is one exception: if the remote pad itself went offline, it says **Offline**, and when it is back it takes the kiosk's timer instead.
 
 Two tabs in the same browser connect straight away, without the internet. Two different devices need the internet. They are connected through a free service called [PeerJS](https://peerjs.com). This may not work on some school or office networks.
 
@@ -164,15 +181,16 @@ A link to /tick can include settings after a `?`. These settings are used for th
 |---|---|---|
 | `mins` | `1`–`999` | The starting length in minutes. |
 | `label` | text | The session name. |
-| `next` | `Break:5,QA:10` | The queue. Each session is `name:minutes`, or only minutes. Sessions are separated by commas. A comma inside a name is written `\,`. |
+| `next` | `Break:5\|QA@14:30` | The queue, written as described in [Writing a queue](#writing-a-queue): sessions separated by `\|`, each `name:minutes`, minutes alone, or `name@HH:MM`. |
 | `theme` | `dark` or `light` | The theme. |
 | `sound` | `0`, `1` or `2` | The sound setting: off, bell at the end, or a bell every minute of overtime. |
 | `rc` | a six-letter code | Opens the remote pad for that code. The **remote** button makes these links. |
+| `host` | a six-letter code | Opens a new timer screen for that code, which continues the timer. The small screen button (🖥️) on the remote pad makes these links. |
 
 For example, this link opens a 25-minute keynote with a break and questions after it:
 
 ```
-https://acari.vercel.app/?mins=25&label=Keynote&next=Break:5,QA:10&theme=dark&sound=1
+https://acari.vercel.app/?mins=25&label=Keynote&next=Break:5|QA:10&theme=dark&sound=1
 ```
 
 The **share** button copies a link like this for the timer as it is now.
@@ -221,20 +239,22 @@ A downloaded copy of `tick.html` works with no internet connection. The live ver
 
 ---
 
-## What leaves this computer
+## External services: what leaves this computer
 
-Nothing is sent anywhere until the remote control is opened. The timer, queue, presets and settings are kept only in this browser.
+The timer uses no outside services. Nothing is sent anywhere until the remote control is opened; the timer, queue, presets and settings are kept only in this browser.
 
-When **remote** is chosen, /tick contacts these services, and no others:
+Choosing **remote**, or the small screen button on the remote pad, uses these external services, and no others:
 
-| Service | Why |
-|---|---|
-| `api.qrserver.com` | Draws the QR code. The remote link, including its code, is sent to it. When there is no internet, the link is shown as text instead. |
-| `cdn.jsdelivr.net` | Sends the PeerJS program used to connect two devices. /tick checks that the program has not been changed before running it. |
-| `0.peerjs.com` | Introduces the two devices to each other. |
-| `stun.l.google.com`, `stun1.l.google.com` | Help the two devices find a direct connection. |
+| Service | Run by | What it does | What it receives | Without it |
+|---|---|---|---|---|
+| `api.qrserver.com` | [goQR.me](https://goqr.me/api/), a free QR code API | Draws the QR codes | The remote or kiosk link, including its code | The link is shown as text instead |
+| `cdn.jsdelivr.net` | [jsDelivr](https://www.jsdelivr.com), a free public CDN | Sends the PeerJS program (version 1.5.4) used to connect two devices. /tick checks a fixed fingerprint and refuses a changed file | An ordinary download request | Only tabs in the same browser can connect |
+| `0.peerjs.com` | [PeerJS](https://peerjs.com), its free public server | Introduces the two devices to each other | An ID made from the code | Only tabs in the same browser can connect |
+| `stun.l.google.com`, `stun1.l.google.com` | Google, public STUN servers | Help the two devices find a direct route through routers | The devices' network addresses | Devices on different networks may not connect |
 
-After that, the two devices talk to each other directly. Two tabs in the same browser use none of these services.
+After the introduction, the two devices talk to each other directly (WebRTC); the timer itself never passes through these services. Two tabs in the same browser use none of them.
+
+The live version is hosted by [Vercel](https://vercel.com), which serves the page when it is opened. A downloaded copy of `tick.html` needs no host at all.
 
 ---
 
@@ -258,8 +278,8 @@ pnpm run serve     # serves the app at http://localhost:4173
 
 | Version change | When |
 |---|---|
-| Patch (`0.3.2` → `0.3.3`) | A fix |
-| Minor (`0.3.2` → `0.4.0`) | A new feature |
+| Patch (`0.3.6` → `0.3.7`) | A fix |
+| Minor (`0.3.6` → `0.4.0`) | A new feature |
 | The first number | Changes only when the project is decided to be finished |
 
 The version number is written in one place: `<meta name="version">` in `tick.html`. The manual shows it, and [CHANGELOG.md](./CHANGELOG.md) starts with it. [AGENTS.md](./AGENTS.md) explains how to work on the project.
@@ -278,7 +298,7 @@ The version number is written in one place: `<meta name="version">` in `tick.htm
 
 ## Deployment
 
-The live version at [acari.vercel.app](https://acari.vercel.app) is built by Vercel, using `vercel.json`. Only `tick.html` is published; the tests and documents are not. Visiting the main address opens `/tick.html`, and any settings in the link are kept, so `https://acari.vercel.app/?mins=25` opens a 25-minute timer. Every page is sent with the security headers in `vercel.json`. One of them, the Content-Security-Policy, lets the page reach only the services listed in [What leaves this computer](#what-leaves-this-computer).
+The live version at [acari.vercel.app](https://acari.vercel.app) is built by Vercel, using `vercel.json`. Only `tick.html` is published; the tests and documents are not. Visiting the main address opens `/tick.html`, and any settings in the link are kept, so `https://acari.vercel.app/?mins=25` opens a 25-minute timer. Every page is sent with the security headers in `vercel.json`. One of them, the Content-Security-Policy, lets the page reach only the services listed in [External services](#external-services-what-leaves-this-computer).
 
 ---
 

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="version" content="0.3.2">
+<meta name="version" content="0.3.6">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0a0a0a">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -60,8 +60,11 @@ html,body{
 }
 :is(#label-wrap.s-next,#label-wrap.s-until,#label-wrap.s-pause,#label-wrap.s-ot) #label-sub{opacity:1}
 
+/* The session's name and the queue rows under it read as one list: same
+   size and spacing (--list-fs), on the kiosk and, larger, on the pad. */
+:root{--list-fs:12px}
 #session-label{
-  font-size:12px;font-weight:500;letter-spacing:0.12em;
+  font-size:var(--list-fs);font-weight:500;letter-spacing:0.12em;
   text-transform:uppercase;text-align:center;margin-top:0.3em;
   transition:color 0.2s;pointer-events:none;min-height:0;
 }
@@ -81,7 +84,7 @@ html,body{
      keeps it inside a short screen (a landscape phone, a 16:9 stream) with
      room for the label and queue; vw keeps hours mode inside a portrait one. */
   font-size:clamp(48px,min(28.5vw,48vh),360px);font-weight:400;letter-spacing:-0.04em;white-space:nowrap;
-  line-height:1;color:var(--c-run);transition:color 0.3s;font-variant-numeric:tabular-nums;
+  line-height:1;color:var(--c-run);transition:color 0.3s,font-size 0.3s;font-variant-numeric:tabular-nums;
 }
 #timer-display .colon{display:inline-block;position:relative;top:-0.07em;letter-spacing:0}
 /* Hour-mode: small top-aligned hours + full-size minutes:seconds */
@@ -161,6 +164,9 @@ body.kiosk #app-version{display:none}
 body.kiosk #btn-tick,body.kiosk #btn-menu,body.kiosk #manual-close-float{display:none}
 
 /* Wall clock — always shown top-right */
+#top-bar.in-pad{position:static;height:auto;padding:0;align-self:stretch;z-index:auto}
+#top-bar.in-pad #app-version{display:none}
+#top-bar.in-pad #session-timer,#top-bar.in-pad #wall-clock{font-size:clamp(13px,3.4vw,16px)}
 #wall-clock{
   font-size:12px;letter-spacing:0.12em;color:var(--dim);text-transform:uppercase;
   pointer-events:none;
@@ -222,13 +228,13 @@ body.kiosk #swipe-hint{display:none}
   display:inline-flex;flex-direction:column;align-items:flex-start;gap:0.18rem;
 }
 .sq-item{
-  font-size:12px;letter-spacing:0.12em;color:var(--c-next);
+  font-size:var(--list-fs);letter-spacing:0.12em;color:var(--c-next);
   text-transform:uppercase;white-space:nowrap;opacity:0.8;transition:opacity 0.15s;
   font-variant-numeric:tabular-nums;
 }
 .sq-item:hover{opacity:1}
 .sq-empty{color:var(--dim);opacity:0.35;font-size:12px}
-.sq-next-header{color:var(--dim);opacity:0.5;font-size:12px;letter-spacing:0.12em;cursor:pointer}
+.sq-next-header{color:var(--dim);opacity:0.5;font-size:var(--list-fs);letter-spacing:0.12em;cursor:pointer}
 .sq-current-label{font-size:clamp(10px,1.3vw,13px);letter-spacing:0.24em;text-transform:uppercase;color:inherit;opacity:0.7;cursor:pointer;white-space:nowrap}
 
 /* Queue modal rows */
@@ -242,7 +248,7 @@ body.kiosk #swipe-hint{display:none}
 .qr-row.dragging{opacity:0.25}
 .qr-handle{color:var(--dim);cursor:grab;padding:0 0.15rem;user-select:none;font-size:14px;flex-shrink:0;line-height:1}
 .qr-label{flex:1;min-width:0}
-.qr-mins{width:46px!important;flex-shrink:0;text-align:center}
+.qr-mins{width:76px!important;flex-shrink:0;text-align:center}
 .qr-del{background:none;border:none;color:var(--dim);cursor:pointer;font-size:16px;
         padding:0 0.25rem;line-height:1;flex-shrink:0;font-family:var(--font);transition:color 0.1s}
 .qr-del:hover{color:var(--c-ot)}
@@ -271,6 +277,9 @@ body.kiosk #swipe-hint{display:none}
 body.light .modal-overlay{background:rgba(0,0,0,0.42)}
 
 .modal-box{
+  /* Scrolls rather than running off a short screen (the remote window, with
+     its larger QR code, is taller than a landscape phone). */
+  max-height:calc(100vh - 2rem);overflow-y:auto;
   background:var(--panel);border:1px solid var(--dim);padding:1.8rem 2rem;
   width:min(360px,calc(100vw - 3rem));display:flex;flex-direction:column;gap:1.1rem;position:relative;
 }
@@ -355,31 +364,59 @@ code{background:rgba(128,128,128,0.16);padding:0.08em 0.33em;font-family:var(--f
 
 /* ── Remote control ── */
 #remote-modal .modal-box{width:min(400px,calc(100vw - 2rem))}
+.rm-view{display:flex;flex-direction:column;gap:1.1rem}
+.rm-view[hidden]{display:none}
+.rm-note{font-size:13px;line-height:1.5;color:var(--fg)}
+#remote-modal .modal-btn{white-space:nowrap}
+.rm-switch{background:none;border:none;color:var(--dim);font-family:var(--font);font-size:12px;letter-spacing:0.06em;
+  cursor:pointer;padding:0.2rem 0;text-align:center;text-decoration:underline;text-underline-offset:0.2em}
+.rm-switch:hover{color:var(--fg)}
 #remote-code-display{
   font-size:clamp(32px,9vw,56px);font-weight:900;letter-spacing:0.18em;
   text-align:center;font-variant-numeric:tabular-nums;color:var(--c-next);
   padding:0.4rem 0;
 }
 #remote-qr{display:flex;justify-content:center;margin:0.2rem 0}
-#remote-qr canvas,#remote-qr img{width:160px;height:160px}
+/* Twice the old 160px, so a phone across the room can scan it; never wider
+   than the window it sits in. */
+#remote-qr canvas,#remote-qr img{width:min(320px,100%);height:auto;aspect-ratio:1;box-sizing:border-box}
 #remote-status{font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:var(--dim);text-align:center}
 #remote-status.connected{color:var(--c-watch)}
 
-/* Operator message overlay (host→presenter) */
-#op-msg-overlay{
-  display:none;position:fixed;inset:0;z-index:450;
-  align-items:center;justify-content:center;pointer-events:none;
+/* Operator message (pad→kiosk). A solid band in the page's own flow, above
+   the time, rather than a box floating over it: the old one was translucent
+   and pulsed its opacity, so the digits showed through and it was hard to
+   read. It flashes bright once on arrival instead, and the time shrinks
+   while it shows so that both fit. */
+#blackout{position:fixed;inset:0;z-index:600;background:var(--bg);cursor:none}
+#blackout[hidden]{display:none}
+.rc-btn.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+/* Stop, play and pause drawn in CSS rather than taken from the font: the
+   font's symbols came in three different sizes and sat at different heights.
+   Each is exactly as tall as a capital in its label (1cap) and sits on the
+   label's baseline (an empty inline-block's bottom edge is its baseline). */
+.ico{display:inline-block;height:0.7em;height:1cap;background:currentColor;vertical-align:baseline;margin-right:0.5em}
+.ico-stop{aspect-ratio:1}
+.ico-play{aspect-ratio:0.85;clip-path:polygon(0 0,100% 50%,0 100%)}
+.ico-pause{aspect-ratio:0.8;background:linear-gradient(to right,currentColor 0 36%,transparent 36% 64%,currentColor 64%)}
+/* The bell: a silhouette used as a mask, so it takes the text colour like the
+   others. The SVG is a data: URL in the stylesheet (no request; img-src
+   already allows data:). Its viewBox is cropped to the bell, so 1cap is the
+   bell's own height. */
+.ico-bell{aspect-ratio:0.82;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='4 2 16 19.7'%3E%3Cpath d='M12 2a1.5 1.5 0 0 1 1.5 1.5v.6A6 6 0 0 1 18 10v4.5l2 2.5v1H4v-1l2-2.5V10a6 6 0 0 1 4.5-5.9v-.6A1.5 1.5 0 0 1 12 2zm-2.3 17.4h4.6a2.3 2.3 0 0 1-4.6 0z'/%3E%3C/svg%3E") center/contain no-repeat}
+#op-msg{
+  display:none;background:var(--c-warn);color:#111;
+  font-size:clamp(22px,min(6.5vw,9vh),72px);font-weight:700;line-height:1.15;
+  letter-spacing:0.04em;text-transform:uppercase;text-align:center;
+  padding:0.25em 0.7em;margin-bottom:0.4em;max-width:92vw;overflow-wrap:anywhere;
 }
-#op-msg-overlay.show{display:flex}
-#op-msg-box{
-  background:rgba(0,0,0,0.85);border:2px solid var(--c-warn);
-  color:var(--c-warn);font-size:clamp(28px,6vw,72px);font-weight:900;
-  letter-spacing:0.08em;text-transform:uppercase;padding:0.6em 1.2em;
-  text-align:center;animation:op-flash 0.6s ease-in-out infinite alternate;
-  max-width:90vw;word-break:break-word;
-}
-@keyframes op-flash{from{opacity:1}to{opacity:0.55}}
-body.light #op-msg-box{background:rgba(255,255,255,0.9)}
+body.op-msg-on #op-msg{display:block;animation:op-in 0.9s ease-out}
+/* OVERTIME blinks; beside the band, its off beats looked like the band had
+   replaced it. It holds steady while a message shows. */
+body.op-msg-on #label-wrap.flash-off{opacity:1}
+@keyframes op-in{0%,30%,60%{filter:brightness(1.6)}15%,45%,100%{filter:none}}
+body.op-msg-on #timer-display{font-size:clamp(40px,min(18vw,26vh),220px)}
+body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),220px)}
 
 /* Remote pad — shown when ?rc=CODE */
 #remote-pad{
@@ -388,29 +425,97 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
   align-items:center;justify-content:center;gap:1.2rem;padding:1.5rem;
 }
 #remote-pad.open{display:flex}
+/* Laid out from the top and scrollable when taller than the screen
+   (justify-content:center would push the top out of reach). Spare height
+   goes to the time rather than to empty bands above and below. */
+#remote-pad{justify-content:flex-start;overflow-y:auto;gap:0.9rem;padding-top:0}
+/* A status bar along the top edge: connection on the left, the new-kiosk
+   button on the right. Sticky, so it stays in view while the pad scrolls. */
+#rc-top{
+  position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:0.8rem;
+  align-self:stretch;margin:0 -1.5rem;padding:0.5rem 1.5rem;
+  background:var(--bg);border-bottom:1px solid var(--dim);
+}
+.rc-top-right{display:flex;align-items:center;gap:0.5rem}
+.rc-code{
+  /* The kiosk button's height, so the two read as one pair in the bar. */
+  height:2.4rem;box-sizing:border-box;width:calc(6ch + 0.8em + 0.8rem + 2px);
+  background:var(--bg);border:1px solid var(--dim);color:var(--fg);
+  font-family:var(--font);font-size:clamp(15px,4vw,18px);letter-spacing:0.12em;text-transform:uppercase;
+  padding:0 0.4rem;outline:none;text-align:center;
+  user-select:text;-webkit-user-select:text;
+}
+.rc-code:focus{border-color:var(--fg)}
+.rc-code.bad{border-color:var(--c-ot)}
+.rc-icon-btn:disabled{opacity:0.35;cursor:default}
+.rc-icon-btn{
+  background:rgba(128,128,128,0.1);border:1px solid var(--dim);color:var(--fg);cursor:pointer;
+  font-size:20px;line-height:1;width:2.4rem;height:2.4rem;padding:0;flex-shrink:0;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+}
 #remote-state-display{
-  font-size:clamp(48px,16vw,120px);font-weight:900;letter-spacing:-0.03em;
+  /* Big enough to read at arm's length, by the screen's width and height. */
+  font-size:clamp(56px,min(30vw,15vh),240px);font-weight:400;letter-spacing:-0.03em; /* regular, as on the kiosk */
   font-variant-numeric:tabular-nums;color:var(--c-idle);transition:color 0.25s;
   line-height:1;
 }
+#rc-time{flex:1 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.5rem}
+/* While the kiosk is lost the pad's time is its own copy: dotted underline. */
+#remote-state-display.local{text-decoration:underline dotted;text-decoration-thickness:0.04em;text-underline-offset:0.12em}
 #remote-label-display{
-  font-size:clamp(11px,2.5vw,18px);letter-spacing:0.3em;text-transform:uppercase;
+  font-size:var(--rc-list-fs);letter-spacing:0.1em;text-transform:uppercase;
   color:var(--dim);min-height:1.2em;text-align:center;
 }
+/* One line, always: the messages are kept short, and anything longer is cut
+   with an ellipsis rather than pushing the bar to three lines. */
 #remote-status-bar{
-  font-size:11px;letter-spacing:0.2em;text-transform:uppercase;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;
+  font-size:clamp(13px,3.2vw,16px);letter-spacing:0.2em;text-transform:uppercase;
   color:var(--dim);min-height:1.2em;
 }
 #remote-status-bar.conn{color:var(--c-watch)}
+/* Beside the code box and kiosk button a phone leaves little room: tighter
+   spacing keeps the longest message ("⚠️ Kiosk lost") whole at 320 px. */
+@media(max-width:420px){#remote-status-bar{letter-spacing:0.06em}}
 #remote-status-bar.err {color:var(--c-ot)}
+/* The pad is used at arm's length, often one-handed: buttons, fields and its
+   window are twice the size of the rest of the app's. */
 .rc-grid{
   display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem;
-  width:100%;max-width:480px;
+  width:100%;max-width:640px;
 }
+.rc-row{display:flex;gap:0.5rem;width:100%;max-width:640px}
+.rc-row .rc-btn{flex-shrink:0;padding-left:0.8rem;padding-right:0.8rem}
+.rc-row-btns .rc-btn{flex:1}
+.rc-input.span3{grid-column:span 3}
+.rc-btn:disabled{opacity:0.35;cursor:default}
+#rc-queue-display .rc-q-head{color:var(--dim);font-size:0.85em}
+#rc-queue-display .rc-q-row{color:var(--c-next)}
+/* Fields are as tall as the buttons (--rc-h, from the button's own font
+   size, padding and border) but on the page's colour, so they read as
+   places to type rather than things to press. */
+#remote-pad{--rc-fs:clamp(22px,5vw,32px);--rc-h:calc(1.15 * var(--rc-fs) + 1.6rem + 2px);--rc-list-fs:clamp(16px,4vw,22px)}
+.rc-input{
+  box-sizing:border-box;height:var(--rc-h);
+  flex:1;min-width:0;background:var(--bg);border:1px solid var(--dim);color:var(--fg);
+  font-family:var(--font);font-size:clamp(18px,4.5vw,26px);letter-spacing:0.04em;padding:0.5rem 0.6rem;
+  outline:none;user-select:text;-webkit-user-select:text;
+}
+.rc-input:focus{border-color:var(--fg)}
+#rc-queue-display{font-size:var(--rc-list-fs);letter-spacing:0.1em;text-transform:uppercase;line-height:1.45;text-align:left;align-self:center}
+#remote-pad .modal-box{width:min(560px,calc(100vw - 2rem));padding:1.4rem}
+#remote-pad .modal-title{font-size:22px}
+#remote-pad .modal-btn{font-size:clamp(18px,4.5vw,24px);padding:0.7rem 0.3rem;white-space:nowrap}
+#remote-pad .rc-note{font-size:clamp(16px,4vw,20px);line-height:1.4;color:var(--fg)}
+#rc-kiosk-qr{display:flex;justify-content:center}
+#rc-kiosk-qr img{width:min(400px,100%);height:auto;aspect-ratio:1;box-sizing:border-box}
+#rc-kiosk-url{font-size:14px;word-break:break-all;text-align:center;color:var(--dim);user-select:text;-webkit-user-select:text}
 .rc-btn{
+  box-sizing:border-box;height:var(--rc-h);
   background:rgba(128,128,128,0.1);border:1px solid var(--dim);
-  color:var(--fg);font-family:var(--font);font-size:clamp(12px,2.5vw,16px);
-  letter-spacing:0.08em;padding:0.8rem 0.4rem;cursor:pointer;text-align:center;
+  color:var(--fg);font-family:var(--font);font-size:var(--rc-fs);
+  letter-spacing:0.04em;padding:0.8rem 0.3rem;cursor:pointer;text-align:center;line-height:1.15;
+  white-space:nowrap; /* one line each: the labels are kept short to fit a 320px phone */
   text-transform:uppercase;transition:background 0.1s,border-color 0.1s,color 0.1s;
   touch-action:manipulation;-webkit-tap-highlight-color:transparent;
 }
@@ -420,7 +525,9 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
 .rc-btn.full{grid-column:span 4}
 .rc-btn.hi-start{color:var(--c-run);border-color:var(--c-run)}
 .rc-btn.hi-pause{color:var(--c-pause);border-color:var(--c-pause)}
-.rc-btn.hi-reset{color:var(--c-reset);border-color:var(--c-reset)}
+/* Red, not the green of the kiosk's reset flash: on the pad it's the button
+   that throws the current count away. */
+.rc-btn.hi-reset{color:var(--c-ot);border-color:var(--c-ot)}
 .rc-btn.hi-ot   {color:var(--c-ot);border-color:var(--c-ot)}
 .rc-btn.hi-warn {color:var(--c-warn);border-color:var(--c-warn)}
 </style>
@@ -432,6 +539,7 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
     <span id="label-text" spellcheck="false"></span>
     <span id="label-sub"></span>
   </div>
+  <div id="op-msg" role="status" aria-live="assertive"></div>
   <div id="timer-display" class="s-idle">10:00</div>
   <div id="session-label"></div>
   <div id="session-queue"></div>
@@ -615,7 +723,8 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
     <h2>Queue</h2>
     <ul>
       <li>The queue is a list of sessions that run one after another. Open it with <strong>&#x25B6; queue</strong>, the list under the timer, or <code>N</code>.</li>
-      <li>Each session has a name and a length in minutes. <strong>+ Add</strong> adds one, <strong>&#xD7;</strong> removes one, and dragging a row changes the order.</li>
+      <li>Each session has a name and a length in minutes, or a time of day written <code>@14:30</code> to count down to it. <strong>+ Add</strong> adds one, <strong>&#xD7;</strong> removes one, and dragging a row changes the order.</li>
+      <li>As text (in a link or the remote's queue box), sessions are separated by <code>|</code>: <code>Talk:25|Break:5|Panel@14:30</code>. A <code>|</code> in a name is written <code>\|</code>.</li>
       <li>When a session ends, the next one starts by itself. <code>Ctrl+Enter</code> loads it sooner.</li>
     </ul>
     <h2>Target time</h2>
@@ -629,9 +738,13 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
     </ul>
     <h2>Remote control</h2>
     <ul>
-      <li>The <strong>remote</strong> button shows a six-letter code and a QR code. Open the link or scan the code on another device to get a remote pad.</li>
-      <li>The remote pad shows the time left. Its buttons start, pause, reset, ring the bell, load the next session and change the time. On phones they vibrate.</li>
-      <li>A message typed in the remote window on this screen appears on the remote pad for 6 seconds. <strong>Clear</strong> removes it sooner.</li>
+      <li>The <strong>remote</strong> button shows a six-letter code and a QR code. Open the link or scan the code on another device to get a remote pad. Or, on that device, open /tick, choose <strong>remote</strong>, then <em>Control another timer instead</em>, type the code and choose <strong>Join</strong>. The remote pad's top bar shows the code; typing another one there switches to that timer. This screen then changes to kiosk mode, and stays in it if the remote disconnects.</li>
+      <li>The remote pad shows the time left and the queue. Its buttons reset, start or pause, ring the bell, load the next or the previous session, and change the time. On phones they vibrate.</li>
+      <li><strong>Black</strong> covers this screen in the background colour while the timer runs on underneath; changes from the remote pad stay hidden until it is pressed again. <code>Esc</code>, a double tap or a double-click here also lifts it.</li>
+      <li>Its queue box holds the current queue. Change it and press <strong>Set</strong>; an empty box clears the queue.</li>
+      <li>A message typed on the remote pad appears on this screen for 6 seconds, on an orange band above the time. The time gets smaller while it shows. <strong>Clear</strong> removes it sooner.</li>
+      <li>If this screen stops answering, the remote pad says <strong>Kiosk lost</strong>. The small screen button (&#x1F5A5;&#xFE0F;) next to its status shows a link and QR code for a new screen, which continues the timer.</li>
+      <li>The timer doesn't stop when this screen is lost: the remote pad keeps counting, and its buttons work on its own copy. When this screen answers again, it takes the pad's timer. If the pad itself was offline, it takes this screen's timer instead.</li>
       <li>Two tabs in the same browser connect without the internet. Two devices need the internet, and connect through a service called PeerJS. This may not work on some school or office networks.</li>
     </ul>
     <h2>Share</h2>
@@ -658,7 +771,7 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
         <tr style="border-bottom:1px solid rgba(128,128,128,0.15)">
           <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>next</code></td>
           <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>Title:25,10</code></td>
-          <td style="padding:0.35rem 0 0.35rem 0.5rem">The queue. Each session is <code>name:minutes</code> (<code>Talk:25</code>) or only minutes (<code>25</code>), separated by commas: <code>Keynote:40,Break:5,10</code>. A comma inside a name is written <code>\,</code>.</td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem">The queue. Sessions are separated by <code>|</code>; each is <code>name:minutes</code> (<code>Talk:25</code>), only minutes (<code>25</code>), or a countdown to a time of day (<code>Panel@14:30</code>): <code>Keynote:40|Break:5|Lunch@12:30</code>. A <code>|</code> in a name is written <code>\|</code>.</td>
         </tr>
         <tr style="border-bottom:1px solid rgba(128,128,128,0.15)">
           <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>theme</code></td>
@@ -675,63 +788,124 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
           <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>XXXXXX</code></td>
           <td style="padding:0.35rem 0 0.35rem 0.5rem">A six-letter remote code. The page opens as a remote pad instead of a timer. The <strong>remote</strong> button makes these links.</td>
         </tr>
+        <tr>
+          <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>host</code></td>
+          <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>XXXXXX</code></td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem">A six-letter remote code. The page opens as a new timer screen for that code and continues the timer. The small screen button on the remote pad makes these links.</td>
+        </tr>
       </tbody>
     </table>
-    <p style="margin-top:0.6rem">Example:<br><code>?mins=25&amp;label=Keynote&amp;next=Break:5,QA:10&amp;theme=dark&amp;sound=1</code></p>
+    <p style="margin-top:0.6rem">Example:<br><code>?mins=25&amp;label=Keynote&amp;next=Break:5|QA:10&amp;theme=dark&amp;sound=1</code></p>
   </div>
 </div>
 
 <!-- Remote host modal -->
 <div id="remote-modal" class="modal-overlay">
+  <!-- Two views, one at a time, so a device that came to join another timer
+       isn't shown a code of its own to confuse with the one it needs. -->
   <div class="modal-box">
-    <div class="modal-title">Remote control &#x2014; share this code</div>
-    <div id="remote-code-display">&#x2014;</div>
-    <div id="remote-qr"></div>
-    <div id="remote-url-text" style="display:none;font-size:10px;word-break:break-all;text-align:center;padding:0.4rem 0;color:var(--dim)"></div>
-    <div id="remote-status">waiting for connection&#x2026;</div>
-    <div style="display:flex;gap:0.5rem;margin-top:0.2rem">
-      <input type="text" id="op-msg-input" class="modal-input" placeholder="Operator message…" maxlength="40" style="flex:1;font-size:13px;padding:0.4rem 0.6rem">
-      <button class="modal-btn" id="op-msg-send" style="flex-shrink:0">Send</button>
-      <button class="modal-btn" id="op-msg-clear" style="flex-shrink:0">Clear</button>
+    <div id="remote-share-view" class="rm-view">
+      <div class="modal-title">Remote control &#x2014; share this code</div>
+      <div id="remote-code-display">&#x2014;</div>
+      <div id="remote-qr"></div>
+      <div id="remote-url-text" style="display:none;font-size:10px;word-break:break-all;text-align:center;padding:0.4rem 0;color:var(--dim)"></div>
+      <div id="remote-status">waiting for connection&#x2026;</div>
+      <div class="modal-actions">
+        <!-- One word each, so the four fit on one line even on a phone. -->
+        <button class="modal-btn" id="remote-open-tab" title="Open the remote in a new tab">Open</button>
+        <button class="modal-btn" id="remote-copy-url" title="Copy the remote link">Copy</button>
+        <button class="modal-btn danger" id="remote-stop">Stop</button>
+        <button class="modal-btn" id="remote-modal-close">Close</button>
+      </div>
+      <button class="rm-switch" id="remote-to-join">Control another timer instead &#x2192;</button>
     </div>
-    <div class="modal-actions">
-      <button class="modal-btn" id="remote-open-tab">Open remote</button>
-      <button class="modal-btn" id="remote-copy-url">Copy URL</button>
-      <button class="modal-btn danger" id="remote-stop">Stop</button>
-      <button class="modal-btn" id="remote-modal-close">Close</button>
+    <div id="remote-join-view" class="rm-view" hidden>
+      <div class="modal-title">Remote control &#x2014; join a timer</div>
+      <p class="rm-note">Type the code shown on the timer you want to control. This device becomes its remote.</p>
+      <div style="display:flex;gap:0.5rem">
+        <input type="text" id="remote-join-code" class="modal-input" maxlength="6" placeholder="Code" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Timer code" style="flex:1;text-transform:uppercase;letter-spacing:0.15em">
+        <button class="modal-btn" id="remote-join" style="flex:0 0 auto;padding:0 1.2rem">Join</button>
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn" id="remote-join-close">Close</button>
+      </div>
+      <button class="rm-switch" id="remote-to-share">&#x2190; Share this timer instead</button>
     </div>
   </div>
 </div>
 
 <!-- Remote pad (shown when ?rc=CODE) -->
+<!-- Blackout: covers the whole kiosk in the theme's background colour. The
+     timer runs on underneath; switched from the remote, or off with Esc. -->
+<div id="blackout" hidden></div>
+
 <div id="remote-pad">
-  <div id="remote-status-bar">connecting&#x2026;</div>
-  <div id="remote-label-display"></div>
-  <div id="remote-state-display">&#x2014;</div>
+  <div id="rc-top">
+    <div id="remote-status-bar">connecting&#x2026;</div>
+    <div class="rc-top-right">
+      <!-- The code, typed by hand when there's no QR code to scan. Enter
+           switches the pad to the timer with that code. -->
+      <input type="text" id="rc-code-input" class="rc-code" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="CODE" aria-label="Timer code">
+      <!-- Rarely needed (a lost kiosk), so a small icon beside the status. -->
+      <button id="rc-new-kiosk" class="rc-icon-btn" aria-label="New kiosk" title="New kiosk">&#x1F5A5;&#xFE0F;</button>
+    </div>
+  </div>
+  <!-- The time with the session's name right under it, as on the kiosk; the
+       block grows into spare height and stays centred in it. -->
+  <div id="rc-time">
+    <div id="remote-state-display">&#x2014;</div>
+    <div id="remote-label-display"></div>
+  </div>
+  <div id="rc-queue-display"></div>
   <div class="rc-grid">
-    <button class="rc-btn hi-start wide" data-rc="start">&#x25B6; Start</button>
-    <button class="rc-btn hi-pause wide" data-rc="pause">&#x23F8; Pause</button>
+    <button class="rc-btn hi-reset wide" data-rc="reset"><span class="ico ico-stop" aria-hidden="true"></span>Reset</button>
+    <!-- One button for start and pause: it follows the kiosk's state. -->
+    <button class="rc-btn hi-start wide" data-rc="toggle" id="rc-toggle"><span class="ico ico-play" aria-hidden="true"></span><span class="lbl">Start</span></button>
     <button class="rc-btn" data-rc="adj:-1">&#x2212;1m</button>
     <button class="rc-btn" data-rc="adj:1">+1m</button>
     <button class="rc-btn" data-rc="adj:-5">&#x2212;5m</button>
     <button class="rc-btn" data-rc="adj:10">+10m</button>
-    <button class="rc-btn hi-reset wide" data-rc="reset">&#x23F9; Reset</button>
-    <button class="rc-btn wide" data-rc="next">&#x23ED; Skip next</button>
-    <button class="rc-btn full" data-rc="bell">&#x1F514; Bell</button>
   </div>
-  <div style="width:100%;max-width:480px;display:flex;flex-direction:column;gap:0.4rem">
-    <div id="rc-queue-display" style="font-size:11px;letter-spacing:0.18em;color:var(--dim);text-transform:uppercase;min-height:1.2em;text-align:center"></div>
-    <div style="display:flex;gap:0.4rem">
-      <input type="text" id="rc-queue-input" placeholder="Queue: Talk:25,QA:10 …" autocomplete="off"
-        style="flex:1;background:rgba(128,128,128,0.1);border:1px solid var(--dim);color:var(--fg);
-               font-family:var(--font);font-size:11px;letter-spacing:0.1em;padding:0.5rem 0.6rem;
-               outline:none;text-transform:uppercase">
-      <button class="rc-btn" id="rc-queue-send" style="width:auto;padding:0.5rem 0.8rem;flex-shrink:0">Set</button>
+  <!-- The queue box holds the queue as it is, so editing it is a change and
+       Set; an empty box clears the queue. -->
+  <!-- On the grid: the box takes three columns and Set the fourth, so Set
+       lines up with +10m above it. -->
+  <div class="rc-grid">
+    <input type="text" id="rc-queue-input" class="rc-input span3" placeholder="No queue &#x2014; e.g. Talk:25|QA@14:30" autocomplete="off" aria-label="Queue">
+    <button class="rc-btn" id="rc-queue-send">Set</button>
+  </div>
+  <div class="rc-grid">
+    <!-- The queue's solid triangles, with U+FE0E so iOS keeps them as text
+         rather than drawing emoji. -->
+    <button class="rc-btn wide" data-rc="prev" id="rc-prev">&#x25C0;&#xFE0E; Prev</button>
+    <button class="rc-btn wide" data-rc="next" id="rc-next">&#x25B6;&#xFE0E; Next</button>
+    <button class="rc-btn wide" data-rc="black" id="rc-black">Black</button>
+    <button class="rc-btn wide" data-rc="bell"><span class="ico ico-bell" aria-hidden="true"></span>Bell</button>
+  </div>
+  <div class="rc-row">
+    <input type="text" id="rc-msg-input" class="rc-input" placeholder="Message to the kiosk&#x2026;" maxlength="40" autocomplete="off" aria-label="Message to the kiosk">
+  </div>
+  <div class="rc-row rc-row-btns">
+    <button class="rc-btn" id="rc-msg-clear">Clear</button>
+    <button class="rc-btn" id="rc-msg-send">Send</button>
+  </div>
+  <!-- A replacement kiosk, for when the timer screen is lost: it opens with
+       ?host=CODE, takes over this code, and this pad hands it the timer. -->
+  <div id="rc-kiosk-modal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-title">New kiosk</div>
+      <p class="rc-note">Open this on the screen that should show the timer. It takes over from the old kiosk and carries on where it stopped.</p>
+      <div id="rc-kiosk-qr"></div>
+      <div id="rc-kiosk-url"></div>
+      <div class="modal-actions">
+        <button class="modal-btn" id="rc-kiosk-copy">Copy</button>
+        <button class="modal-btn" id="rc-kiosk-open">Open</button>
+        <button class="modal-btn" id="rc-kiosk-close">Close</button>
+      </div>
     </div>
   </div>
 </div>
 
-<div id="op-msg-overlay"><div id="op-msg-box"></div></div>
 
 <script>
 'use strict';
@@ -744,15 +918,32 @@ const usp          = new URLSearchParams(location.search);
 const toMins       = v => { const n = Math.floor(+v); return n >= 1 && n <= 999 ? n : 0; };
 const DEFAULT_MINS = toMins(usp.get('mins')) || 10;
 const URL_LABEL    = usp.get('label') ?? '';
-// nextQueue: {label:string, mins:number}[]  — label may be ''
-// Entries split on commas not escaped as "\,", and minutes follow the last
-// colon, so a label may hold either ("Q&A: panel\, part 2:10").
-const parseNextStr = str => str.split(/(?<!\\),/).map(s => {
-  s = s.trim(); if (!s) return null;
+// ── Queue notation ──────────────────────────────────
+// nextQueue: {label, mins} | {label, at:'HH:MM'} — label may be ''.
+// Written as sessions separated by "|": "name:minutes", "minutes",
+// "name@HH:MM" or "@HH:MM" (a countdown to that time of day). Minutes follow
+// the last colon, so names may hold colons and commas; a "|" in a name is
+// written "\|". This is the one reader and the one writer: URLs, share links,
+// the queue window and the remote's queue box all go through them.
+const p2 = n => String(n).padStart(2, '0'); // (pad() isn't defined yet here)
+const AT_RE = /@\s*(\d{1,2}):(\d{2})\s*$/;
+const parseEntry = raw => {
+  const s = raw.trim(); if (!s) return null;
+  const at = s.match(AT_RE);
+  if (at) {
+    const h = +at[1], m = +at[2];
+    return h <= 23 && m <= 59 ? {label: s.slice(0, at.index).trim().slice(0, 32), at: `${p2(h)}:${p2(m)}`} : null;
+  }
   const col = s.lastIndexOf(':');
-  if (col > 0) { const mins = toMins(s.slice(col+1)); return mins ? {label: s.slice(0,col).trim().replaceAll('\\,', ',').slice(0,32), mins} : null; }
-  const mins = toMins(s); return mins ? {label:'', mins} : null;
-}).filter(Boolean);
+  if (col > 0) { const mins = toMins(s.slice(col+1)); return mins ? {label: s.slice(0, col).trim().slice(0, 32), mins} : null; }
+  const mins = toMins(s); return mins ? {label: '', mins} : null;
+};
+const parseNextStr = str =>
+  str.split(/(?<!\\)\|/).map(x => parseEntry(x.replaceAll('\\|', '|'))).filter(Boolean);
+const entryStr = e => (e.label ? String(e.label).replaceAll('|', '\\|') : '') + (e.at ? '@' + e.at : (e.label ? ':' : '') + e.mins);
+const queueStr = q => q.map(entryStr).join('|');
+// How a queued session's length reads in a list: minutes, or "@HH:MM".
+const entryTime = e => e.at ? '@' + e.at : p2(e.mins) + ':00';
 const URL_NEXT_ITEMS = parseNextStr(usp.get('next') ?? '');
 const URL_THEME    = usp.get('theme') ?? '';
 const URL_SOUND    = usp.has('sound') ? +usp.get('sound') : -1;
@@ -801,7 +992,13 @@ let soundMode = 0, bellRecord = null;
 let nextQueue = URL_NEXT_ITEMS.length ? URL_NEXT_ITEMS.slice() : [{label:'', mins:10}];
 let untilTarget = null, untilLabel = '';
 let watchMode = false;
-let kioskMode = false;
+let kioskMode = false, kioskByRemote = false, blackout = false;
+// Blackout covers the screen (in the theme's background colour) without
+// touching the timer, so changes made from the remote don't show until it lifts.
+function setBlackout(on) { blackout = !!on; $('blackout').hidden = !blackout; }
+// Lifted on the kiosk itself (Esc, double tap, double click): tell the remote.
+function liftBlackout() { setBlackout(false); remoteTransport?.send(stateSnap()); }
+let lastCoverTap = 0;
 const DEFAULT_PRESETS = [
   {label:'5 min',mins:5},{label:'10 min',mins:10},{label:'25 min',mins:25},
   {label:'',mins:0},{label:'',mins:0},
@@ -817,6 +1014,7 @@ let longPressTid = null, wakeLock = null;
 // (a queue of plain numbers), hand-edited, or garbage. Each field is checked
 // on its own, so one bad field costs that field and not the rest.
 const toEntry = e => typeof e === 'number' ? (toMins(e) ? {label:'', mins:toMins(e)} : null)
+  : e && typeof e === 'object' && typeof e.at === 'string' ? parseEntry((typeof e.label === 'string' ? e.label.replaceAll('@', '') : '') + '@' + e.at)
   : e && typeof e === 'object' && toMins(e.mins) ? {label: typeof e.label === 'string' ? e.label.slice(0,32) : '', mins: toMins(e.mins)} : null;
 let p = {};
 try { p = JSON.parse(localStorage.getItem('tick_prefs') ?? '{}') ?? {}; } catch {}
@@ -905,7 +1103,8 @@ const absSec   = () => Math.floor(Date.now() / 1000);
 const COLON_RE = /:/g;
 const withColons = s => s.replace(COLON_RE, '<span class="colon">:</span>');
 const isTouchDev = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-const startHint  = () => (isTouchDev || hasTouched) ? 'tap to start' : 'click or enter to start';
+// A kiosk run from a remote is started from the remote: no hint to click.
+const startHint  = () => kioskByRemote ? '' : (isTouchDev || hasTouched) ? 'tap to start' : 'click or enter to start';
 const stateFor = rem => rem < 0 ? 'ot' : (warnSecs2 > 0 && rem <= warnSecs2) ? 'warn2' : (firstWarnSecs() > 0 && rem <= firstWarnSecs()) ? 'warn' : 'run';
 
 function fmt(secs) {
@@ -946,7 +1145,6 @@ function renderSessionQueue() {
   sessionQueue.innerHTML = '';
   // Queued items — grouped block, left-aligned within a centred container
   if (nextQueue.length) {
-    const fmtQ = m => pad(m) + ':00';
     // "NEXT" header row — clickable, opens queue modal
     const header = document.createElement('div');
     header.className = 'sq-item sq-next-header';
@@ -958,13 +1156,13 @@ function renderSessionQueue() {
     nextQueue.forEach(entry => {
       const row = document.createElement('div');
       row.className = 'sq-item sq-queued';
-      row.textContent = '\u25B6 ' + fmtQ(entry.mins) + (entry.label ? '\u2002' + entry.label : '');
+      row.textContent = '\u25B6 ' + entryTime(entry) + (entry.label ? '\u2002' + entry.label : '');
       row.addEventListener('click', e => { e.stopPropagation(); openNextModal(); });
       block.appendChild(row);
     });
     block.addEventListener('click', e => { e.stopPropagation(); openNextModal(); });
     sessionQueue.appendChild(block);
-    btnNext.textContent = '\u25B6 queue: ' + nextQueue.map(e => fmtQ(e.mins)).join(',');
+    btnNext.textContent = '\u25B6 queue: ' + nextQueue.map(entryTime).join(' ');
   } else {
     btnNext.textContent = '\u25B6 queue: \u2014';
   }
@@ -1138,16 +1336,47 @@ btnTick.addEventListener('click', e => { e.stopPropagation(); isManualOpen() ? c
 // Reset hide timer whenever pointer moves within the toolbar
 toolbar.addEventListener('pointermove', () => { clearTimeout(tbTid); tbTid = setTimeout(hideToolbar, 5000); });
 
+// Sessions that have handed over to the next one, most recent last, so the
+// remote's Prev can step back. A countdown to a time of day isn't a session
+// the queue could hold, so it isn't kept. In memory only, and bounded.
+let prevSessions = [];
+const PREV_MAX = 50;
+const currentSession = () => ({label: customLabel, mins: toMins(totalSecs / 60)});
+
 function loadNextTimer(silent) {
   if (!nextQueue.length) return false;
+  if (!untilTarget && currentSession().mins) prevSessions = [...prevSessions, currentSession()].slice(-PREV_MAX);
   // A loaded slot waits in 'next' until started; callers that want it running
   // call startTimer(), which would be a no-op if the old timer still ran.
   running = false; lastRenderedSec = null;
   exitUntilMode(); const entry = nextQueue.shift();
+  customLabel = entry.label || '';
+  if (entry.at) {
+    // "@HH:MM": a countdown to that time of day, which runs from the start.
+    const [h, m] = entry.at.split(':').map(Number);
+    savePrefs(); enterUntilMode(nextUntilMs(h, m), '\u25B6 ' + entry.at);
+    renderSessionQueue(); if (!silent) playPing();
+    return true;
+  }
   totalSecs = entry.mins*60; remaining = resumeVal = totalSecs; bellRecord = null;
-  customLabel = entry.label || ''; savePrefs();
+  savePrefs();
   applyState('next'); renderSessionQueue(); renderDigits(remaining);
   if (!silent) playPing();
+  return true;
+}
+
+// Back to the session before: it loads ready to start, as Next does, and the
+// current session goes back to the front of the queue, so Next undoes Prev.
+function loadPrevTimer() {
+  if (!prevSessions.length) return false;
+  const entry = prevSessions.at(-1);
+  prevSessions = prevSessions.slice(0, -1);
+  if (!untilTarget && currentSession().mins) nextQueue = [currentSession(), ...nextQueue];
+  running = false; lastRenderedSec = null;
+  exitUntilMode();
+  totalSecs = entry.mins*60; remaining = resumeVal = totalSecs; bellRecord = null;
+  customLabel = entry.label || ''; savePrefs();
+  applyState('next'); renderSessionQueue(); renderDigits(remaining); playPing();
   return true;
 }
 
@@ -1265,7 +1494,7 @@ function copyShareUrl() {
   p.set('mins', Math.max(1, Math.round(totalSecs/60)));
   if (customLabel) p.set('label', customLabel);
   if (nextQueue.length) {
-    const nextStr = nextQueue.map(e => e.label ? `${e.label.replaceAll(',', '\\,')}:${e.mins}` : e.mins).join(',');
+    const nextStr = queueStr(nextQueue);
     p.set('next', nextStr);
   }
   p.set('theme', document.body.classList.contains('light') ? 'light' : 'dark');
@@ -1312,9 +1541,11 @@ function buildQueueRow(entry, idx) {
   labelInp.value = entry.label;
 
   const minsInp = document.createElement('input');
-  minsInp.type = 'number'; minsInp.className = 'modal-input qr-mins';
-  minsInp.placeholder = 'min'; minsInp.min = 1; minsInp.max = 999;
-  minsInp.value = entry.mins || '';
+  // Minutes, or "@HH:MM" for a countdown to a time of day.
+  minsInp.type = 'text'; minsInp.className = 'modal-input qr-mins';
+  minsInp.placeholder = 'min'; minsInp.title = 'Minutes, or @HH:MM for a time of day';
+  minsInp.autocomplete = 'off'; minsInp.spellcheck = false;
+  minsInp.value = entry.at ? '@' + entry.at : (entry.mins || '');
 
   const del = document.createElement('button');
   del.className = 'qr-del'; del.textContent = '×';
@@ -1396,10 +1627,13 @@ function rebuildQueueList() {
 }
 
 function collectQueueRows() {
-  return [...$('queue-list').querySelectorAll('.qr-row')].map(row => ({
-    label: row.querySelector('.qr-label').value.trim(),
-    mins:  Math.min(999, Math.max(1, parseInt(row.querySelector('.qr-mins').value, 10) || 1)),
-  }));
+  return [...$('queue-list').querySelectorAll('.qr-row')].map(row => {
+    const label = row.querySelector('.qr-label').value.trim().slice(0, 32);
+    const v = row.querySelector('.qr-mins').value.trim();
+    const at = /^@?\s*\d{1,2}:\d{2}$/.test(v) ? parseEntry('@' + v.replace('@', '')) : null;
+    return at ? {label, at: at.at}
+      : {label, mins: Math.min(999, Math.max(1, parseInt(v, 10) || 1))};
+  });
 }
 
 const openNextModal = () => {
@@ -1413,10 +1647,10 @@ const closeNextModal = () => closeModal('next-modal');
 
 function nextCommit() {
   customLabel = $('queue-current-label').value.trim();
-  nextQueue = collectQueueRows().filter(e => e.mins > 0);
+  nextQueue = collectQueueRows().filter(e => e.mins > 0 || e.at);
   setPrefOwn('customLabel', 'nextQueue');
   closeNextModal(); savePrefs(); renderSessionQueue(); applyState(uiState);
-  showHint(customLabel || (nextQueue.length ? `next: ${nextQueue.map(e=>e.label||e.mins+'m').join(', ')}` : 'queue set'));
+  showHint(customLabel || (nextQueue.length ? `next: ${nextQueue.map(e=>e.label||entryTime(e)).join(', ')}` : 'queue set'));
 }
 
 wireBtn('queue-add', () => {
@@ -1534,14 +1768,21 @@ document.addEventListener('webkitfullscreenchange', onFsChange);
 
 function enterKiosk() {
   kioskMode = true;
+  // Kiosk hides the menu anyway; closing it too means the first Escape
+  // leaves kiosk mode instead of closing a menu nobody can see.
+  hideToolbar();
   document.body.classList.add('kiosk');
   if (!isIOS) fsEnter(document.documentElement);
+  // Fullscreen needs a click, so a kiosk entered because a remote connected
+  // doesn't get it, nor the wake lock that comes with it. Ask for that here.
+  if (!wakeLock) navigator.wakeLock?.request('screen').then(wl => { wakeLock = wl; }).catch(() => {});
   $('btn-fullscreen').textContent = 'exit';
 }
 function exitKiosk() {
   kioskMode = false;
   document.body.classList.remove('kiosk');
   if (fsEl()) fsLeave();
+  wakeLock?.release(); wakeLock = null;
   $('btn-fullscreen').textContent = 'kiosk';
 }
 const toggleKiosk = () => kioskMode ? exitKiosk() : enterKiosk();
@@ -1566,7 +1807,7 @@ const showHint  = msg => { statusHint.textContent=msg; statusHint.classList.add(
 const showSwipe = icon => { swipeEl.textContent=icon; swipeEl.classList.add('show'); clearTimeout(swipeTid); swipeTid=setTimeout(()=>swipeEl.classList.remove('show'),700); };
 
 // ── Touch ─────────────────────────────────────────────
-const isUIChrome = el => !!(el.closest('#remote-pad')||el.closest('#session-queue')||el.closest('#toolbar')||el.closest('#top-bar')||el.closest('#manual')||el.closest('.modal-overlay')||el.closest('#btn-menu')||el.closest('#btn-tick')||el.closest('#menu-backdrop'));
+const isUIChrome = el => !!(el.closest('#blackout')||el.closest('#remote-pad')||el.closest('#session-queue')||el.closest('#toolbar')||el.closest('#top-bar')||el.closest('#manual')||el.closest('.modal-overlay')||el.closest('#btn-menu')||el.closest('#btn-tick')||el.closest('#menu-backdrop'));
 
 document.addEventListener('touchstart', e => {
   if (IS_REMOTE) return;
@@ -1585,6 +1826,14 @@ document.addEventListener('touchend', e => {
   // Reset isTouching after the synthetic mouse-click window (~300 ms) so real
   // mouse users on hybrid devices aren't locked out permanently.
   setTimeout(() => { isTouching = false; }, 400);
+  // On the cover, taps reach nothing underneath; a double tap lifts it, for a
+  // kiosk with no keyboard whose remote is gone.
+  if (e.target.closest('#blackout')) {
+    e.preventDefault();
+    const now = Date.now();
+    if (now - lastCoverTap < 380) { lastCoverTap = 0; liftBlackout(); } else lastCoverTap = now;
+    return;
+  }
   if (isUIChrome(e.target)) return;
   e.preventDefault();
   const x=e.changedTouches[0].clientX, y=e.changedTouches[0].clientY;
@@ -1640,6 +1889,8 @@ document.addEventListener('keydown', e => {
     case 'Enter':     e.preventDefault(); keyBuf ? kbCommit() : (fullReset(DEFAULT_MINS),startTimer()); break;
     case ' ':         e.preventDefault(); clearKeyBuf(); remaining<0 ? (nextQueue.length ? loadNextTimer() : fullReset(DEFAULT_MINS), startTimer()) : running ? pauseTimer() : startTimer(); break;
     case 'Escape':    clearKeyBuf();
+      // A blackout lifts first, so a kiosk can't be left covered if its remote is gone.
+      if (blackout) { liftBlackout(); break; }
       if (toolbar.classList.contains('visible')) { hideToolbar(); break; }
       untilTarget ? (exitUntilMode(),running=false,applyState('idle')) : watchMode ? exitWatchMode() : kioskMode ? exitKiosk() : fsEl()&&fsLeave(); break;
     case 'ArrowUp':   e.preventDefault(); adjustMinutes(10);  break;
@@ -1745,20 +1996,26 @@ const haptic = () => { try { navigator.vibrate?.(50); } catch {} };
 //   HOST  — the timer page; accepts commands, broadcasts state
 //   REMOTE— opened with ?rc=CODE; shows control pad, sends commands
 
-const RC_PARAM  = usp.get('rc');         // present → remote pad mode
-const IS_REMOTE = !!RC_PARAM;
+// ?rc=CODE opens the remote pad. ?rc with no code, or a code that can't be
+// one, still opens the pad, waiting for a code to be typed into its bar.
+const CODE_RE   = /^[A-HJ-NP-Z2-9]{6}$/;
+const RC_PARAM  = CODE_RE.test((usp.get('rc') ?? '').toUpperCase()) ? usp.get('rc').toUpperCase() : '';
+// ?host=CODE: a replacement kiosk, opened from a pad whose kiosk was lost.
+// It takes over CODE and waits for the pad to hand it the timer.
+const HOST_PARAM = CODE_RE.test((usp.get('host') ?? '').toUpperCase()) ? usp.get('host').toUpperCase() : '';
+let awaitingRestore = !!HOST_PARAM;
+const IS_REMOTE = usp.has('rc');
+const padUrl = code => `${location.origin}${location.pathname}?rc=${code}`;
 
 // ── QR code — online only (uses external API) ─────────────────────
-function renderQR(rcUrl) {
-  const qrEl  = $('remote-qr');
-  const urlEl = $('remote-url-text');
+function renderQR(rcUrl, qrEl = $('remote-qr'), urlEl = $('remote-url-text'), size = 320) {
   urlEl.textContent = rcUrl;
   if (navigator.onLine) {
     qrEl.style.display  = ''; urlEl.style.display = 'none'; qrEl.innerHTML = '';
     const img = document.createElement('img');
-    img.width = 160; img.height = 160; img.alt = 'QR';
+    img.width = size; img.height = size; img.alt = 'QR';
     img.style.cssText = 'image-rendering:pixelated;border:4px solid #fff;display:block';
-    img.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(rcUrl)}`;
+    img.src = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(rcUrl)}`;
     img.onerror = () => { qrEl.style.display='none'; urlEl.style.display=''; };
     qrEl.appendChild(img);
   } else {
@@ -1775,7 +2032,10 @@ function makeCode() {
 
 // ── State snapshot sent host→remote ───────────────────────────────
 function stateSnap() {
-  return { type:'state', uiState, remaining, totalSecs, customLabel, running, nextQueue: nextQueue.slice() };
+  return { type:'state', uiState, remaining, totalSecs, customLabel, running, nextQueue: nextQueue.slice(),
+    untilTarget, untilLabel, fresh: awaitingRestore, prevCount: prevSessions.length,
+    warn1: firstWarnSecs(), warn2: warnSecs2, black: blackout,
+    elapsed: T0_ABSSEC === null ? null : absSec() - T0_ABSSEC };
 }
 
 // ── Remote transport abstraction ───────────────────────────────────
@@ -1833,11 +2093,17 @@ function makePeerTransport(code, isRemote, onReady, onFail) {
         conn.on('close', () => { t._conns = t._conns.filter(c=>c!==conn); t.connected = t._conns.length > 0; });
       };
       if (isRemote) {
-        peer.on('open', () => { const conn = peer.connect('tick-' + code, {reliable:true}); wireConn(conn); });
+        // A pad dials the kiosk; if the kiosk is lost it dials again, which
+        // reaches a replacement kiosk that has taken over the same code.
+        t.reconnect = () => { if (!t._conns.length && peer.open) wireConn(peer.connect('tick-' + code, {reliable:true})); };
+        peer.on('open', () => t.reconnect());
       } else {
         peer.on('connection', wireConn);
       }
       peer.on('error', e => { if (!t.connected) onFail(String(e)); });
+      // Back online after a drop: rejoin the broker, so the other side can
+      // be reached again without reloading either page.
+      window.addEventListener('online', () => { if (peer.disconnected && !peer.destroyed) peer.reconnect(); });
       peer.on('open', () => onReady(t));
     } catch(e) { onFail(String(e)); }
   };
@@ -1849,8 +2115,13 @@ function broadcastState() {
   remoteTransport?.send(stateSnap());
 }
 
+function showRemoteView(view) {
+  $('remote-share-view').hidden = view !== 'share';
+  $('remote-join-view').hidden  = view !== 'join';
+}
 function openRemoteModal() {
   if (IS_REMOTE) return;
+  showRemoteView('share');
   if (!rcHostCode) rcHostCode = makeCode();
   const rcUrl = `${location.origin}${location.pathname}?rc=${rcHostCode}`;
 
@@ -1878,7 +2149,8 @@ function updateRemoteStatus(state, extra) {
   }[state] ?? state;
 }
 
-let rcGeneration = 0;
+let rcGeneration = 0, rcHeartbeat = null;
+const RC_HEARTBEAT_MS = 2000;
 function startHostTransports() {
   if (remoteTransport) return; // already running
   const gen = ++rcGeneration;
@@ -1887,6 +2159,12 @@ function startHostTransports() {
   const bc = makeBCTransport(rcHostCode, false);
   bc.onmessage = msg => handleHostMessage(msg, bc);
   remoteTransport = { send(m){bc.send(m);}, close(){bc.close();} };
+  // Announce, for a pad already waiting on this code (a replacement kiosk),
+  // and keep a heartbeat: a pad that hears nothing for a while says the
+  // kiosk is gone, which it can't learn any other way over BroadcastChannel.
+  bc.send({type:'hostHello'});
+  clearInterval(rcHeartbeat);
+  rcHeartbeat = setInterval(() => remoteTransport?.send(stateSnap()), RC_HEARTBEAT_MS);
 
   // PeerJS (WebRTC) — cross-computer; upgrades to composite when peer connects
   makePeerTransport(rcHostCode, false,
@@ -1908,11 +2186,22 @@ const seenCmdIds = new Set();
 function handleHostMessage(msg, _transport) {
   if (!msg || typeof msg !== 'object') return;
   if (msg.type === 'hello' || msg.type === '_peerOpen') {
+    // The first remote to connect turns this screen into the kiosk. Losing
+    // the remote later leaves it that way: the audience screen shouldn't
+    // suddenly sprout buttons because a phone went to sleep.
+    if (!rcHostConnected) {
+      closeModal('remote-modal');
+      if (!kioskMode) enterKiosk();
+      kioskByRemote = true; applyState(uiState); // drop the "click to start" hint
+    }
     rcHostConnected = true;
     updateRemoteStatus('connected');
     remoteTransport?.send(stateSnap());
     return;
   }
+  // A pad that kept the timer while it couldn't reach this kiosk (or that is
+  // handing a new kiosk the timer) sends its version, and it wins.
+  if (msg.type === 'sync') { applySync(msg.snap); remoteTransport?.send(stateSnap()); return; }
   if (msg.type === 'cmd') {
     if (typeof msg.cmd !== 'string') return;
     if (msg.id) {
@@ -1920,75 +2209,99 @@ function handleHostMessage(msg, _transport) {
       seenCmdIds.add(msg.id);
       if (seenCmdIds.size > 200) seenCmdIds.delete(seenCmdIds.values().next().value);
     }
+    // Once a pad has driven this kiosk, a late hand-over would undo that.
+    awaitingRestore = false;
     execRemoteCmd(msg.cmd);
     setTimeout(() => remoteTransport?.send(stateSnap()), 50);
   }
   if (msg.type === 'opMsg') {
-    showOpMsg(msg.text);
+    showOpMsg(typeof msg.text === 'string' ? msg.text.slice(0, 40) : '');
   }
 }
 
+// The timer as a pad holds it, adopted whole: after the kiosk was lost (the
+// pad kept time meanwhile, so its version is the valid one), or by a new
+// kiosk taking over. Checked like any other input from a pad.
+function applySync(snap) {
+  if (!snap || typeof snap !== 'object') return;
+  awaitingRestore = false;
+  if (Array.isArray(snap.nextQueue)) nextQueue = snap.nextQueue.map(toEntry).filter(Boolean);
+  if (typeof snap.customLabel === 'string') customLabel = snap.customLabel.slice(0, 32);
+  if (typeof snap.black === 'boolean') setBlackout(snap.black);
+  // The session's elapsed time carries over too (a new kiosk counts on from it).
+  if (Number.isFinite(snap.elapsed) && snap.elapsed >= 0) { T0_ABSSEC = absSec() - Math.floor(snap.elapsed); lastSessionSec = -1; }
+  if (typeof snap.untilTarget === 'number' && snap.untilTarget > Date.now()) {
+    enterUntilMode(snap.untilTarget, String(snap.untilLabel ?? '').slice(0, 12));
+  } else if (Number.isFinite(snap.remaining)) {
+    running = false; exitUntilMode(); bellRecord = null;
+    const total = toMins(snap.totalSecs / 60); if (total) totalSecs = total * 60;
+    remaining = resumeVal = Math.max(-(99*60+59), Math.min(999*60, Math.round(snap.remaining)));
+    lastRenderedSec = null; bellRecord = null;
+    if (snap.running) startTimer();
+    else { applyState(remaining === totalSecs ? 'idle' : 'pause'); renderDigits(remaining); }
+  }
+  savePrefs(); renderSessionQueue(); applyState(uiState);
+}
+
 function execRemoteCmd(cmd) {
+  if (cmd === 'toggle') { running ? pauseTimer() : doMainAction(); return; }
   if (cmd === 'start') { if (!running) doMainAction(); return; }
   if (cmd === 'pause') { if (running) pauseTimer(); return; }
   if (cmd === 'reset') { fullReset(); return; }
   if (cmd === 'bell')  { playOTBell(); return; }
+  if (cmd === 'black') { setBlackout(!blackout); return; }
   if (cmd === 'next')  { if (nextQueue.length) { running=false; loadNextTimer(); } return; }
+  if (cmd === 'prev')  { loadPrevTimer(); return; }
   if (cmd.startsWith('adj:')) {
     const n = parseInt(cmd.slice(4), 10);
     if (Number.isFinite(n) && Math.abs(n) <= 999) adjustMinutes(n);
     return;
   }
   if (cmd.startsWith('setQueue:')) {
-    const raw = cmd.slice(9);
-    // Format: "Current Title|Slot1:25,Slot2:10" — pipe separates current label from queue
-    const pipe = raw.indexOf('|');
     setPrefOwn('nextQueue');
-    if (pipe >= 0) {
-      customLabel = raw.slice(0, pipe).trim().slice(0, 32); setPrefOwn('customLabel');
-      nextQueue = parseNextStr(raw.slice(pipe + 1));
-    } else {
-      nextQueue = parseNextStr(raw);
-    }
+    nextQueue = parseNextStr(cmd.slice(9));
     savePrefs(); renderSessionQueue(); applyState(uiState);
     return;
   }
 }
 
-function stopRemote() {
-  rcGeneration++; rcHostConnected = false; rcQrUrl = '';
+function stopHosting() {
+  rcGeneration++; rcHostConnected = false; rcQrUrl = ''; clearInterval(rcHeartbeat);
   remoteTransport?.close(); remoteTransport = null; rcHostCode = '';
-  closeModal('remote-modal');
 }
+function stopRemote() { stopHosting(); closeModal('remote-modal'); }
 
 // ── Operator message ───────────────────────────────────────────────
 let opMsgTid = null;
+const OP_MSG_MS = 6000;
 function showOpMsg(text) {
-  const el = $('op-msg-overlay');
   clearTimeout(opMsgTid);
-  if (!text) { el.classList.remove('show'); return; }
-  $('op-msg-box').textContent = text;
-  el.classList.add('show');
-  opMsgTid = setTimeout(() => el.classList.remove('show'), 6000);
+  document.body.classList.remove('op-msg-on');
+  if (!text) return;
+  $('op-msg').textContent = text;
+  void document.body.offsetWidth; // restart the arrival flash for a new message
+  document.body.classList.add('op-msg-on');
+  opMsgTid = setTimeout(() => document.body.classList.remove('op-msg-on'), OP_MSG_MS);
 }
 
-wireBtn('op-msg-send', () => {
-  const inp = $('op-msg-input');
-  const text = inp.value.trim();
-  if (!text) return;
-  remoteTransport?.send({type:'opMsg', text});
-  inp.value = '';
-  inp.focus();
-  showHint('MSG SENT');
-});
-wireBtn('op-msg-clear', () => {
-  $('op-msg-input').value = '';
-  remoteTransport?.send({type:'opMsg', text:''});
-});
-$('op-msg-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') { e.preventDefault(); $('op-msg-send').click(); }
-});
 
+// Join: open the remote pad for a code typed here. Checked here so a typo
+// says so instead of opening a pad that waits for nobody.
+const joinAsRemote = () => {
+  const inp = $('remote-join-code'), code = inp.value.trim().toUpperCase();
+  if (!CODE_RE.test(code)) { inp.focus(); inp.select(); showHint('Not a timer code'); return; }
+  stopRemote(); location.href = padUrl(code);
+};
+wireBtn('remote-join', joinAsRemote);
+// To the join view: this device is about to be a remote, so it stops offering
+// a code of its own — unless a remote is already connected to it.
+wireBtn('remote-to-join', () => {
+  if (!rcHostConnected) stopHosting();
+  showRemoteView('join'); $('remote-join-code').focus();
+});
+wireBtn('remote-to-share', () => openRemoteModal());
+wireBtn('remote-join-close', () => closeModal('remote-modal'));
+$('remote-join-code').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); joinAsRemote(); } });
 wireBtn('remote-stop',        stopRemote);
 wireBtn('remote-modal-close', () => closeModal('remote-modal'));
 wireBtn('remote-open-tab',    () => window.open(`${location.origin}${location.pathname}?rc=${rcHostCode}`, '_blank'));
@@ -2019,7 +2332,12 @@ if (IS_REMOTE) {
   // Hide main UI
   app.style.display         = 'none';
   toolbar.style.display     = 'none';
-  $('top-bar').style.display = 'none';
+  // The kiosk's top line, elapsed time left and clock right, reused as is:
+  // moved into the pad under its status bar. The clock is this device's; the
+  // elapsed time is the kiosk's, from its snapshots.
+  const topBar = $('top-bar');
+  $('remote-pad').insertBefore(topBar, $('rc-top').nextSibling);
+  topBar.classList.add('in-pad');
 
   const statusBar  = $('remote-status-bar');
   const stateDisp  = $('remote-state-display');
@@ -2033,32 +2351,46 @@ if (IS_REMOTE) {
 
   function rcApplyState(snap) {
     stateDisp.textContent = fmt(snap.remaining);
+    stateDisp.classList.toggle('local', kioskLost());
     stateDisp.style.color = STATE_COLORS[snap.uiState] ?? 'var(--c-fg)';
-    labelDisp.textContent = snap.customLabel || snap.uiState.toUpperCase();
-    // Show queue on remote pad
+    // The colour already says running, paused or overtime; the line above
+    // the time is for the session's name, and stays empty without one.
+    labelDisp.textContent = snap.customLabel || '';
+    // The queue, as the kiosk shows it: a NEXT heading, then one row per
+    // session with its length and name. Built from text nodes only — names
+    // come from whoever set the queue.
     const qd = $('rc-queue-display');
-    if (qd && snap.nextQueue?.length) {
-      qd.textContent = snap.nextQueue.map(e => e.label || fmt(e.mins*60)).join(' › ');
-    } else if (qd) { qd.textContent = ''; }
-    // Highlight action buttons based on state
-    document.querySelectorAll('.rc-btn[data-rc="start"]').forEach(b => {
-      b.className = b.className.replace(/hi-\w+/,'') + ' hi-' + (snap.running ? 'run' : 'start');
-    });
+    qd.replaceChildren();
+    if (Array.isArray(snap.nextQueue) && snap.nextQueue.length) {
+      const head = document.createElement('div'); head.className = 'rc-q-head'; head.textContent = 'Next';
+      qd.append(head);
+      for (const e of snap.nextQueue) {
+        const row = document.createElement('div'); row.className = 'rc-q-row';
+        row.textContent = '\u25B6\uFE0E ' + entryTime(e) + (e.label ? '\u2002' + e.label : '');
+        qd.append(row);
+      }
+    }
+    // The queue box: written in the same form the box reads (and a share
+    // link uses), unless it is being edited.
+    if (!rcQueueDirty && document.activeElement !== rcQueueInput && Array.isArray(snap.nextQueue))
+      rcQueueInput.value = queueStr(snap.nextQueue);
+    // Black is lit while the kiosk is covered.
+    $('rc-black').classList.toggle('on', !!snap.black);
+    $('rc-black').setAttribute('aria-pressed', String(!!snap.black));
+    // Prev and Next are greyed out when there's nowhere to go.
+    $('rc-prev').disabled = !snap.prevCount || kioskLost(); // the history lives on the kiosk
+    $('rc-next').disabled = !(snap.nextQueue?.length);
+    // Start and pause share one button, which says what a press will do.
+    const tg = $('rc-toggle');
+    tg.querySelector('.ico').className = 'ico ' + (snap.running ? 'ico-pause' : 'ico-play');
+    tg.querySelector('.lbl').textContent = snap.running ? 'Pause' : 'Start';
+    tg.classList.toggle('hi-pause', !!snap.running);
+    tg.classList.toggle('hi-start', !snap.running);
   }
 
   function rcSetStatus(s, msg) {
     statusBar.textContent = msg;
     statusBar.className   = s === 'conn' ? 'conn' : s === 'err' ? 'err' : '';
-  }
-
-  let rcOpMsgTid = null;
-  function rcShowOpMsg(text) {
-    const el = $('op-msg-overlay');
-    clearTimeout(rcOpMsgTid);
-    if (!text) { el.classList.remove('show'); return; }
-    $('op-msg-box').textContent = text;
-    el.classList.add('show');
-    rcOpMsgTid = setTimeout(() => el.classList.remove('show'), 6000);
   }
 
   let rcTransport = null;
@@ -2068,6 +2400,8 @@ if (IS_REMOTE) {
   let rcCmdSeq = 0;
   const rcCmdBase = Math.random().toString(36).slice(2, 8);
   function sendCmd(cmd) {
+    // While the kiosk is lost, this pad's copy is the timer: commands act on it.
+    if (kioskLost()) { localCmd(cmd); return; }
     rcTransport?.send({type:'cmd', cmd, id: `${rcCmdBase}-${++rcCmdSeq}`});
   }
 
@@ -2076,16 +2410,160 @@ if (IS_REMOTE) {
   });
 
   // Queue edit from remote
+  // The queue box follows the kiosk's queue until someone starts editing it;
+  // Set sends it back, and an empty box clears the queue.
   const rcQueueSend = $('rc-queue-send'), rcQueueInput = $('rc-queue-input');
-  if (rcQueueSend && rcQueueInput) {
-    const sendQueue = () => {
-      const raw = rcQueueInput.value.trim(); if (!raw) return;
-      haptic(); sendCmd('setQueue:' + raw); rcQueueInput.value = '';
-      showHint('QUEUE SENT');
-    };
-    rcQueueSend.addEventListener('click', sendQueue);
-    rcQueueInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendQueue(); } });
+  let rcQueueDirty = false;
+  rcQueueInput.addEventListener('input', () => { rcQueueDirty = true; });
+  const sendQueue = () => {
+    haptic(); sendCmd('setQueue:' + rcQueueInput.value.trim());
+    rcQueueDirty = false; rcQueueInput.blur();
+  };
+  rcQueueSend.addEventListener('click', sendQueue);
+  rcQueueInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendQueue(); } });
+
+  // Operator message: typed here, shown on the kiosk for the presenter.
+  const rcMsgInput = $('rc-msg-input');
+  const sendMsg = text => { haptic(); rcTransport?.send({type:'opMsg', text}); };
+  $('rc-msg-send').addEventListener('click', () => {
+    const text = rcMsgInput.value.trim(); if (!text) return;
+    sendMsg(text); rcMsgInput.value = '';
+  });
+  $('rc-msg-clear').addEventListener('click', () => { rcMsgInput.value = ''; sendMsg(''); });
+  rcMsgInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('rc-msg-send').click(); } });
+
+  // New kiosk: a link and QR code that open a replacement timer screen.
+  const kioskUrl = `${location.origin}${location.pathname}?host=${RC_PARAM}`;
+  // The code field: shows this pad's code; Enter on another code switches to
+  // that timer (a fresh page, so nothing of the old connection lingers).
+  const codeInput = $('rc-code-input');
+  codeInput.value = RC_PARAM;
+  codeInput.addEventListener('input', () => {
+    codeInput.value = codeInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    codeInput.classList.toggle('bad', codeInput.value.length === 6 && !CODE_RE.test(codeInput.value));
+  });
+  codeInput.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const code = codeInput.value.trim().toUpperCase();
+    if (!CODE_RE.test(code)) { codeInput.classList.add('bad'); return; }
+    if (code !== RC_PARAM) location.href = padUrl(code);
+  });
+  $('rc-new-kiosk').disabled = !RC_PARAM;
+  $('rc-new-kiosk').addEventListener('click', () => {
+    haptic();
+    $('rc-kiosk-url').textContent = kioskUrl;
+    renderQR(kioskUrl, $('rc-kiosk-qr'), $('rc-kiosk-url'), 400);
+    $('rc-kiosk-url').style.display = ''; // the link shows with the QR, for copying by eye
+    openModal('rc-kiosk-modal');
+  });
+  wireBtn('rc-kiosk-close', () => closeModal('rc-kiosk-modal'));
+  wireBtn('rc-kiosk-open', () => window.open(kioskUrl, '_blank'));
+  wireBtn('rc-kiosk-copy', () => (navigator.clipboard?.writeText(kioskUrl) ?? Promise.reject()).catch(() => {}));
+  backdropClose('rc-kiosk-modal', () => closeModal('rc-kiosk-modal'));
+
+  // ── The pad's copy of the timer ──────────────────────────────────
+  // The last state the kiosk sent (model) and when (modelAt); a running count
+  // moves on from there by the clock. While the kiosk answers, it is a view
+  // of the kiosk. While the kiosk is lost, it is the timer: it keeps counting,
+  // the buttons act on it, and when the kiosk answers again it is sent over
+  // and wins — the kiosk was the one out of touch. Except when this pad knows
+  // it was itself offline: then the kiosk's timer wins, and the pad adopts it.
+  let model = null, modelAt = 0, lastHeardAt = 0, peerT = null, padWasOffline = false;
+  const KIOSK_LOST_MS = 6000; // three missed heartbeats
+  const kioskLost = () => rcHeard && Date.now() - lastHeardAt >= KIOSK_LOST_MS;
+  const modelRemaining = () => !model ? 0
+    : model.untilTarget ? Math.round((model.untilTarget - Date.now()) / 1000)
+    : model.running ? model.remaining - Math.floor((Date.now() - modelAt) / 1000)
+    : model.remaining;
+  const rebase = () => {
+    const moved = Math.floor((Date.now() - modelAt) / 1000);
+    model = {...model, remaining: modelRemaining(), elapsed: Number.isFinite(model.elapsed) ? model.elapsed + moved : model.elapsed};
+    modelAt = Date.now();
+  };
+  // The state's name, worked out here while the kiosk can't say it.
+  const localUi = rem => model.untilTarget ? (rem < 0 ? 'ot' : 'until')
+    : rem < 0 ? 'ot'
+    : !model.running ? (rem === model.totalSecs ? 'idle' : 'pause')
+    : (model.warn2 > 0 && rem <= model.warn2) ? 'warn2'
+    : (model.warn1 > 0 && rem <= model.warn1) ? 'warn' : 'run';
+  // The next session taken into the pad's copy, as the kiosk would load it.
+  const loadLocal = (m, e) => {
+    const [h, mm] = (e.at ?? '').split(':').map(Number);
+    return e.at
+      ? Object.assign(m, {customLabel: e.label || '', untilTarget: nextUntilMs(h, mm), untilLabel: '\u25B6 ' + e.at, running: true})
+      : Object.assign(m, {customLabel: e.label || '', totalSecs: e.mins*60, remaining: e.mins*60, untilTarget: null, untilLabel: ''});
+  };
+  function localCmd(cmd) {
+    if (!model) return;
+    rebase();
+    const m = model, untilOn = !!m.untilTarget;
+    if (cmd === 'toggle' || cmd === 'start' || cmd === 'pause') {
+      if (!untilOn) m.running = cmd === 'start' ? true : cmd === 'pause' ? false : !m.running;
+    if (m.running && !Number.isFinite(m.elapsed)) m.elapsed = 0; // a first start begins the session
+    } else if (cmd.startsWith('adj:')) {
+      const n = parseInt(cmd.slice(4), 10);
+      if (Number.isFinite(n) && m.running && !untilOn) m.remaining = Math.max(-(99*60+59), m.remaining + n*60);
+    } else if (cmd === 'reset') {
+      Object.assign(m, {running: false, remaining: m.totalSecs, untilTarget: null, untilLabel: '', elapsed: null});
+    } else if (cmd === 'next' && m.nextQueue?.length) {
+      const [e, ...rest] = m.nextQueue;
+      Object.assign(m, {nextQueue: rest, running: false, uiState: 'next'});
+      loadLocal(m, e);
+    } else if (cmd.startsWith('setQueue:')) {
+      m.nextQueue = parseNextStr(cmd.slice(9));
+    } else if (cmd === 'black') {
+      m.black = !m.black; // takes effect on the kiosk with the sync when it's back
+    }
+    rcRender();
   }
+  // Drawn from the copy four times a second, so the count runs smoothly and
+  // carries on by itself when the kiosk stops answering.
+  function rcRender() {
+    if (!model) return;
+    let rem = modelRemaining();
+    if (kioskLost() && model.running && !model.untilTarget && rem < 0 && model.nextQueue?.length) {
+      // Time ran out with the kiosk away: hand over to the next session here,
+      // as the kiosk would have.
+      const [e, ...rest] = model.nextQueue;
+      model = loadLocal({...model, nextQueue: rest}, e);
+      modelAt = Date.now(); rem = modelRemaining();
+    }
+    rcApplyState({...model, remaining: rem, uiState: kioskLost() ? localUi(rem) : model.uiState});
+    // Elapsed time since the session started, moved on by the clock like the count.
+    sessionEl.textContent = Number.isFinite(model.elapsed) ? fmt(model.elapsed + Math.floor((Date.now() - modelAt) / 1000)) : '00:00';
+  }
+  setInterval(rcRender, 250);
+  function rcOnState(msg) {
+    const wasLost = kioskLost();
+    // Hand our copy over instead of taking the kiosk's: to a new kiosk taking
+    // over (fresh), or to a kiosk that was lost while this pad stayed online.
+    if (model && ((msg.fresh && !model.fresh) || (wasLost && !padWasOffline))) {
+      rebase();
+      rcTransport?.send({type:'sync', snap: model});
+      lastHeardAt = Date.now(); padWasOffline = false;
+      rcSetStatus('conn', 'Connected'); rcRender();
+      return; // the kiosk answers with its new state, which is ours
+    }
+    padWasOffline = false;
+    model = msg; modelAt = lastHeardAt = Date.now();
+    rcHeard = true; rcSetStatus('conn', 'Connected'); rcRender();
+  }
+  // This pad's own connection. Offline, it says so; whatever it does then is
+  // overruled by the kiosk once both can talk again.
+  window.addEventListener('offline', () => { padWasOffline = true; rcSetStatus('err', '\u26A0\uFE0F Offline'); });
+  window.addEventListener('online', () => { peerT?.reconnect?.(); });
+  function rcOnMessage(msg) {
+    if (!msg || typeof msg !== 'object') return;
+    if (msg.type === 'state') rcOnState(msg);
+    if (msg.type === '_peerOpen') { lastHeardAt = Date.now(); rcHeard = true; rcSetStatus('conn', 'Connected'); }
+    if (msg.type === 'hostHello') rcTransport?.send({type:'hello'});
+  }
+  setInterval(() => {
+    if (!kioskLost()) return;
+    rcSetStatus('err', padWasOffline ? '\u26A0\uFE0F Offline' : '\u26A0\uFE0F Kiosk lost');
+    peerT?.reconnect?.();
+  }, 1000);
 
   let rcHeard = false;
   function connectRemote() {
@@ -2094,19 +2572,13 @@ if (IS_REMOTE) {
 
     // Start BC immediately (same-browser)
     const bc = makeBCTransport(code, true);
-    bc.onmessage = msg => {
-      if (msg.type === 'state')  { rcHeard = true; rcSetStatus('conn', '\u2713 connected (local)'); rcApplyState(msg); }
-      if (msg.type === 'opMsg') { rcShowOpMsg(msg.text); }
-    };
+    bc.onmessage = rcOnMessage;
 
     // Try PeerJS for cross-computer
     makePeerTransport(code, true,
       t => {
-        t.onmessage = msg => {
-          if (msg.type === 'state')    { rcHeard = true; rcSetStatus('conn', '\u2713 connected'); rcApplyState(msg); }
-          if (msg.type === '_peerOpen'){ rcHeard = true; rcSetStatus('conn', '\u2713 connected'); }
-          if (msg.type === 'opMsg')   { rcShowOpMsg(msg.text); }
-        };
+        peerT = t;
+        t.onmessage = rcOnMessage;
         // Send over both. Closing BroadcastChannel here (as this once did)
         // lost the host for good if the WebRTC link to it then never opened;
         // the host runs each command once whichever way it arrives.
@@ -2118,22 +2590,28 @@ if (IS_REMOTE) {
       },
       err => {
         // PeerJS failed — BroadcastChannel only, so only this browser's tabs.
-        if (!rcHeard) rcSetStatus('', 'local mode (same browser only)');
+        if (!rcHeard) rcSetStatus('', 'This browser only');
       }
     );
 
     // Start with BC as default transport
     rcTransport = { send(msg){bc.send(msg);}, close(){bc.close();} };
     // rcTransport always exists by now, so "did anything answer" is the test.
-    setTimeout(() => { if (!rcHeard) rcSetStatus('err','no connection \u2014 check the code'); }, 8000);
+    setTimeout(() => { if (!rcHeard) rcSetStatus('err','\u26A0\uFE0F No connection'); }, 8000);
   }
 
-  connectRemote();
+  if (RC_PARAM) connectRemote();
+  else { rcSetStatus('', 'Enter a code'); codeInput.focus(); }
 }
 
 // No service worker: one registered from a blob: URL (the only way to keep
 // it inside this file) is refused by browsers, so offline means saving the
 // page. A real one would need a second file next to tick.html.
+
+$('blackout').addEventListener('dblclick', liftBlackout);
+
+// A replacement kiosk starts listening on its code straight away.
+if (HOST_PARAM && !IS_REMOTE) { rcHostCode = HOST_PARAM; startHostTransports(); }
 
 // ── Init ──────────────────────────────────────────────
 // The <meta name="version"> is the only copy of the version; CHANGELOG.md's

@@ -1,7 +1,7 @@
 import { test, expect, open, digits, settle, letStorageSettle, menu, freezeAt } from './fixtures';
 
 test('URL parameters set duration, label, queue, theme and sound', async ({ page }) => {
-	await open(page, '?mins=25&label=Keynote&next=Break:5,10&theme=light&sound=2');
+	await open(page, '?mins=25&label=Keynote&next=Break:5|10&theme=light&sound=2');
 	await expect(digits(page)).toHaveText('25:00');
 	await expect(page.locator('#session-label')).toHaveText('Keynote');
 	await expect(page.locator('.sq-queued')).toHaveCount(2);
@@ -105,7 +105,7 @@ test('the page is served with the security policy from vercel.json', async ({ pa
 	const csp = res!.headers()['content-security-policy'];
 	expect(csp).toContain("frame-ancestors 'none'");
 	expect(csp).toContain("object-src 'none'");
-	// The remote's third parties, and only those (see README § What leaves this machine).
+	// The remote's third parties, and only those (see README § External services).
 	expect(csp).toContain('https://cdn.jsdelivr.net');
 	expect(csp).toContain('https://api.qrserver.com');
 	expect(res!.headers()['x-frame-options']).toBe('DENY');
@@ -129,7 +129,7 @@ test("a share link's settings don't replace the user's own when something saves"
 });
 
 test('deleting a queue row keeps what was typed into the others', async ({ page }) => {
-	await open(page, '?next=A:5,B:10');
+	await open(page, '?next=A:5|B:10');
 	await page.keyboard.press('n');
 	await page.locator('.qr-label').first().fill('Keynote');
 	await page.locator('.qr-del').nth(1).click();

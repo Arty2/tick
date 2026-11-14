@@ -56,7 +56,7 @@ fi
 
 # ── 2. Every host the app contacts is named in the README ────────────────────
 # "Works offline" is only honest if the README lists what doesn't. A new
-# third-party call fails here until README § What leaves this machine says
+# third-party call fails here until README § External services says
 # what it is and what a user did to cause it.
 hosts=$(printf '%s\n' "$script" | grep -oE '(https?|stun|turn)s?:(//)?[A-Za-z0-9.-]+\.[A-Za-z]{2,}' \
 	| sed -E 's#^[a-z]+:(//)?##' | sort -u)
