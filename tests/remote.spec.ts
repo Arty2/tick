@@ -23,13 +23,16 @@ test('a remote pad in another tab starts, pauses and adjusts the host', async ({
 	await expect(pad.locator('#remote-status-bar')).toContainText(/connected/i);
 	await expect(page.locator('#remote-status')).toContainText(/connected/i);
 
-	await pad.locator('[data-rc="start"]').click();
+	await pad.locator('#rc-toggle').click();
 	await expect(digits(page)).toHaveClass(/s-run/);
 	await pad.locator('[data-rc="adj:10"]').click();
 	await page.clock.runFor(100);
 	await expect(digits(page)).toHaveText('30:00');
-	await pad.locator('[data-rc="pause"]').click();
+	await expect(pad.locator('#rc-toggle')).toHaveText('\u23F8 Pause'); // the start button became pause
+	await pad.locator('#rc-toggle').click();
 	await expect(page.locator('#label-text')).toHaveText('PAUSED');
+	await page.clock.runFor(600); // the kiosk's next update
+	await expect(pad.locator('#rc-toggle')).toHaveText('\u25B6 Start');
 });
 
 test('a command delivered twice (WebRTC and BroadcastChannel) runs once', async ({ page, context }) => {
@@ -41,7 +44,7 @@ test('a command delivered twice (WebRTC and BroadcastChannel) runs once', async 
 	const pad = await context.newPage();
 	await pad.goto('/tick.html?rc=' + code);
 	await pad.clock.runFor(200); // the pad says hello after 100 ms
-	await pad.locator('[data-rc="start"]').click();
+	await pad.locator('#rc-toggle').click();
 	await expect(digits(page)).toHaveClass(/s-run/);
 	await pad.evaluate((code) => {
 		const ch = new BroadcastChannel('tick-rc-' + code);
@@ -94,7 +97,7 @@ test.describe('on a touch screen', () => {
 		await pad.clock.runFor(200); // the pad says hello after 100 ms
 	await pad.clock.runFor(200); // the pad says hello after 100 ms
 		await expect(pad.locator('#remote-status-bar')).toContainText(/connected/i);
-		await pad.locator('[data-rc="start"]').tap();
+		await pad.locator('#rc-toggle').tap();
 		await expect(digits(page)).toHaveClass(/s-run/);
 	});
 });
@@ -130,7 +133,7 @@ test('a malformed adjustment from a pad is ignored', async ({ page, context }) =
 	const pad = await context.newPage();
 	await pad.goto('/tick.html?rc=' + code);
 	await pad.clock.runFor(200); // the pad says hello after 100 ms
-	await pad.locator('[data-rc="start"]').click();
+	await pad.locator('#rc-toggle').click();
 	await expect(digits(page)).toHaveClass(/s-run/);
 	await pad.evaluate((code) => new BroadcastChannel('tick-rc-' + code).postMessage({ type: 'cmd', cmd: 'adj:x', id: 'bad' }), code);
 	await page.clock.runFor(100);
@@ -155,7 +158,7 @@ test('the pad says Connected with a check mark, and shows no state name', async 
 	const pad = await context.newPage();
 	await pad.goto('/tick.html?rc=' + code);
 	await pad.clock.runFor(200);
-	await pad.locator('[data-rc="start"]').click();
+	await pad.locator('#rc-toggle').click();
 	await pad.clock.runFor(600);
 	await expect(pad.locator('#remote-status-bar')).toHaveText('\u2705 Connected');
 	await expect(pad.locator('#remote-label-display')).toHaveText('');
@@ -181,7 +184,7 @@ test('a lost kiosk is reported, and a new kiosk from the pad carries on the time
 	const pad = await context.newPage();
 	await pad.goto('/tick.html?rc=' + code);
 	await pad.clock.runFor(200);
-	await pad.locator('[data-rc="start"]').click();
+	await pad.locator('#rc-toggle').click();
 	await pad.clock.runFor(3_000); // 19:57 left, and the pad has heard so
 	await page.close();
 	await pad.clock.runFor(7_000); // three heartbeats missed
@@ -224,3 +227,26 @@ for (const width of [320, 390]) {
 		});
 	});
 }
+
+test('the pad lays out reset then start, and the message box on its own line over clear then send', async ({ page }) => {
+	await page.goto('/tick.html?rc=ABCDEF');
+	const grid = await page.locator('.rc-grid > .rc-btn').evaluateAll((bs) => bs.slice(0, 2).map((b) => [b.textContent, Math.round(b.getBoundingClientRect().top), Math.round(b.getBoundingClientRect().left)]));
+	expect(grid[0][0]).toContain('Reset');
+	expect(grid[1][0]).toContain('Start');
+	expect(grid[0][1]).toBe(grid[1][1]); // same row
+	expect(grid[0][2]).toBeLessThan(grid[1][2] as number); // reset on the left
+	const box = (id: string) => page.locator(id).boundingBox();
+	const [input, clear, send] = [await box('#rc-msg-input'), await box('#rc-msg-clear'), await box('#rc-msg-send')];
+	expect(clear!.y).toBeGreaterThanOrEqual(input!.y + input!.height); // buttons below the box
+	expect(clear!.y).toBe(send!.y);
+	expect(clear!.x).toBeLessThan(send!.x); // clear, then send
+});
+
+test('the pad shows the queue with each session’s length and name', async ({ page, context }) => {
+	const code = await hostWithRemote(page, '?mins=20&next=Break:5,QA:10,15');
+	const pad = await context.newPage();
+	await pad.goto('/tick.html?rc=' + code);
+	await pad.clock.runFor(200);
+	await expect(pad.locator('#rc-queue-display .rc-q-head')).toHaveText('Next');
+	await expect(pad.locator('#rc-queue-display .rc-q-row')).toHaveText(['\u25B6 05:00\u2002Break', '\u25B6 10:00\u2002QA', '\u25B6 15:00']);
+});

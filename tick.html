@@ -377,6 +377,9 @@ code{background:rgba(128,128,128,0.16);padding:0.08em 0.33em;font-family:var(--f
   padding:0.25em 0.7em;margin-bottom:0.4em;max-width:92vw;overflow-wrap:anywhere;
 }
 body.op-msg-on #op-msg{display:block;animation:op-in 0.9s ease-out}
+/* OVERTIME blinks; beside the band, its off beats looked like the band had
+   replaced it. It holds steady while a message shows. */
+body.op-msg-on #label-wrap.flash-off{opacity:1}
 @keyframes op-in{0%,30%,60%{filter:brightness(1.6)}15%,45%,100%{filter:none}}
 body.op-msg-on #timer-display{font-size:clamp(40px,min(18vw,26vh),220px)}
 body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),220px)}
@@ -411,13 +414,16 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
 }
 .rc-row{display:flex;gap:0.5rem;width:100%;max-width:640px}
 .rc-row .rc-btn{flex-shrink:0;padding-left:0.8rem;padding-right:0.8rem}
+.rc-row-btns .rc-btn{flex:1}
+#rc-queue-display .rc-q-head{color:var(--dim);font-size:0.85em}
+#rc-queue-display .rc-q-row{color:var(--c-next)}
 .rc-input{
   flex:1;min-width:0;background:rgba(128,128,128,0.1);border:1px solid var(--dim);color:var(--fg);
   font-family:var(--font);font-size:clamp(18px,4.5vw,26px);letter-spacing:0.04em;padding:0.5rem 0.6rem;
   outline:none;user-select:text;-webkit-user-select:text;
 }
 .rc-input:focus{border-color:var(--fg)}
-#rc-queue-display{font-size:clamp(14px,3.5vw,20px);letter-spacing:0.12em;color:var(--dim);text-transform:uppercase;min-height:1.2em;text-align:center}
+#rc-queue-display{font-size:clamp(16px,4vw,22px);letter-spacing:0.1em;text-transform:uppercase;line-height:1.45;text-align:left;align-self:center}
 #remote-pad .modal-box{width:min(560px,calc(100vw - 2rem));padding:1.4rem}
 #remote-pad .modal-title{font-size:22px}
 #remote-pad .modal-btn{font-size:clamp(18px,4.5vw,24px);padding:0.7rem 0.3rem;white-space:nowrap}
@@ -650,7 +656,7 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
     <h2>Remote control</h2>
     <ul>
       <li>The <strong>remote</strong> button shows a six-letter code and a QR code. Open the link or scan the code on another device to get a remote pad. This screen then changes to kiosk mode, and stays in it if the remote disconnects.</li>
-      <li>The remote pad shows the time left. Its buttons start, pause, reset, ring the bell, load the next session and change the time. On phones they vibrate.</li>
+      <li>The remote pad shows the time left and the queue. Its buttons reset, start or pause, ring the bell, load the next session and change the time. On phones they vibrate.</li>
       <li>A message typed on the remote pad appears on this screen for 6 seconds, on an orange band above the time. The time gets smaller while it shows. <strong>Clear</strong> removes it sooner.</li>
       <li>If this screen stops answering, the remote pad says <strong>Kiosk disconnected</strong>. Its <strong>Kiosk</strong> button shows a link and QR code for a new screen, which continues the timer.</li>
       <li>Two tabs in the same browser connect without the internet. Two devices need the internet, and connect through a service called PeerJS. This may not work on some school or office networks.</li>
@@ -730,21 +736,23 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
   <div id="remote-label-display"></div>
   <div id="remote-state-display">&#x2014;</div>
   <div class="rc-grid">
-    <button class="rc-btn hi-start wide" data-rc="start">&#x25B6; Start</button>
-    <button class="rc-btn hi-pause wide" data-rc="pause">&#x23F8; Pause</button>
+    <button class="rc-btn hi-reset wide" data-rc="reset">&#x23F9; Reset</button>
+    <!-- One button for start and pause: it follows the kiosk's state. -->
+    <button class="rc-btn hi-start wide" data-rc="toggle" id="rc-toggle">&#x25B6; Start</button>
     <button class="rc-btn" data-rc="adj:-1">&#x2212;1m</button>
     <button class="rc-btn" data-rc="adj:1">+1m</button>
     <button class="rc-btn" data-rc="adj:-5">&#x2212;5m</button>
     <button class="rc-btn" data-rc="adj:10">+10m</button>
-    <button class="rc-btn hi-reset wide" data-rc="reset">&#x23F9; Reset</button>
     <button class="rc-btn wide" data-rc="next">&#x23ED; Next</button>
     <button class="rc-btn wide" data-rc="bell">&#x1F514; Bell</button>
-    <button class="rc-btn wide" id="rc-new-kiosk">&#x1F5A5;&#xFE0F; Kiosk</button>
+    <button class="rc-btn full" id="rc-new-kiosk">&#x1F5A5;&#xFE0F; Kiosk</button>
   </div>
   <div class="rc-row">
-    <input type="text" id="rc-msg-input" class="rc-input" placeholder="Message&#x2026;" maxlength="40" autocomplete="off">
-    <button class="rc-btn" id="rc-msg-send">Send</button>
+    <input type="text" id="rc-msg-input" class="rc-input" placeholder="Message to the kiosk&#x2026;" maxlength="40" autocomplete="off">
+  </div>
+  <div class="rc-row rc-row-btns">
     <button class="rc-btn" id="rc-msg-clear">Clear</button>
+    <button class="rc-btn" id="rc-msg-send">Send</button>
   </div>
   <div id="rc-queue-display"></div>
   <div class="rc-row">
@@ -2017,6 +2025,7 @@ function applyRestore(snap) {
 }
 
 function execRemoteCmd(cmd) {
+  if (cmd === 'toggle') { running ? pauseTimer() : doMainAction(); return; }
   if (cmd === 'start') { if (!running) doMainAction(); return; }
   if (cmd === 'pause') { if (running) pauseTimer(); return; }
   if (cmd === 'reset') { fullReset(); return; }
@@ -2111,15 +2120,25 @@ if (IS_REMOTE) {
     // The colour already says running, paused or overtime; the line above
     // the time is for the session's name, and stays empty without one.
     labelDisp.textContent = snap.customLabel || '';
-    // Show queue on remote pad
+    // The queue, as the kiosk shows it: a NEXT heading, then one row per
+    // session with its length and name. Built from text nodes only — names
+    // come from whoever set the queue.
     const qd = $('rc-queue-display');
-    if (qd && snap.nextQueue?.length) {
-      qd.textContent = snap.nextQueue.map(e => e.label || fmt(e.mins*60)).join(' › ');
-    } else if (qd) { qd.textContent = ''; }
-    // Highlight action buttons based on state
-    document.querySelectorAll('.rc-btn[data-rc="start"]').forEach(b => {
-      b.className = b.className.replace(/hi-\w+/,'') + ' hi-' + (snap.running ? 'run' : 'start');
-    });
+    qd.replaceChildren();
+    if (Array.isArray(snap.nextQueue) && snap.nextQueue.length) {
+      const head = document.createElement('div'); head.className = 'rc-q-head'; head.textContent = 'Next';
+      qd.append(head);
+      for (const e of snap.nextQueue) {
+        const row = document.createElement('div'); row.className = 'rc-q-row';
+        row.textContent = '\u25B6 ' + fmt((+e.mins || 0) * 60) + (e.label ? '\u2002' + e.label : '');
+        qd.append(row);
+      }
+    }
+    // Start and pause share one button, which says what a press will do.
+    const tg = $('rc-toggle');
+    tg.textContent = snap.running ? '\u23F8 Pause' : '\u25B6 Start';
+    tg.classList.toggle('hi-pause', !!snap.running);
+    tg.classList.toggle('hi-start', !snap.running);
   }
 
   function rcSetStatus(s, msg) {

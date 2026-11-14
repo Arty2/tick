@@ -182,3 +182,20 @@ for (const [width, height] of [[1280, 720], [390, 844], [844, 390], [320, 568]] 
 		await expect.poll(() => page.locator('#timer-display').evaluate((d) => parseFloat(getComputedStyle(d).fontSize))).toBe(before);
 	});
 }
+
+test('in overtime, OVERTIME stays on screen and steady while a message shows', async ({ page }) => {
+	await page.addInitScript(() => localStorage.setItem('tick_prefs', JSON.stringify({ nextQueue: [] })));
+	await open(page, '?mins=1');
+	await page.keyboard.press('Space');
+	await page.clock.fastForward(64_000);
+	await page.clock.runFor(100);
+	await expect(page.locator('#label-text')).toHaveText('OVERTIME');
+	await sendOpMsg(page, 'Please wrap up');
+	await page.keyboard.press('Escape');
+	for (let i = 0; i < 3; i++) {
+		await page.clock.runFor(1_000); // through both beats of the blink
+		await expect(page.locator('#label-wrap')).toHaveCSS('opacity', '1');
+		await expect(page.locator('#label-wrap')).toBeInViewport();
+	}
+	await expect(page.locator('#op-msg')).toBeVisible();
+});
