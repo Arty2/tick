@@ -72,7 +72,21 @@ else
 	pass "every contacted host is named in README.md ($(echo "$hosts" | wc -w | tr -d ' '))" "network-hosts-documented"
 fi
 
-# ── 3. The changelog heads with the version tick.html declares ───────────────
+# ── 3. A third-party script is pinned by hash ────────────────────────────────
+# The one script loaded from elsewhere (PeerJS, for cross-device remote) runs
+# with the page's full authority. Without integrity, whoever controls that
+# CDN path controls the timer page.
+unpinned=$(printf '%s\n' "$script" | grep -E "\.src[[:space:]]*=[[:space:]]*'https://" | while IFS= read -r line; do
+	n=${line%%:*}
+	sed -n "${n},$((n + 6))p" "$APP" | grep -q 'integrity' || printf '%s\n' "$line"
+done)
+if [ -n "$unpinned" ]; then
+	fail "third-party script without an integrity hash" "$unpinned" "third-party-scripts-pinned"
+else
+	pass "third-party scripts carry an integrity hash" "third-party-scripts-pinned"
+fi
+
+# ── 4. The changelog heads with the version tick.html declares ───────────────
 # <meta name="version"> is the only copy of the number; the manual shows it.
 CHANGELOG="${CHANGELOG:-CHANGELOG.md}"
 heading_re='^## ([0-9]+\.[0-9]+\.[0-9]+) (—|–|-) ([0-9]{4}-[0-9]{2}-[0-9]{2})[[:space:]]*$'
@@ -94,7 +108,7 @@ headings are '## X.Y.Z — YYYY-MM-DD'" "changelog-heads-with-version"
 	fi
 fi
 
-# ── 4. Each release is short and plain ───────────────────────────────────────
+# ── 5. Each release is short and plain ───────────────────────────────────────
 # Overridable to test the failure path: CHANGELOG_MAX=1 pnpm run gates.
 CHANGELOG_MAX="${CHANGELOG_MAX:-6}"
 if [ -r "$CHANGELOG" ]; then
@@ -113,7 +127,7 @@ else
 	fail "$CHANGELOG is missing" "see above" "changelog-releases-short-and-plain"
 fi
 
-# ── 5. The instructions stay short ───────────────────────────────────────────
+# ── 6. The instructions stay short ───────────────────────────────────────────
 # Read in full every session; a long one gets skimmed. Raise on purpose.
 AGENTS_MAX="${AGENTS_MAX:-120}"
 if [ ! -r AGENTS.md ]; then

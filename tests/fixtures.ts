@@ -6,10 +6,11 @@ import { test as base, expect, type Page } from '@playwright/test';
  * because some third-party host answered is a test of that host. Anything
  * off-origin is aborted and recorded; `offsite` lets a test assert on it.
  * Console errors and uncaught exceptions are collected the same way, and a
- * test fails at the end if there were any it didn't expect.
+ * test fails at the end if there were any it didn't expect — a test that
+ * expects one removes it from `errors` after asserting on it.
  */
 export const test = base.extend<{ offsite: string[]; errors: string[] }>({
-	offsite: async ({ context }, use) => {
+	offsite: [async ({ context }, use) => {
 		const hits: string[] = [];
 		await context.route(
 			(url) => url.hostname !== 'localhost',
@@ -19,8 +20,11 @@ export const test = base.extend<{ offsite: string[]; errors: string[] }>({
 			}
 		);
 		await use(hits);
-	},
-	errors: async ({ page }, use) => {
+	}, { auto: true }],
+	// auto: set up for every test, not only those that name the fixture —
+	// Playwright skips a fixture nobody asks for, which once left most of
+	// the suite with the network open and console errors unchecked.
+	errors: [async ({ page }, use) => {
 		const errors: string[] = [];
 		page.on('pageerror', (e) => errors.push(String(e)));
 		page.on('console', (m) => {
@@ -29,7 +33,7 @@ export const test = base.extend<{ offsite: string[]; errors: string[] }>({
 		});
 		await use(errors);
 		expect(errors, 'console errors or uncaught exceptions').toEqual([]);
-	}
+	}, { auto: true }]
 });
 export { expect };
 

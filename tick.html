@@ -764,21 +764,27 @@ let touchX0 = 0, touchY0 = 0, touchT0 = 0, lastTapT = 0;
 let longPressTid = null, wakeLock = null;
 
 // ── Prefs ─────────────────────────────────────────────
-try {
-  const p = JSON.parse(localStorage.getItem('tick_prefs') ?? '{}');
-  if (URL_THEME === 'light' || (!URL_THEME && p.theme === 'light'))
-    document.body.classList.add('light');
-  soundMode = URL_SOUND >= 0 ? URL_SOUND : (p.sound ?? 0);
-  if (!URL_NEXT_ITEMS.length && Array.isArray(p.nextQueue) && p.nextQueue.length) {
-    // Migrate old format (number[]) or load new object format
-    nextQueue = p.nextQueue.map(e => typeof e === 'number' ? {label:'', mins:e} : e).filter(e => e.mins > 0);
-    if (!nextQueue.length) nextQueue = [{label:'', mins:10}];
-  }
-  if (Array.isArray(p.presets) && p.presets.length === 5) presets = p.presets;
-  if (typeof p.warnSecs1 === 'number') warnSecs1 = p.warnSecs1;
-  if (typeof p.warnSecs2 === 'number') warnSecs2 = p.warnSecs2;
-  if (!URL_LABEL && typeof p.customLabel === 'string') customLabel = p.customLabel;
-} catch {}
+// Saved data is migrated, not trusted: it may be an older version's shape
+// (a queue of plain numbers), hand-edited, or garbage. Each field is checked
+// on its own, so one bad field costs that field and not the rest.
+const toMins  = v => { const n = Math.floor(+v); return n >= 1 && n <= 999 ? n : 0; };
+const toEntry = e => typeof e === 'number' ? (toMins(e) ? {label:'', mins:toMins(e)} : null)
+  : e && typeof e === 'object' && toMins(e.mins) ? {label: typeof e.label === 'string' ? e.label.slice(0,32) : '', mins: toMins(e.mins)} : null;
+let p = {};
+try { p = JSON.parse(localStorage.getItem('tick_prefs') ?? '{}') ?? {}; } catch {}
+if (typeof p !== 'object') p = {};
+if (URL_THEME === 'light' || (!URL_THEME && p.theme === 'light'))
+  document.body.classList.add('light');
+soundMode = [0,1,2].includes(URL_SOUND) ? URL_SOUND : [0,1,2].includes(p.sound) ? p.sound : 0;
+// A saved queue wins over the first-visit default even when empty: the user
+// cleared it, and it shouldn't come back as a 10-minute slot on reload.
+if (!URL_NEXT_ITEMS.length && Array.isArray(p.nextQueue)) nextQueue = p.nextQueue.map(toEntry).filter(Boolean);
+if (Array.isArray(p.presets) && p.presets.length === 5)
+  presets = p.presets.map(e => toEntry(e) ?? {label:'', mins:0});
+const toWarn = v => typeof v === 'number' && v >= 0 && v <= 7200 ? Math.floor(v) : null;
+warnSecs1 = toWarn(p.warnSecs1) ?? warnSecs1;
+warnSecs2 = toWarn(p.warnSecs2) ?? warnSecs2;
+if (!URL_LABEL && typeof p.customLabel === 'string') customLabel = p.customLabel;
 
 const savePrefs = () => { try { localStorage.setItem('tick_prefs', JSON.stringify({
   theme: document.body.classList.contains('light') ? 'light' : 'dark',
@@ -982,7 +988,11 @@ let lastSessionSec = -1, lastWallSec = -1, lastWatchMin = '', lastColonBit = -1;
         applyState(st);
         // On first OT transition, auto-advance to next queued session
         if (st === 'ot' && nextQueue.length) {
-          loadNextTimer(); startTimer(); return;
+          // loadNextTimer() stops the clock, so startTimer() starts the new
+          // slot from now. Keep scheduling: returning here once stopped the
+          // loop, and with it every redraw, for good.
+          loadNextTimer(); startTimer();
+          requestAnimationFrame(loop); return;
         }
       }
       checkAutoSound(); renderDigits(rem); renderSessionQueue();
@@ -1060,6 +1070,9 @@ toolbar.addEventListener('pointermove', () => { clearTimeout(tbTid); tbTid = set
 
 function loadNextTimer(silent) {
   if (!nextQueue.length) return false;
+  // A loaded slot waits in 'next' until started; callers that want it running
+  // call startTimer(), which would be a no-op if the old timer still ran.
+  running = false; lastRenderedSec = -1;
   exitUntilMode(); const entry = nextQueue.shift(); savePrefs();
   totalSecs = entry.mins*60; remaining = resumeVal = totalSecs; bellRecord = null;
   customLabel = entry.label || '';
@@ -1517,9 +1530,14 @@ document.addEventListener('wheel', e => { e.preventDefault(); if (!running||unti
 
 // ── Keyboard ──────────────────────────────────────────
 document.addEventListener('keydown', e => {
+  // A modal field that handled the key (Enter to save, Escape to cancel)
+  // closes its modal first, so without this the same press reached the
+  // shortcuts below too: Enter in any modal restarted the timer.
+  if (e.defaultPrevented || IS_REMOTE) return;
   if (isAnyModalOpen()) { if (e.key==='Escape') { e.preventDefault(); document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open')); } return; }
   if (editingLabel) { if (e.key==='Enter'||e.key==='Escape') { e.preventDefault(); endLabelEdit(); } return; }
   if (isManualOpen()) { if (e.key==='Escape') { e.preventDefault(); closeManual(); } return; }
+  if (e.target instanceof Element && e.target.matches('input, textarea, select')) return;
   if (e.ctrlKey||e.metaKey) {
     if (e.key==='Enter')                         { e.preventDefault(); if(nextQueue.length){running=false;loadNextTimer();} return; }
     if (e.key==='ArrowUp')                       { e.preventDefault(); loadPresetByDirection(-1); return; }
@@ -1704,7 +1722,12 @@ function makeBCTransport(code, isRemote) {
 // ── PeerJS WebRTC transport ────────────────────────────────────────
 function makePeerTransport(code, isRemote, onReady, onFail) {
   const script = document.createElement('script');
-  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js';
+  // jsDelivr's npm mirror serves the published package byte for byte, so the
+  // hash can be checked against `npm pack peerjs@1.5.4`. A changed file is
+  // refused by the browser rather than run with this page's authority.
+  script.src = 'https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js';
+  script.integrity = 'sha384-nlUQ8ZqCbvStErob+biJNzSgltf6urV3VGqhfIfzhmg9RXmpeRm76ELw0pYnKlTR';
+  script.crossOrigin = 'anonymous';
   script.onerror = () => onFail('PeerJS load failed');
   script.onload = () => {
     try {
@@ -1771,8 +1794,10 @@ function updateRemoteStatus(state, extra) {
   }[state] ?? state;
 }
 
+let rcGeneration = 0;
 function startHostTransports() {
   if (remoteTransport) return; // already running
+  const gen = ++rcGeneration;
 
   // BroadcastChannel — assign immediately so hello messages get answered
   const bc = makeBCTransport(rcHostCode, false);
@@ -1782,6 +1807,9 @@ function startHostTransports() {
   // PeerJS (WebRTC) — cross-computer; upgrades to composite when peer connects
   makePeerTransport(rcHostCode, false,
     t => {
+      // Stopped (or restarted) while PeerJS was loading: this peer belongs
+      // to a code nobody is using any more.
+      if (gen !== rcGeneration) { t.close(); return; }
       t.onmessage = msg => handleHostMessage(msg, t);
       remoteTransport = {
         send(m) { bc.send(m); t.send(m); },
@@ -1792,13 +1820,21 @@ function startHostTransports() {
   );
 }
 
+const seenCmdIds = new Set();
 function handleHostMessage(msg, _transport) {
+  if (!msg || typeof msg !== 'object') return;
   if (msg.type === 'hello' || msg.type === '_peerOpen') {
     updateRemoteStatus('connected');
     remoteTransport?.send(stateSnap());
     return;
   }
   if (msg.type === 'cmd') {
+    if (typeof msg.cmd !== 'string') return;
+    if (msg.id) {
+      if (seenCmdIds.has(msg.id)) return;
+      seenCmdIds.add(msg.id);
+      if (seenCmdIds.size > 200) seenCmdIds.delete(seenCmdIds.values().next().value);
+    }
     execRemoteCmd(msg.cmd);
     setTimeout(() => remoteTransport?.send(stateSnap()), 50);
   }
@@ -1831,6 +1867,7 @@ function execRemoteCmd(cmd) {
 
 function stopRemote() {
   $('remote-modal')._cleanupNet?.();
+  rcGeneration++;
   remoteTransport?.close(); remoteTransport = null; rcHostCode = '';
   closeModal('remote-modal');
 }
@@ -1941,8 +1978,12 @@ if (IS_REMOTE) {
 
   let rcTransport = null;
 
+  // Commands go over every open transport (WebRTC and BroadcastChannel), so
+  // a pad in the same browser reaches the host twice; the id lets it run once.
+  let rcCmdSeq = 0;
+  const rcCmdBase = Math.random().toString(36).slice(2, 8);
   function sendCmd(cmd) {
-    rcTransport?.send({type:'cmd', cmd});
+    rcTransport?.send({type:'cmd', cmd, id: `${rcCmdBase}-${++rcCmdSeq}`});
   }
 
   document.querySelectorAll('.rc-btn[data-rc]').forEach(btn => {
@@ -2003,36 +2044,9 @@ if (IS_REMOTE) {
   connectRemote();
 }
 
-// ── Service worker (offline / PWA) ───────────────────────────────────
-// Registers an inline SW via blob URL. Works when served over HTTPS;
-// silently skipped on file:// (which is fine — the file is already self-contained).
-if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-  const swSrc = `
-    const CACHE = 'tick-v1';
-    self.addEventListener('install', e => {
-      self.skipWaiting();
-      e.waitUntil(caches.open(CACHE).then(c => c.add('.')));
-    });
-    self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
-    self.addEventListener('fetch', e => {
-      if (e.request.method !== 'GET') return;
-      e.respondWith(caches.open(CACHE).then(cache =>
-        cache.match(e.request).then(cached => {
-          const net = fetch(e.request).then(res => {
-            if (res.ok) cache.put(e.request, res.clone());
-            return res;
-          }).catch(() => cached);
-          return cached ?? net;
-        })
-      ));
-    });
-  `;
-  try {
-    const blob = new Blob([swSrc], {type: 'text/javascript'});
-    navigator.serviceWorker.register(URL.createObjectURL(blob), {scope: '/'})
-      .catch(() => {}); // silently ignore scope/security errors
-  } catch {}
-}
+// No service worker: one registered from a blob: URL (the only way to keep
+// it inside this file) is refused by browsers, so offline means saving the
+// page. A real one would need a second file next to tick.html.
 
 // ── Init ──────────────────────────────────────────────
 // The <meta name="version"> is the only copy of the version; CHANGELOG.md's

@@ -58,6 +58,14 @@ starts with nothing below the line.
 
 <!-- Newest entries go directly below this line. -->
 
+## 2026-11-14 — A Playwright fixture nobody names never runs
+
+The fixtures that abort off-site requests and fail on console errors were
+plain fixtures, so they only ran in tests that happened to name them; most
+of the suite ran with the network open and errors unchecked, and review
+caught it, not a test. Fixed with `{ auto: true }`. If osseus ever grows a
+shared e2e fixture for the same job, it should be auto from the start.
+
 ## 2026-11-14 — Long fake-clock runs need fastForward, not runFor
 
 The timer redraws on `requestAnimationFrame`, and Playwright's `page.clock.runFor`

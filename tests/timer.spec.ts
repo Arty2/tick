@@ -1,15 +1,14 @@
 import { test, expect, open, digits, label, settle } from './fixtures';
 
-test('opens idle at the default duration, and asks for nothing off-site', async ({ page, offsite, errors }) => {
+test('opens idle at the default duration, and asks for nothing off-site', async ({ page, offsite }) => {
 	await open(page);
 	await expect(digits(page)).toHaveText('10:00');
 	await expect(digits(page)).toHaveClass(/s-idle/);
 	await settle(page);
 	expect(offsite).toEqual([]);
-	void errors;
 });
 
-test('space starts and pauses; the count follows the clock', async ({ page, errors }) => {
+test('space starts and pauses; the count follows the clock', async ({ page }) => {
 	await open(page, '?mins=25');
 	await page.keyboard.press('Space');
 	await page.clock.runFor(3000);
@@ -19,10 +18,9 @@ test('space starts and pauses; the count follows the clock', async ({ page, erro
 	await expect(label(page)).toHaveText('PAUSED');
 	await page.clock.runFor(5000);
 	await expect(digits(page)).toHaveText('24:57');
-	void errors;
 });
 
-test('typed digits set the minutes, arrows adjust a running timer', async ({ page, errors }) => {
+test('typed digits set the minutes, arrows adjust a running timer', async ({ page }) => {
 	await open(page);
 	await page.keyboard.type('7');
 	await expect(page.locator('#key-buffer')).toContainText('7');
@@ -34,10 +32,9 @@ test('typed digits set the minutes, arrows adjust a running timer', async ({ pag
 	await page.keyboard.press('ArrowDown'); // -5
 	await page.clock.runFor(100);
 	await expect(digits(page)).toHaveText('13:00');
-	void errors;
 });
 
-test('warning colours at the two thresholds, then overtime counts up in red', async ({ page, errors }) => {
+test('warning colours at the two thresholds, then overtime counts up in red', async ({ page }) => {
 	await open(page, '?mins=3');
 	// A first visit queues one 10-minute slot, which would take over at zero.
 	await page.keyboard.press('n');
@@ -52,12 +49,9 @@ test('warning colours at the two thresholds, then overtime counts up in red', as
 	await expect(digits(page)).toHaveClass(/s-ot/);
 	await expect(label(page)).toHaveText('OVERTIME');
 	await expect(digits(page)).toHaveText('+00:05');
-	void errors;
 });
 
-// Known bug, found while writing this: at zero the next slot loads but never
-// starts — startTimer() returns early because the timer is still running.
-test.fail('the queue loads and starts the next slot when time runs out', async ({ page, errors }) => {
+test('the queue loads and starts the next slot when time runs out', async ({ page }) => {
 	await open(page, '?mins=1&label=Talk&next=Break:2,QA:5');
 	await expect(page.locator('#session-label')).toHaveText('Talk');
 	await expect(page.locator('.sq-queued')).toHaveText(['▶ 02:00 Break', '▶ 05:00 QA']);
@@ -66,22 +60,38 @@ test.fail('the queue loads and starts the next slot when time runs out', async (
 	await expect(page.locator('#session-label')).toHaveText('Break');
 	await expect(page.locator('.sq-queued')).toHaveText(['▶ 05:00 QA']);
 	await page.clock.fastForward(2_000);
-	await expect(digits(page)).toHaveClass(/s-run/);
-	void errors;
+	// Running, and already inside the 120 s default warning for a 2-minute slot.
+	await expect(digits(page)).toHaveClass(/s-warn\b/);
+	await expect(digits(page)).toHaveText('01:58');
+	// The redraw loop survived the hand-over (it once stopped for good here).
+	await page.clock.runFor(3_000);
+	await expect(digits(page)).toHaveText('01:55');
 });
 
-test('ctrl+enter skips to the next queued slot', async ({ page, errors }) => {
+test('enter in a modal saves the modal and leaves a running timer alone', async ({ page }) => {
+	await open(page, '?mins=20&next=Break:5');
+	await page.keyboard.press('Space');
+	await page.clock.runFor(2_000);
+	await page.keyboard.press('n');
+	await page.locator('#queue-current-label').fill('Opening');
+	await page.locator('#queue-current-label').press('Enter');
+	await expect(page.locator('#session-label')).toHaveText('Opening');
+	await page.keyboard.press('w');
+	await page.locator('#warn1-input').press('Enter');
+	await page.clock.runFor(1_000);
+	await expect(digits(page)).toHaveText('19:57');
+	await expect(digits(page)).toHaveClass(/s-run/);
+});
+
+test('ctrl+enter skips to the next queued slot', async ({ page }) => {
 	await open(page, '?mins=25&next=Break:5');
 	await page.keyboard.press('Space');
 	await page.keyboard.press('Control+Enter');
 	await expect(digits(page)).toHaveText('05:00');
 	await expect(digits(page)).toHaveClass(/s-next/);
-	void errors;
 });
 
-// Known bug, found while writing this: Enter in the target modal also reaches
-// the page's own Enter (restart at the default duration), undoing the target.
-test.fail('target mode defaults to the next half hour and counts down to it', async ({ page, errors }) => {
+test('target mode defaults to the next half hour and counts down to it', async ({ page }) => {
 	await open(page, '', '2026-11-14T10:12:00');
 	await page.keyboard.press('u');
 	await expect(page.locator('#until-hour')).toHaveValue('10');
@@ -90,14 +100,12 @@ test.fail('target mode defaults to the next half hour and counts down to it', as
 	await page.clock.runFor(100);
 	await expect(digits(page)).toHaveText('18:00');
 	await expect(digits(page)).toHaveClass(/s-until|s-run/);
-	void errors;
 });
 
-test('end resets to the starting duration', async ({ page, errors }) => {
+test('end resets to the starting duration', async ({ page }) => {
 	await open(page, '?mins=4');
 	await page.keyboard.press('Space');
 	await page.clock.fastForward(10_000);
 	await page.keyboard.press('End');
 	await expect(digits(page)).toHaveText('04:00');
-	void errors;
 });

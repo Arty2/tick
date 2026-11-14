@@ -32,7 +32,7 @@ Or serve it from anywhere — it's one file with no external dependencies at loa
 - Dark and light themes
 
 ![The same timer in the light theme](./screenshots/ticker-screenshot_02.png)
-- Works offline, installable as a PWA
+- Works offline: save the page and open it from disk
 
 ---
 
@@ -193,9 +193,9 @@ Ring on demand with `` ` `` or long-press the sound button.
 
 ---
 
-## Offline / PWA
+## Offline
 
-The app works from `file://` with no network. On HTTPS hosts, an inline service worker caches it for offline use. It can be installed as a PWA from the browser.
+The app works from `file://` with no network: save `tick.html` and open it from disk. Served from a web host it is an ordinary page, so it needs the connection to load; there is no service worker, because it would have to be a second file. It can still be added to a phone's home screen, where it opens without the browser bar.
 
 ---
 
@@ -208,7 +208,7 @@ Clicking **remote** makes these requests, and only these:
 | Host | What for |
 |---|---|
 | `api.qrserver.com` | Draws the QR code. The remote URL (with its room code) is sent to it. Skipped when offline; the URL is shown as text instead. |
-| `cdnjs.cloudflare.com` | Downloads the PeerJS library for cross-device remote. |
+| `cdn.jsdelivr.net` | Downloads the PeerJS library for cross-device remote, checked against a pinned hash. |
 | `0.peerjs.com` | PeerJS's public broker, which introduces the two devices to each other. |
 | `stun.l.google.com`, `stun1.l.google.com` | STUN servers that help the two devices find a direct route. |
 
