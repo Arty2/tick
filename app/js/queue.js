@@ -53,11 +53,12 @@ export const toEntry = e => {
 };
 
 // ── A queue row, as the kiosk and the remote pad both list it ─────────
-//   BREAK  [triangle] 05:00
-//   WRAP   [triangle and bar] 30:00 [23:30]   — the time left, then the target
-// Two cells: the name, and the rest. The list lays the cells out in columns
-// (see .sq-queued in tick.css), so the icons stand under one another whatever
-// the names' lengths. Built from text nodes: names come from links and pads.
+//       BREAK [triangle] 05:00
+//        WRAP [triangle and bar] 30:00 [23:30]   — the time left, then the target
+// Three cells: the name, the icon, the time. The list lays them out in
+// columns (see .sq-queued in tick.css) with the icon in the middle of the
+// page: names end against it, times start from it. Built from text nodes:
+// names come from links and pads.
 const secsUntil = at => { const [h, m] = at.split(':').map(Number); return Math.round((nextUntilMs(h, m) - Date.now()) / 1000); };
 const el = (cls, text = '') => { const s = document.createElement('span'); s.className = cls; s.textContent = text; return s; };
 const icon = cls => { const i = el('ico ' + cls); i.setAttribute('aria-hidden', 'true'); return i; };
@@ -68,12 +69,12 @@ export function queueRow(entry, className) {
   if (entry.at) {
     const left = el('q-left', fmt(secsUntil(entry.at)));
     left.dataset.at = entry.at;
-    rest.append(icon('ico-target'), left, ` [${entry.at}]`);
+    rest.append(left, ` [${entry.at}]`);
   } else {
-    rest.append(icon('ico-play'), entryTime(entry));
+    rest.append(entryTime(entry));
   }
   // A space between the cells, for the row read as text.
-  row.append(el('q-name', entry.label), ' ', rest);
+  row.append(el('q-name', entry.label), ' ', icon(entry.at ? 'ico-target' : 'ico-play'), rest);
   return row;
 }
 export const tickQueueRows = root => root.querySelectorAll('.q-left').forEach(el => {

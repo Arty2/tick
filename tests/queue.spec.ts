@@ -1,4 +1,4 @@
-import { test, expect, open, digits, menu, visit } from './fixtures';
+import { test, expect, open, digits, menu, visit, settle } from './fixtures';
 
 // Queue notation: sessions separated by "|", each "name>length": minutes
 // ("Break>5", "Break>5:00") or a time of day in brackets ("Wrap>[23:30]");
@@ -83,17 +83,30 @@ test('in the list: the name, the icon, the time; a time of day has a triangle wi
 	const order = await timed.evaluate((row) => [...row.querySelectorAll('.q-name, .ico, .q-left')].map((n) => [n.className, Math.round(n.getBoundingClientRect().left)] as const));
 	expect(order.map((o) => o[0])).toEqual(['q-name', 'ico ico-target', 'q-left']);
 	expect(order.map((o) => o[1])).toEqual([...order.map((o) => o[1])].sort((a, b) => a - b));
-	// Every icon stands in one column, whatever the names' lengths (or none);
-	// names start on one edge, and NEXT starts there too rather than centred.
-	const lefts = (sel: string) => page.locator(sel).evaluateAll((els) => els.map((el) => el.getBoundingClientRect().left));
-	const icons = await lefts('.sq-queued .ico');
+	// Every icon stands in one column in the middle of the page, under a
+	// centred NEXT; names end against the icons, whatever their lengths.
+	const boxes = (sel: string) => page.locator(sel).evaluateAll((els) => els.map((el) => { const r = el.getBoundingClientRect(); return { left: r.left, right: r.right, mid: (r.left + r.right) / 2 }; }));
+	const width = page.viewportSize()!.width;
+	const icons = await boxes('.sq-queued .ico');
 	expect(icons).toHaveLength(4);
-	expect(Math.max(...icons) - Math.min(...icons)).toBeLessThan(0.5);
-	const names = (await lefts('.sq-queued .q-name')).slice(0, 3);
-	expect(Math.max(...names) - Math.min(...names)).toBeLessThan(0.5);
-	expect(names[0]).toBeLessThan(icons[0]);
-	const head = await page.locator('.sq-next-header').evaluate((h) => { const r = document.createRange(); r.selectNodeContents(h); return r.getBoundingClientRect().left; });
-	expect(Math.abs(head - names[0])).toBeLessThan(0.5);
+	for (const i of icons) expect(Math.abs(i.mid - width / 2)).toBeLessThan(1);
+	const names = (await boxes('.sq-queued .q-name')).slice(0, 3);
+	expect(Math.max(...names.map((n) => n.right)) - Math.min(...names.map((n) => n.right))).toBeLessThan(0.5); // right-aligned
+	expect(new Set(names.map((n) => Math.round(n.left))).size).toBe(3); // so their starts differ
+	expect(names[0].right).toBeLessThan(icons[0].left);
+	const times = await boxes('.sq-queued .q-rest');
+	expect(Math.max(...times.map((t) => t.left)) - Math.min(...times.map((t) => t.left))).toBeLessThan(4); // times start after the icons
+	const head = await page.locator('.sq-next-header').evaluate((h) => { const r = document.createRange(); r.selectNodeContents(h); const b = r.getBoundingClientRect(); return (b.left + b.right) / 2; });
+	// (The heading's letter-spacing trails its last letter, so its ink sits a hair left of centre.)
+	expect(Math.abs(head - width / 2)).toBeLessThan(2);
+	// The space either side of the list still starts and pauses the timer.
+	await settle(page); // the menu closes itself; a click while it is open only closes it
+	await page.mouse.click(120, (await rows(page).first().boundingBox())!.y + 4);
+	await expect(digits(page)).toHaveClass(/s-run/);
+	await expect(page.locator('#next-modal')).not.toHaveClass(/open/);
+	await rows(page).first().locator('.q-name').click(); // the words open the queue
+	await expect(page.locator('#next-modal')).toHaveClass(/open/);
+	await page.locator('#next-cancel').click();
 	// The same triangle as the menu's queue button, level with the figures beside it.
 	await menu(page);
 	const shape = (sel: string) => page.locator(sel).first().evaluate((i) => getComputedStyle(i).clipPath);
@@ -125,10 +138,9 @@ test('in the list: the name, the icon, the time; a time of day has a triangle wi
 	await pad.clock.runFor(200);
 	await expect(pad.locator('.rc-q-row').nth(2)).toHaveText(/^Wrap\s1[67]:\d\d\s\[10:30\]$/);
 	await expect(pad.locator('.rc-q-row').nth(2).locator('.ico')).toHaveClass(/ico-target/);
-	const padIcons = await pad.locator('.rc-q-row .ico').evaluateAll((els) => els.map((el) => el.getBoundingClientRect().left));
-	expect(Math.max(...padIcons) - Math.min(...padIcons)).toBeLessThan(0.5);
-	const padHead = await pad.locator('.rc-q-head').evaluate((h) => { const r = document.createRange(); r.selectNodeContents(h); return r.getBoundingClientRect().left; });
-	expect(Math.abs(padHead - (await pad.locator('.rc-q-row .q-name').first().evaluate((el) => el.getBoundingClientRect().left)))).toBeLessThan(0.5);
+	const padIcons = await pad.locator('.rc-q-row .ico').evaluateAll((els) => els.map((el) => { const r = el.getBoundingClientRect(); return (r.left + r.right) / 2; }));
+	const frame = (await pad.locator('#rc-preview').boundingBox())!;
+	for (const mid of padIcons) expect(Math.abs(mid - (frame.x + frame.width / 2))).toBeLessThan(1); // the middle of the preview
 });
 
 test('the length follows the last ">": minutes, minutes:seconds, or a time of day in brackets; names keep colons, "@" and ">"', async ({ page }) => {

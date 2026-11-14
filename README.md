@@ -126,13 +126,13 @@ A queue can also be written as text: in a link, or in the queue box on the remot
 
 For example, `Break>5:00|Q&A>15|Wrap>[23:30]`. Names may contain commas, colons and `@`. A `|` inside a name is written `\|`. Lengths are whole minutes: `7:40` is taken as 8 minutes.
 
-The list under the timer shows the sessions like this, with the icons in one column:
+The list under the timer shows the sessions like this. The icons stand in one column in the middle of the screen, under **NEXT**; the names end against them, and the times start from them:
 
 ```
-NEXT
-BREAK  ▶  05:00
-Q&A    ▶  15:00
-WRAP   ▶| 30:00 [23:30]
+        NEXT
+  BREAK  ▶  05:00
+    Q&A  ▶  15:00
+   WRAP  ▶| 30:00 [23:30]
 ```
 
 A session with a length shows its name, a triangle and the length. A session that counts down to a time of day shows its name, a triangle with a bar, the time left until then, and that time in brackets.

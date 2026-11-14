@@ -228,23 +228,26 @@ body.kiosk #swipe-hint{display:none}
   display:flex;flex-direction:column;align-items:center;gap:0.18rem;
   margin-top:0.55rem;cursor:pointer;min-height:1em;
 }
-/* A queue row is the session's name, then its icon and time. The list is a
-   grid of two columns and each row takes its columns from it (subgrid), so
-   the icons stand under one another whatever the names' lengths; where a
-   browser has no subgrid the rows simply aren't aligned. The gap is the
-   name's own padding, so a list with no names has no indent. A long name is
-   cut with an ellipsis; the icon and time always show. */
-.sq-item .ico,.rc-q-row .ico{margin-right:0.5em}
+/* A queue row is the session's name, its icon, and its time. The list is a
+   grid of three columns across the page — equal space either side of a narrow
+   middle one — and each row takes its columns from it (subgrid). So the icons
+   stand in the middle of the page under the centred NEXT, names end against
+   them and times start from them. Where a browser has no subgrid the rows
+   are simply centred one by one. A long name is cut with an ellipsis; the
+   icon and time always show. Only the words and icons take clicks: the
+   empty space either side still belongs to the stage. */
 .q-left,.q-rest{font-variant-numeric:tabular-nums}
-#sq-queue-block{
-  display:inline-grid;grid-template-columns:minmax(0,auto) auto;row-gap:0.18rem;
-  justify-items:start;max-width:calc(100vw - 4rem);
+#session-queue{align-self:stretch;pointer-events:none}
+#sq-queue-block,#rc-queue-display{
+  display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);row-gap:0.18rem;
 }
-:is(.sq-queued,.rc-q-row){display:grid;grid-template-columns:subgrid;grid-column:1 / -1;justify-items:start}
-:is(.sq-next-header,.rc-q-head){grid-column:1 / -1}
-.q-name{min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.q-name:not(:empty){padding-right:0.6em}
-.q-rest{white-space:nowrap}
+#sq-queue-block{width:calc(100vw - 4rem);margin:0 auto}
+:is(.sq-queued,.rc-q-row){display:grid;grid-template-columns:subgrid;grid-column:1 / -1;align-items:baseline}
+:is(.sq-next-header,.rc-q-head){grid-column:1 / -1;justify-self:center}
+:is(.sq-queued,.rc-q-row) > .ico{justify-self:center;margin:0 0.5em}
+.q-name{justify-self:end;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.q-rest{justify-self:start;white-space:nowrap}
+#sq-queue-block :is(.q-name,.q-rest,.ico,.sq-next-header){pointer-events:auto}
 .sq-item{
   font-size:var(--list-fs);letter-spacing:0.12em;color:var(--c-next);
   text-transform:uppercase;white-space:nowrap;opacity:0.8;transition:opacity 0.15s;
@@ -564,8 +567,7 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
   outline:none;user-select:text;-webkit-user-select:text;
 }
 .rc-input:focus{border-color:var(--fg)}
-#rc-queue-display{font-size:var(--rc-list-fs);letter-spacing:0.1em;text-transform:uppercase;line-height:1.45;text-align:left;align-self:center;
-  display:grid;grid-template-columns:minmax(0,auto) auto;justify-items:start;max-width:100%}
+#rc-queue-display{font-size:var(--rc-list-fs);letter-spacing:0.1em;text-transform:uppercase;line-height:1.45;align-self:stretch}
 #remote-pad .modal-box{width:min(560px,calc(100vw - 2rem));padding:1.4rem}
 #remote-pad .modal-title{font-size:22px}
 #remote-pad .modal-btn{font-size:clamp(18px,4.5vw,24px);padding:0.7rem 0.3rem;white-space:nowrap}
