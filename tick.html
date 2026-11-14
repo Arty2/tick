@@ -420,7 +420,7 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
 #rc-queue-display{font-size:clamp(14px,3.5vw,20px);letter-spacing:0.12em;color:var(--dim);text-transform:uppercase;min-height:1.2em;text-align:center}
 #remote-pad .modal-box{width:min(560px,calc(100vw - 2rem));padding:1.4rem}
 #remote-pad .modal-title{font-size:22px}
-#remote-pad .modal-btn{font-size:clamp(18px,4.5vw,24px);padding:0.7rem 0.3rem}
+#remote-pad .modal-btn{font-size:clamp(18px,4.5vw,24px);padding:0.7rem 0.3rem;white-space:nowrap}
 #remote-pad .rc-note{font-size:clamp(16px,4vw,20px);line-height:1.4;color:var(--fg)}
 #rc-kiosk-qr{display:flex;justify-content:center}
 #rc-kiosk-qr img{width:200px;height:200px}
@@ -429,6 +429,7 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
   background:rgba(128,128,128,0.1);border:1px solid var(--dim);
   color:var(--fg);font-family:var(--font);font-size:clamp(22px,5vw,32px);
   letter-spacing:0.04em;padding:0.8rem 0.3rem;cursor:pointer;text-align:center;line-height:1.15;
+  white-space:nowrap; /* one line each: the labels are kept short to fit a 320px phone */
   text-transform:uppercase;transition:background 0.1s,border-color 0.1s,color 0.1s;
   touch-action:manipulation;-webkit-tap-highlight-color:transparent;
 }
@@ -650,7 +651,7 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
       <li>The <strong>remote</strong> button shows a six-letter code and a QR code. Open the link or scan the code on another device to get a remote pad. This screen then changes to kiosk mode, and stays in it if the remote disconnects.</li>
       <li>The remote pad shows the time left. Its buttons start, pause, reset, ring the bell, load the next session and change the time. On phones they vibrate.</li>
       <li>A message typed on the remote pad appears on this screen for 6 seconds. <strong>Clear</strong> removes it sooner.</li>
-      <li>If this screen stops answering, the remote pad says <strong>Kiosk disconnected</strong>. Its <strong>New kiosk</strong> button shows a link and QR code for a new screen, which continues the timer.</li>
+      <li>If this screen stops answering, the remote pad says <strong>Kiosk disconnected</strong>. Its <strong>Kiosk</strong> button shows a link and QR code for a new screen, which continues the timer.</li>
       <li>Two tabs in the same browser connect without the internet. Two devices need the internet, and connect through a service called PeerJS. This may not work on some school or office networks.</li>
     </ul>
     <h2>Share</h2>
@@ -697,7 +698,7 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
         <tr>
           <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>host</code></td>
           <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>XXXXXX</code></td>
-          <td style="padding:0.35rem 0 0.35rem 0.5rem">A six-letter remote code. The page opens as a new timer screen for that code and continues the timer. <strong>New kiosk</strong> on the remote pad makes these links.</td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem">A six-letter remote code. The page opens as a new timer screen for that code and continues the timer. The <strong>Kiosk</strong> button on the remote pad makes these links.</td>
         </tr>
       </tbody>
     </table>
@@ -735,9 +736,9 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
     <button class="rc-btn" data-rc="adj:-5">&#x2212;5m</button>
     <button class="rc-btn" data-rc="adj:10">+10m</button>
     <button class="rc-btn hi-reset wide" data-rc="reset">&#x23F9; Reset</button>
-    <button class="rc-btn wide" data-rc="next">&#x23ED; Skip next</button>
+    <button class="rc-btn wide" data-rc="next">&#x23ED; Next</button>
     <button class="rc-btn wide" data-rc="bell">&#x1F514; Bell</button>
-    <button class="rc-btn wide" id="rc-new-kiosk">&#x1F5A5;&#xFE0F; New kiosk</button>
+    <button class="rc-btn wide" id="rc-new-kiosk">&#x1F5A5;&#xFE0F; Kiosk</button>
   </div>
   <div class="rc-row">
     <input type="text" id="rc-msg-input" class="rc-input" placeholder="Message&#x2026;" maxlength="40" autocomplete="off">
@@ -758,8 +759,8 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
       <div id="rc-kiosk-qr"></div>
       <div id="rc-kiosk-url"></div>
       <div class="modal-actions">
-        <button class="modal-btn" id="rc-kiosk-copy">Copy link</button>
-        <button class="modal-btn" id="rc-kiosk-open">Open here</button>
+        <button class="modal-btn" id="rc-kiosk-copy">Copy</button>
+        <button class="modal-btn" id="rc-kiosk-open">Open</button>
         <button class="modal-btn" id="rc-kiosk-close">Close</button>
       </div>
     </div>

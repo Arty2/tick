@@ -204,13 +204,23 @@ test('a lost kiosk is reported, and a new kiosk from the pad carries on the time
 	await expect(kiosk.locator('.sq-queued')).toHaveText(['\u25B6 10:00\u2002QA']);
 });
 
-test.describe('the pad on a phone', () => {
-	test.use({ viewport: { width: 390, height: 844 } });
-	test('has buttons twice the old size, and they fit', async ({ page }) => {
-		await page.goto('/tick.html?rc=ABCDEF');
-		const size = await page.locator('.rc-btn').first().evaluate((b) => parseFloat(getComputedStyle(b).fontSize));
-		expect(size).toBeGreaterThanOrEqual(22); // was 12px at this width
-		const overflow = await page.locator('.rc-btn').evaluateAll((bs) => bs.filter((b) => b.scrollWidth > b.clientWidth + 1).map((b) => b.textContent));
-		expect(overflow).toEqual([]);
+for (const width of [320, 390]) {
+	test.describe(`the pad on a ${width}px phone`, () => {
+		test.use({ viewport: { width, height: 844 } });
+		test('has buttons twice the old size, each label on one line and inside its button', async ({ page }) => {
+			await page.goto('/tick.html?rc=ABCDEF');
+			const size = await page.locator('.rc-btn').first().evaluate((b) => parseFloat(getComputedStyle(b).fontSize));
+			expect(size).toBeGreaterThanOrEqual(22); // was 12px at this width
+			await page.locator('#rc-new-kiosk').click(); // its window's buttons too
+			const bad = await page.locator('#remote-pad .rc-btn, #remote-pad .modal-btn').evaluateAll((bs) =>
+				bs.filter((b) => {
+					const r = document.createRange();
+					r.selectNodeContents(b);
+					const lines = new Set([...r.getClientRects()].map((x) => Math.round(x.top))).size;
+					return lines > 1 || b.scrollWidth > b.clientWidth + 1;
+				}).map((b) => b.textContent)
+			);
+			expect(bad).toEqual([]);
+		});
 	});
-});
+}
