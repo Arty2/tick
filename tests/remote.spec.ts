@@ -753,3 +753,211 @@ test('the pad’s fields are as tall as its buttons, on the page colour rather t
 	for (const field of ['#rc-queue-input', '#rc-msg-input', '#rc-code-input']) expect(await bg(field)).toBe(pageBg);
 	expect(await bg('#rc-queue-send')).not.toBe(pageBg);
 });
+
+// ── Several remotes, several kiosks ─────────────────────────────────────────
+async function padFor(context: import('@playwright/test').BrowserContext, code: string) {
+	const pad = await context.newPage();
+	await visit(pad, '/#remote=' + code);
+	await pad.clock.runFor(200); // it says hello after 100 ms
+	return pad;
+}
+async function kioskFor(context: import('@playwright/test').BrowserContext, code: string) {
+	const kiosk = await context.newPage();
+	await visit(kiosk, '/#kiosk=' + code);
+	await together(kiosk, 1_500); // hello, the answer, and the moment it would wait before taking the code
+	return kiosk;
+}
+
+test('the menu button says whether a session is waiting or connected', async ({ page, context }) => {
+	await open(page, '#mins=20');
+	await menu(page);
+	await expect(page.locator('#btn-remote')).toHaveText('remote');
+	await page.locator('#btn-remote').click();
+	const code = (await page.locator('#remote-code-display').textContent())!.trim();
+	await expect(page.locator('#btn-remote')).toHaveText('remote: waiting');
+	const pad = await padFor(context, code);
+	await expect(page.locator('#btn-remote')).toHaveText('remote: connected');
+	await pad.close();
+	await together(page, 7_000); // three heartbeats without it
+	await expect(page.locator('#btn-remote')).toHaveText('remote: waiting');
+	await page.keyboard.press('Escape'); // out of kiosk mode, to the menu
+	await menu(page);
+	await page.locator('#btn-remote').click();
+	await page.locator('#remote-stop').click();
+	await expect(page.locator('#btn-remote')).toHaveText('remote');
+});
+
+test('two remotes control one timer, and each shows +1 for the other', async ({ page, context }) => {
+	const code = await hostWithRemote(page);
+	const first = await padFor(context, code);
+	await expect(first.locator('#rc-others')).toBeHidden(); // alone: no number
+	const second = await padFor(context, code);
+	await together(page, 600);
+	for (const pad of [first, second]) {
+		await expect(pad.locator('#rc-others')).toBeVisible();
+		await expect(pad.locator('#rc-others')).toHaveText('+1');
+		await expect(pad.locator('#rc-others')).toHaveAttribute('aria-label', '1 other remote');
+	}
+	await expect(page.locator('#remote-status')).toHaveText(/2 remotes connected/);
+	const third = await padFor(context, code);
+	await together(page, 600);
+	await expect(first.locator('#rc-others')).toHaveText('+2');
+
+	await first.locator('#rc-toggle').click(); // one starts...
+	await expect(digits(page)).toHaveClass(/s-run/);
+	await together(page, 600);
+	await expect(second.locator('#rc-toggle')).toHaveText('Pause'); // ...the other sees it
+	await second.locator('#rc-toggle').click(); // ...and pauses
+	await expect(page.locator('#label-text')).toHaveText('PAUSED');
+
+	await third.close();
+	await second.close();
+	await together(page, 7_000);
+	await expect(first.locator('#rc-others')).toBeHidden();
+});
+
+test('on the pad, Start is green and Reset is red', async ({ page, context }) => {
+	const code = await hostWithRemote(page);
+	const pad = await padFor(context, code);
+	const css = (name: string) => pad.evaluate((n) => {
+		const d = document.createElement('div'); d.style.color = `var(${n})`; document.body.append(d);
+		const v = getComputedStyle(d).color; d.remove(); return v;
+	}, name);
+	const start = pad.locator('#rc-toggle');
+	await expect(start).toHaveText('Start');
+	await expect(start).toHaveCSS('color', await css('--c-reset'));
+	await expect(start).toHaveCSS('border-top-color', await css('--c-reset'));
+	await start.click();
+	await together(page, 600);
+	await expect(start).toHaveText('Pause'); // and amber while it would pause
+	await expect(start).toHaveCSS('color', await css('--c-pause'));
+});
+
+test('before the start, Reset is disabled and the minute buttons change the length', async ({ page, context }) => {
+	const code = await hostWithRemote(page, '#mins=20');
+	const pad = await padFor(context, code);
+	const reset = pad.locator('#rc-reset');
+	await expect(reset).toBeDisabled();
+	await pad.locator('[data-rc="adj:10"]').click();
+	await expect(digits(page)).toHaveText('30:00');
+	await expect(digits(page)).not.toHaveClass(/s-run/); // still waiting to start
+	await pad.locator('[data-rc="adj:-1"]').click();
+	await expect(digits(page)).toHaveText('29:00');
+	await together(page, 600);
+	await expect(pad.locator('#remote-state-display')).toHaveText('29:00');
+	await expect(reset).toBeDisabled();
+	for (let i = 0; i < 7; i++) await pad.locator('[data-rc="adj:-5"]').click();
+	await expect(digits(page)).toHaveText('01:00'); // never below a minute
+
+	await pad.locator('#rc-toggle').click();
+	await together(page, 2_600);
+	await expect(reset).toBeEnabled();
+	await pad.locator('[data-rc="adj:10"]').click(); // running: the time left moves
+	await expect(digits(page)).toHaveText(/^10:5\d$/);
+	await pad.locator('#rc-toggle').click(); // paused: started, so Reset stays; the minutes rest
+	await together(page, 600);
+	await expect(reset).toBeEnabled();
+	await expect(pad.locator('[data-rc="adj:10"]')).toBeDisabled();
+	await reset.click();
+	await together(page, 1_000);
+	await expect(reset).toBeDisabled(); // back to not started
+	await expect(pad.locator('[data-rc="adj:10"]')).toBeEnabled();
+});
+
+test('a second kiosk on the same code is read only, and follows the first', async ({ page, context }) => {
+	const code = await hostWithRemote(page, '#mins=20&label=Keynote&next=QA:10');
+	const pad = await padFor(context, code);
+	const mirror = await kioskFor(context, code);
+	await expect(mirror.locator('body')).toHaveClass(/\bmirror\b/);
+	await expect(mirror.locator('body')).toHaveClass(/\bkiosk\b/);
+	await expect(mirror.locator('#kiosk-tag')).toHaveText('read only');
+	await expect(mirror.locator('#timer-display')).toHaveText('20:00');
+	await expect(mirror.locator('#session-label')).toHaveText('Keynote');
+	await expect(mirror.locator('.sq-queued')).toHaveText(['▶ 10:00 QA']);
+	await expect(mirror.locator('#label-text')).toHaveText(''); // no "click to start" on a screen that can't
+	await expect(page.locator('#remote-status')).toHaveText(/2 kiosks/);
+	await expect(page.locator('body')).not.toHaveClass(/mirror/); // the first kiosk is still the one in charge
+
+	await pad.locator('#rc-toggle').click();
+	await together(page, 3_000);
+	await expect(mirror.locator('#timer-display')).toHaveClass(/s-run/);
+	await expect(mirror.locator('#timer-display')).toHaveText(await digits(page).textContent() as string);
+
+	// It takes no input: a click, Space and the wheel change nothing.
+	await mirror.mouse.click(640, 300);
+	await mirror.keyboard.press('Space');
+	await mirror.mouse.wheel(0, -300);
+	await mirror.keyboard.press('n');
+	await together(page, 1_000);
+	await expect(digits(page)).toHaveClass(/s-run/);
+	await expect(digits(page)).toHaveText(/^19:5\d$/);
+	await expect(mirror.locator('#next-modal')).not.toHaveClass(/open/);
+
+	// What the pad sends shows on both screens.
+	await pad.locator('#rc-msg-input').fill('Wrap up');
+	await pad.locator('#rc-msg-input').press('Enter');
+	await expect(page.locator('#op-msg')).toHaveText('Wrap up');
+	await expect(mirror.locator('#op-msg')).toBeVisible();
+	await pad.locator('#rc-toggle').click();
+	await together(page, 600);
+	await expect(mirror.locator('#label-text')).toHaveText('PAUSED');
+	await pad.locator('#rc-black').click();
+	await together(page, 600);
+	await expect(mirror.locator('#blackout')).toBeVisible();
+	await pad.locator('#rc-black').click();
+	await together(page, 600);
+
+	// Escape makes it an ordinary timer again, with what it was showing.
+	await mirror.keyboard.press('Escape');
+	await expect(mirror.locator('body')).not.toHaveClass(/mirror|kiosk/);
+	await expect(mirror).toHaveURL(/\/$/);
+	await expect(mirror.locator('#session-label')).toHaveText('Keynote');
+	await mirror.keyboard.press('Space'); // and it takes input
+	await expect(mirror.locator('#timer-display')).toHaveClass(/s-run/);
+	await expect(page.locator('#label-text')).toHaveText('PAUSED'); // without touching the session
+});
+
+test('when the first kiosk is lost, a read-only kiosk takes over and the remote carries on', async ({ page, context }) => {
+	const code = await hostWithRemote(page, '#mins=20&label=Keynote');
+	const pad = await padFor(context, code);
+	const mirror = await kioskFor(context, code);
+	await pad.locator('#rc-toggle').click();
+	await together(page, 3_000);
+	await expect(mirror.locator('#timer-display')).toHaveClass(/s-run/);
+	await page.close();
+	await together(mirror, 10_000); // silence, then the takeover
+	await expect(mirror.locator('body')).not.toHaveClass(/mirror/);
+	await expect(mirror.locator('body')).toHaveClass(/kiosk/);
+	await expect(mirror.locator('#timer-display')).toHaveText(/^19:4\d$/); // 3 s, then 10 more
+	await expect(mirror.locator('#session-label')).toHaveText('Keynote');
+	await expect(pad.locator('#remote-status-bar')).toHaveText('Connected');
+	await pad.locator('#rc-toggle').click(); // the pad now drives the new kiosk
+	await expect(mirror.locator('#label-text')).toHaveText('PAUSED');
+});
+
+test('the remote window can join another timer as a kiosk', async ({ page, context }) => {
+	const code = await hostWithRemote(page, '#mins=20&label=Keynote');
+	const other = await context.newPage();
+	await visit(other, '/#mins=5');
+	await other.clock.runFor(50);
+	await menu(other);
+	await other.locator('#btn-remote').click();
+	await other.locator('#remote-to-join').click();
+	await other.locator('#remote-join-code').fill(code);
+	await other.locator('#remote-join-kiosk').click();
+	await expect(other).toHaveURL(new RegExp('#kiosk=' + code + '$'));
+	await ready(other);
+	await together(other, 1_500);
+	await expect(other.locator('body')).toHaveClass(/\bmirror\b/);
+	await expect(other.locator('#timer-display')).toHaveText('20:00');
+	await expect(other.locator('#session-label')).toHaveText('Keynote');
+});
+
+test('a kiosk link with nobody on the code makes an ordinary kiosk, in charge of its timer', async ({ page }) => {
+	await open(page, '#mins=5&kiosk=ABCDEF');
+	await together(page, 1_500);
+	await expect(page.locator('body')).toHaveClass(/kiosk/);
+	await expect(page.locator('body')).not.toHaveClass(/mirror/);
+	await page.keyboard.press('Space'); // it takes input
+	await expect(digits(page)).toHaveClass(/s-run/);
+});

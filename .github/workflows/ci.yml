@@ -1,7 +1,7 @@
 name: CI
 
 # Prose cannot break the timer. CHANGELOG.md is the exception: the gates
-# check its top heading against tick.html's version. `paths` rather than
+# check its top heading against the app's version. `paths` rather than
 # `paths-ignore` because only `paths` can re-include a file; the last
 # matching line wins.
 on:

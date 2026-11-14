@@ -58,6 +58,34 @@ starts with nothing below the line.
 
 <!-- Newest entries go directly below this line. -->
 
+## 2026-11-14 — One file became a folder; the CSP is `script-src 'self'` again
+
+The single-file rule went when the app wanted a service worker, a manifest
+and a QR generator of its own: none can live inside one HTML file. It is now
+`app/`, plain ES modules with no build, and the entry below about inline
+script is history — the header is osseus's `script-src 'self'` once more
+(inline style stays, for style attributes). The gates that read "the script
+half of the file" had to learn to read a folder. osseus could say that
+"no build" and "one file" are different promises, and that the second
+ends where installability begins.
+
+## 2026-11-14 — With modules, the load event is not "the app has started"
+
+A page whose entry module imports its main part dynamically fires `load`
+before that part has run. Every test that acted right after `goto` failed
+at once (51 of 112). The app now marks `<html data-ready>` when it has
+drawn itself and the fixtures wait for it (`visit`). And settings in the
+fragment mean a second `goto` is not a navigation at all. osseus's e2e
+notes could carry both.
+
+## 2026-11-14 — The fake clock is the context's: one long runFor splits pages
+
+`page.clock` is the browser context's clock. A 12-second `runFor` moves
+one page's timers the whole way, then the next page's, so a remote pad
+decided its kiosk was lost while the kiosk had simply not been moved yet.
+Stepping in half seconds (`together` in the fixtures) keeps pages in step.
+
+
 ## 2026-11-14 — An installed fake clock still flows; pause it
 
 `page.clock.install` keeps time moving in real time. Tests that waited on

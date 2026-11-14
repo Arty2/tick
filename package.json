@@ -1,7 +1,7 @@
 {
 	"name": "tick",
 	"private": true,
-	"description": "Development tooling for /tick. The app is tick.html and needs none of this to run.",
+	"description": "Development tooling for /tick. The app is the app/ folder and needs none of this to run.",
 	"type": "module",
 	"scripts": {
 		"gates": "bash scripts/gates.sh",
@@ -11,8 +11,7 @@
 		"feedback": "bash scripts/feedback.sh"
 	},
 	"devDependencies": {
-		"@playwright/test": "1.63.0",
-		"peerjs": "1.5.4"
+		"@playwright/test": "1.63.0"
 	},
 	"packageManager": "pnpm@10.28.0"
 }

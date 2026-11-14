@@ -253,3 +253,59 @@ for (const width of [1280, 390, 320]) {
 		await expect(page.locator('#remote-modal .modal-actions .modal-btn:visible')).toHaveText(['Remote', 'Kiosk', 'Back', 'Close']);
 	});
 }
+
+test("the queue button's triangle is drawn in CSS, a capital tall, close to its label", async ({ page }) => {
+	await open(page, '#next=Talk:10');
+	await menu(page);
+	const btn = page.locator('#btn-next');
+	await expect(btn).toHaveText('queue: 10:00'); // no triangle character in the text
+	const m = await btn.evaluate((b) => {
+		const ico = b.querySelector('.ico')!.getBoundingClientRect();
+		const lbl = b.querySelector('.lbl')!.getBoundingClientRect();
+		const probe = document.createElement('span');
+		probe.style.cssText = 'display:inline-block;width:0;height:1cap;vertical-align:baseline';
+		b.append(probe);
+		const cap = probe.getBoundingClientRect();
+		probe.remove();
+		return { h: ico.height, bottom: ico.bottom, capH: cap.height, capBottom: cap.bottom, gap: lbl.left - ico.right, fs: parseFloat(getComputedStyle(b).fontSize) };
+	});
+	expect(Math.abs(m.h - m.capH)).toBeLessThan(0.5); // as tall as the capitals beside it
+	expect(Math.abs(m.bottom - m.capBottom)).toBeLessThan(0.5); // on their baseline
+	expect(m.gap).toBeLessThan(m.fs * 0.5); // closer than the space a character took
+	expect(m.gap).toBeGreaterThan(1);
+});
+
+test('in the manual, keys are keycaps: page colour on ink', async ({ page }) => {
+	for (const theme of ['dark', 'light']) {
+		await open(page, '#theme=' + theme);
+		await page.keyboard.press('Home');
+		const kbd = page.locator('#manual kbd').first();
+		await expect(kbd).toHaveText('Enter');
+		const [bg, fg, ink, paper] = await kbd.evaluate((k) => {
+			const s = getComputedStyle(k), b = getComputedStyle(document.body);
+			return [s.backgroundColor, s.color, b.color, b.backgroundColor];
+		});
+		expect(bg, theme).toBe(ink);
+		expect(fg, theme).toBe(paper);
+	}
+	// Keys only: things to type stay in the grey of code.
+	expect(await page.locator('#manual kbd').count()).toBeGreaterThan(25);
+	await expect(page.locator('#manual code', { hasText: 'Talk:25|Break:5|Panel@14:30' })).toHaveCount(1);
+	await expect(page.locator('#manual td code', { hasText: 'Title:25|10' })).toHaveCount(1); // the queue example, with a pipe
+	await expect(page.locator('#manual')).not.toContainText('Title:25,10');
+});
+
+test('a window button that throws something away has a red border, like its label', async ({ page }) => {
+	await open(page);
+	const red = await page.evaluate(() => {
+		const d = document.createElement('div'); d.style.color = 'var(--c-ot)'; document.body.append(d);
+		const v = getComputedStyle(d).color; d.remove(); return v;
+	});
+	const danger = page.locator('.modal-btn.danger');
+	expect(await danger.count()).toBe(3); // Clear, Delete, Stop
+	for (const b of await danger.all()) {
+		const [color, border] = await b.evaluate((el) => [getComputedStyle(el).color, getComputedStyle(el).borderTopColor]);
+		expect(color).toBe(red);
+		expect(border).toBe(red);
+	}
+});
