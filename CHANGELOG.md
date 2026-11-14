@@ -11,9 +11,9 @@ to a release, six at the very most. Plain text and `code` spans only.
 - Live at acari.vercel.app, where a link with settings opens the timer as set.
 - The first warning comes 5 minutes before the end of sessions longer than 10 minutes.
 - A larger counter that fits any screen, with the version number above it.
-- The remote turns the timer into a kiosk and sends it messages, by touch.
-- A lost kiosk can be replaced from the remote, and carries on where it stopped.
-- A manual and README in plain English, linking the live site, source and website.
+- A remote that turns the timer into a kiosk: messages, Black, Prev and Next, codes typed by hand.
+- The remote keeps time if the kiosk drops, and a lost kiosk can be replaced.
+- Queues written with `|`, and `@14:30` to count down to a time of day.
 
 ## 0.2.0 — 2026-11-14
 
