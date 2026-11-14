@@ -1,4 +1,4 @@
-import { test, expect, open, digits, label, settle } from './fixtures';
+import { test, expect, open, digits, label, settle, menu } from './fixtures';
 
 test('opens idle at the default duration, and asks for nothing off-site', async ({ page, offsite }) => {
 	await open(page);
@@ -122,7 +122,7 @@ test('running past zero by hand hands over to the queue', async ({ page }) => {
 
 test('holding the sound button rings the bell without changing the setting', async ({ page }) => {
 	await open(page);
-	await page.locator('#btn-menu').click();
+	await menu(page);
 	await page.locator('#btn-sound').hover();
 	await page.mouse.down();
 	await page.clock.runFor(900);
@@ -147,4 +147,66 @@ test('out-of-range minutes in the URL are ignored', async ({ page }) => {
 	await open(page, '?mins=Infinity&next=Talk:0.01,QA:1e9,Break:5.5');
 	await expect(digits(page)).toHaveText('10:00');
 	await expect(page.locator('.sq-queued')).toHaveText(['▶ 05:00 Break']);
+});
+
+test('the queue keeps counting down, and hands over, behind clock mode', async ({ page }) => {
+	// Saved rather than ?next=, because a URL queue is never written back.
+	await page.addInitScript(() => {
+		if (!sessionStorage.getItem('seeded')) {
+			localStorage.setItem('tick_prefs', JSON.stringify({ nextQueue: [{ label: 'Break', mins: 5 }] }));
+			sessionStorage.setItem('seeded', '1');
+		}
+	});
+	await open(page, '?mins=1&label=Talk');
+	await page.keyboard.press('Space');
+	await menu(page);
+	await page.locator('#btn-clock-watch').click();
+	await page.clock.fastForward(61_500); // overtime starts at −1 s
+	await page.clock.runFor(100); // ... and the hand-over happens while the clock shows
+	// Seen from outside the face: the hand-over saves the shortened queue.
+	const queued = () => page.evaluate(() => JSON.parse(localStorage.getItem('tick_prefs')!).nextQueue.length);
+	expect(await queued()).toBe(0);
+	await expect(digits(page)).toHaveClass(/s-watch/);
+	await page.clock.fastForward(3_000);
+	await menu(page);
+	await page.locator('#btn-clock-watch').click();
+	await page.clock.runFor(100);
+	await expect(page.locator('#session-label')).toHaveText('Break');
+	await expect(digits(page)).toHaveText('04:57'); // Break began at 61 s, it's now 64 s
+});
+
+test('the queue under a running timer is not rebuilt every second', async ({ page }) => {
+	await open(page, '?mins=20&next=Break:5');
+	await page.keyboard.press('Space');
+	const row = await page.locator('.sq-queued').elementHandle();
+	await page.clock.runFor(3_000);
+	expect(await row!.evaluate((el) => el.isConnected)).toBe(true);
+	await page.locator('.sq-queued').click();
+	await expect(page.locator('#next-modal')).toHaveClass(/open/);
+	await expect(digits(page)).toHaveClass(/s-run/);
+});
+
+test('the session label survives starting over', async ({ page }) => {
+	await open(page);
+	await page.keyboard.press('n');
+	await page.locator('#queue-current-label').fill('Panel');
+	await page.locator('#next-set').click();
+	await page.keyboard.press('Enter');
+	await page.keyboard.press('End');
+	await expect(page.locator('#session-label')).toHaveText('Panel');
+});
+
+test.describe('on a touch screen', () => {
+	test.use({ hasTouch: true });
+	test('tapping the queue opens it and leaves the timer running', async ({ page }) => {
+		await open(page, '?mins=20&next=Break:5');
+		await settle(page); // the menu opens on load; its backdrop would take the tap
+		await page.locator('#timer-display').tap();
+		await page.clock.runFor(500);
+		await expect(digits(page)).toHaveClass(/s-run/);
+		await page.locator('.sq-queued').tap();
+		await page.clock.runFor(500);
+		await expect(page.locator('#next-modal')).toHaveClass(/open/);
+		await expect(digits(page)).toHaveClass(/s-run/);
+	});
 });

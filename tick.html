@@ -583,8 +583,8 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
     </ul>
     <h2>Next Timer Queue</h2>
     <ul>
-      <li>Click <strong>&#x25B6; next</strong> or press <code>N</code>. Enter comma-separated minutes: <code>10,5,2</code>.</li>
-      <li>Auto-loads after current timer ends. <code>Ctrl+Enter</code> to skip immediately.</li>
+      <li>Click <strong>&#x25B6; queue</strong>, the queue under the timer, or press <code>N</code>. Each slot has a label and minutes; <strong>+ Add</strong> for more, drag to reorder.</li>
+      <li>The next slot loads and starts when the current timer ends. <code>Ctrl+Enter</code> to skip immediately.</li>
     </ul>
     <h2>Countdown Mode</h2>
     <ul>
@@ -626,7 +626,7 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
         <tr style="border-bottom:1px solid rgba(128,128,128,0.15)">
           <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>next</code></td>
           <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>Title:25,10</code></td>
-          <td style="padding:0.35rem 0 0.35rem 0.5rem">Comma-separated queue. Each entry is either plain minutes (<code>25</code>) or a labelled slot (<code>Talk:25</code>). Mixed formats are fine: <code>Keynote:40,Break:5,10</code>. Loaded in order when each timer ends.</td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem">Comma-separated queue. Each entry is either plain minutes (<code>25</code>) or a labelled slot (<code>Talk:25</code>). Mixed formats are fine: <code>Keynote:40,Break:5,10</code>. A comma inside a label is written <code>\,</code>. Loaded in order when each timer ends.</td>
         </tr>
         <tr style="border-bottom:1px solid rgba(128,128,128,0.15)">
           <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>theme</code></td>
@@ -714,10 +714,12 @@ const toMins       = v => { const n = Math.floor(+v); return n >= 1 && n <= 999 
 const DEFAULT_MINS = toMins(usp.get('mins')) || 10;
 const URL_LABEL    = usp.get('label') ?? '';
 // nextQueue: {label:string, mins:number}[]  — label may be ''
-const parseNextStr = str => str.split(',').map(s => {
+// Entries split on commas not escaped as "\,", and minutes follow the last
+// colon, so a label may hold either ("Q&A: panel\, part 2:10").
+const parseNextStr = str => str.split(/(?<!\\),/).map(s => {
   s = s.trim(); if (!s) return null;
-  const col = s.indexOf(':');
-  if (col > 0) { const mins = toMins(s.slice(col+1)); return mins ? {label: s.slice(0,col).trim().slice(0,32), mins} : null; }
+  const col = s.lastIndexOf(':');
+  if (col > 0) { const mins = toMins(s.slice(col+1)); return mins ? {label: s.slice(0,col).trim().replaceAll('\\,', ',').slice(0,32), mins} : null; }
   const mins = toMins(s); return mins ? {label:'', mins} : null;
 }).filter(Boolean);
 const URL_NEXT_ITEMS = parseNextStr(usp.get('next') ?? '');
@@ -751,7 +753,9 @@ let warnSecs1 = 120, warnSecs2 = 60;  // configurable warning thresholds
 let totalSecs = DEFAULT_MINS * 60, remaining = totalSecs;
 let running = false, editingLabel = false;
 let customLabel = URL_LABEL, uiState = 'idle';
-let resumeAbsSec = 0, resumeVal = remaining, lastRenderedSec = -1;
+// null, not -1, for "nothing drawn yet": -1 is a real value (one second
+// into overtime), and a first frame landing there was skipped.
+let resumeAbsSec = 0, resumeVal = remaining, lastRenderedSec = null;
 let T0_ABSSEC = null;
 let soundMode = 0, bellRecord = null;
 let nextQueue = URL_NEXT_ITEMS.length ? URL_NEXT_ITEMS.slice() : [{label:'', mins:10}];
@@ -871,6 +875,9 @@ function fmt(secs) {
 // ── UI state machine ──────────────────────────────────
 function applyState(s, transientMs) {
   uiState = s;
+  // In clock mode the face belongs to the clock; toggleWatchMode() applies
+  // the recorded state when it hands the face back.
+  if (watchMode) return;
   labelWrap.className = 's-' + s + (editingLabel ? ' editing' : '');
   display.className   = 's-' + s;
   // Clear flash classes so they re-sync on next tick (not left over from previous state)
@@ -977,11 +984,10 @@ let lastSessionSec = -1, lastWallSec = -1, lastWatchMin = '', lastColonBit = -1;
     wallClock.textContent = ks;
   }
 
+  // Clock mode only changes what the face shows. The countdown below runs
+  // either way — bells, queue hand-over and remote updates included; it once
+  // stopped here and caught up only when clock mode was left.
   if (watchMode) {
-    if (running) {
-      const rem = untilTarget ? Math.round((untilTarget - Date.now())/1000) : resumeVal - (now - resumeAbsSec);
-      remaining = lastRenderedSec = rem;
-    }
     // Clock face — only rebuild innerHTML when the displayed minute changes
     const d = new Date();
     const watchMin = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -996,7 +1002,6 @@ let lastSessionSec = -1, lastWallSec = -1, lastWatchMin = '', lastColonBit = -1;
       display.classList.toggle('colon-off', bit !== 0);
     }
     display.style.color = 'var(--c-watch)'; display.style.opacity = '';
-    requestAnimationFrame(loop); return;
   }
 
   if (running) {
@@ -1014,7 +1019,11 @@ let lastSessionSec = -1, lastWallSec = -1, lastWatchMin = '', lastColonBit = -1;
           requestAnimationFrame(loop); return;
         }
       }
-      checkAutoSound(); renderDigits(rem); renderSessionQueue();
+      // No renderSessionQueue() here: the queue doesn't change with the
+      // second, and rebuilding it every tick swapped rows out from under a
+      // click, which then fell through to the stage and paused the timer.
+      checkAutoSound(); renderDigits(rem);
+      if (watchMode) { requestAnimationFrame(loop); return; }
       // Sync flash to countdown second — toggled on each tick so perfectly aligned
       const bit = Math.abs(rem) % 2;
       if (uiState === 'ot')    { labelWrap.classList.toggle('flash-off',  bit === 1); }
@@ -1050,13 +1059,13 @@ function checkAutoSound() {
 function startTimer() {
   if (running) return; running = true;
   if (T0_ABSSEC === null) T0_ABSSEC = absSec();
-  resumeAbsSec = absSec(); resumeVal = remaining; lastRenderedSec = -1;
+  resumeAbsSec = absSec(); resumeVal = remaining; lastRenderedSec = null;
   applyState(stateFor(remaining)); renderSessionQueue(); renderDigits(remaining); hideToolbar();
 }
 function pauseTimer() {
   if (!running) return; running = false;
   if (!untilTarget) { remaining = resumeVal - (absSec() - resumeAbsSec); resumeVal = remaining; }
-  lastRenderedSec = -1;
+  lastRenderedSec = null;
   applyState('pause'); renderDigits(remaining); renderSessionQueue();
 }
 
@@ -1091,20 +1100,20 @@ function loadNextTimer(silent) {
   if (!nextQueue.length) return false;
   // A loaded slot waits in 'next' until started; callers that want it running
   // call startTimer(), which would be a no-op if the old timer still ran.
-  running = false; lastRenderedSec = -1;
-  exitUntilMode(); const entry = nextQueue.shift(); savePrefs();
+  running = false; lastRenderedSec = null;
+  exitUntilMode(); const entry = nextQueue.shift();
   totalSecs = entry.mins*60; remaining = resumeVal = totalSecs; bellRecord = null;
-  customLabel = entry.label || '';
+  customLabel = entry.label || ''; savePrefs();
   applyState('next'); renderSessionQueue(); renderDigits(remaining);
   if (!silent) playPing();
   return true;
 }
 
 function fullReset(mins) {
-  running = false; lastRenderedSec = -1;
+  running = false; lastRenderedSec = null;
   exitUntilMode();
   totalSecs = (mins||DEFAULT_MINS)*60; remaining = resumeVal = totalSecs;
-  resumeAbsSec = 0; bellRecord = null; customLabel = URL_LABEL;
+  resumeAbsSec = 0; bellRecord = null; // the label is the user's; Enter/End/reset keep it
   T0_ABSSEC = null; sessionEl.textContent = '00:00';
   applyState('reset', 700); renderSessionQueue(); renderDigits(remaining);
 }
@@ -1112,7 +1121,7 @@ function fullReset(mins) {
 function adjustMinutes(delta) {
   if (!running || untilTarget) return;
   remaining = Math.max(-(99*60+59), remaining + delta*60);
-  resumeVal = remaining; resumeAbsSec = absSec(); lastRenderedSec = -1;
+  resumeVal = remaining; resumeAbsSec = absSec(); lastRenderedSec = null;
   const d = stateFor(remaining);
   // The loop only hands over to the queue on a state change, and this sets
   // the state itself, so an adjustment past zero has to hand over here.
@@ -1124,7 +1133,7 @@ function adjustMinutes(delta) {
 
 // ── Until mode ────────────────────────────────────────
 function enterUntilMode(targetMs, label) {
-  untilTarget = targetMs; untilLabel = label; running = false; lastRenderedSec = -1;
+  untilTarget = targetMs; untilLabel = label; running = false; lastRenderedSec = null;
   remaining = resumeVal = Math.round((targetMs - Date.now())/1000); bellRecord = null;
   applyState('until'); renderUntilBtn(); renderSessionQueue(); renderDigits(remaining); startTimer();
 }
@@ -1214,7 +1223,7 @@ function copyShareUrl() {
   p.set('mins', Math.max(1, Math.round(totalSecs/60)));
   if (customLabel) p.set('label', customLabel);
   if (nextQueue.length) {
-    const nextStr = nextQueue.map(e => e.label ? `${e.label}:${e.mins}` : e.mins).join(',');
+    const nextStr = nextQueue.map(e => e.label ? `${e.label.replaceAll(',', '\\,')}:${e.mins}` : e.mins).join(',');
     p.set('next', nextStr);
   }
   p.set('theme', document.body.classList.contains('light') ? 'light' : 'dark');
@@ -1263,6 +1272,7 @@ function buildQueueRow(entry, idx) {
   del.className = 'qr-del'; del.textContent = '×';
   del.addEventListener('click', e => {
     e.stopPropagation();
+    queueEditRows = collectQueueRows(); // keep edits typed into other rows
     queueEditRows.splice(idx, 1);
     rebuildQueueList();
   });
@@ -1279,6 +1289,7 @@ function buildQueueRow(entry, idx) {
   row.addEventListener('drop', e => {
     e.preventDefault(); row.classList.remove('drag-over');
     if (dragSrcIdx === null || dragSrcIdx === idx) return;
+    queueEditRows = collectQueueRows();
     const moved = queueEditRows.splice(dragSrcIdx, 1)[0];
     queueEditRows.splice(idx, 0, moved);
     dragSrcIdx = null;
@@ -1317,6 +1328,7 @@ function buildQueueRow(entry, idx) {
     if (target && dragSrcIdx !== null) {
       const destIdx = +target.dataset.idx;
       if (destIdx !== dragSrcIdx) {
+        queueEditRows = collectQueueRows();
         const moved = queueEditRows.splice(dragSrcIdx, 1)[0];
         queueEditRows.splice(destIdx, 0, moved);
       }
@@ -1338,7 +1350,7 @@ function rebuildQueueList() {
 function collectQueueRows() {
   return [...$('queue-list').querySelectorAll('.qr-row')].map(row => ({
     label: row.querySelector('.qr-label').value.trim(),
-    mins:  Math.max(1, parseInt(row.querySelector('.qr-mins').value, 10) || 1),
+    mins:  Math.min(999, Math.max(1, parseInt(row.querySelector('.qr-mins').value, 10) || 1)),
   }));
 }
 
@@ -1432,8 +1444,9 @@ function openPresetModal(idx) {
 }
 const closePresetModal = () => { closeModal('preset-modal'); presetEditIdx = -1; };
 function presetSave() {
-  const label=$('preset-label-input').value.trim(), mins=parseInt($('preset-mins-input').value,10);
-  if (isNaN(mins)||mins<=0) { closePresetModal(); return; }
+  const label=$('preset-label-input').value.trim(), typed=parseInt($('preset-mins-input').value,10);
+  if (isNaN(typed)||typed<=0) { closePresetModal(); return; }
+  const mins = Math.min(999, typed); // max="999" doesn't stop typing 1200
   presets[presetEditIdx]={label,mins}; closePresetModal(); savePrefs(); renderPresets(); showHint('preset saved');
 }
 function presetDelete() {
@@ -1504,7 +1517,7 @@ const showHint  = msg => { statusHint.textContent=msg; statusHint.classList.add(
 const showSwipe = icon => { swipeEl.textContent=icon; swipeEl.classList.add('show'); clearTimeout(swipeTid); swipeTid=setTimeout(()=>swipeEl.classList.remove('show'),700); };
 
 // ── Touch ─────────────────────────────────────────────
-const isUIChrome = el => !!(el.closest('#remote-pad')||el.closest('#toolbar')||el.closest('#top-bar')||el.closest('#manual')||el.closest('.modal-overlay')||el.closest('#btn-menu')||el.closest('#btn-tick')||el.closest('#menu-backdrop'));
+const isUIChrome = el => !!(el.closest('#remote-pad')||el.closest('#session-queue')||el.closest('#toolbar')||el.closest('#top-bar')||el.closest('#manual')||el.closest('.modal-overlay')||el.closest('#btn-menu')||el.closest('#btn-tick')||el.closest('#menu-backdrop'));
 
 document.addEventListener('touchstart', e => {
   if (IS_REMOTE) return;
@@ -1872,7 +1885,11 @@ function execRemoteCmd(cmd) {
   if (cmd === 'reset') { fullReset(); return; }
   if (cmd === 'bell')  { playOTBell(); return; }
   if (cmd === 'next')  { if (nextQueue.length) { running=false; loadNextTimer(); } return; }
-  if (cmd.startsWith('adj:')) { adjustMinutes(parseInt(cmd.slice(4))); return; }
+  if (cmd.startsWith('adj:')) {
+    const n = parseInt(cmd.slice(4), 10);
+    if (Number.isFinite(n) && Math.abs(n) <= 999) adjustMinutes(n);
+    return;
+  }
   if (cmd.startsWith('setQueue:')) {
     const raw = cmd.slice(9);
     // Format: "Current Title|Slot1:25,Slot2:10" — pipe separates current label from queue
@@ -2073,7 +2090,7 @@ if (IS_REMOTE) {
 // The <meta name="version"> is the only copy of the version; CHANGELOG.md's
 // top heading is checked against it by scripts/gates.sh.
 $('manual-version').textContent = 'v' + (document.querySelector('meta[name="version"]')?.content ?? '');
-sessionQueue.addEventListener('click', e => { if (!isUIChrome(e.target)) openNextModal(); });
+sessionQueue.addEventListener('click', e => { e.stopPropagation(); openNextModal(); });
 renderPresets(); renderSessionQueue(); renderUntilBtn(); applyState('idle'); showToolbar(); renderDigits(remaining);
 }
 </script>

@@ -144,7 +144,7 @@ All parameters are optional and override saved preferences without overwriting t
 |---|---|---|
 | `mins` | `1–999` | Starting duration in minutes |
 | `label` | text | Session label (URL-encoded) |
-| `next` | `Title:25,10` | Queue — `Label:mins` or plain `mins`, comma-separated |
+| `next` | `Title:25,10` | Queue — `Label:mins` or plain `mins`, comma-separated; a comma inside a label is written `\,` |
 | `theme` | `dark` \| `light` | Force theme |
 | `sound` | `0` \| `1` \| `2` | Off / end-bell / per-minute bell |
 | `rc` | `XXXXXX` | Open as remote pad for this room code |

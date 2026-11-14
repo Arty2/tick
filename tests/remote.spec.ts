@@ -1,8 +1,8 @@
-import { test, expect, open, digits } from './fixtures';
+import { test, expect, open, digits, menu } from './fixtures';
 
 async function hostWithRemote(page: import('@playwright/test').Page, query = '?mins=20') {
 	await open(page, query);
-	await page.locator('#btn-menu').click();
+	await menu(page);
 	await page.locator('#btn-remote').click();
 	return (await page.locator('#remote-code-display').textContent())!.trim();
 }
@@ -12,13 +12,14 @@ async function hostWithRemote(page: import('@playwright/test').Page, query = '?m
 // is also the honest test of "works offline in the same browser".
 test('a remote pad in another tab starts, pauses and adjusts the host', async ({ page, context }) => {
 	await open(page, '?mins=20');
-	await page.locator('#btn-menu').click();
+	await menu(page);
 	await page.locator('#btn-remote').click();
 	const code = (await page.locator('#remote-code-display').textContent())!.trim();
 	expect(code).toMatch(/^[A-Z2-9]{6}$/);
 
 	const pad = await context.newPage();
 	await pad.goto('/tick.html?rc=' + code);
+	await pad.clock.runFor(200); // the pad says hello after 100 ms
 	await expect(pad.locator('#remote-status-bar')).toContainText('connected');
 	await expect(page.locator('#remote-status')).toContainText('connected');
 
@@ -33,12 +34,13 @@ test('a remote pad in another tab starts, pauses and adjusts the host', async ({
 
 test('a command delivered twice (WebRTC and BroadcastChannel) runs once', async ({ page, context }) => {
 	await open(page, '?mins=20');
-	await page.locator('#btn-menu').click();
+	await menu(page);
 	await page.locator('#btn-remote').click();
 	const code = (await page.locator('#remote-code-display').textContent())!.trim();
 	await page.keyboard.press('Space'); // the modal is open; start from the pad instead
 	const pad = await context.newPage();
 	await pad.goto('/tick.html?rc=' + code);
+	await pad.clock.runFor(200); // the pad says hello after 100 ms
 	await pad.locator('[data-rc="start"]').click();
 	await expect(digits(page)).toHaveClass(/s-run/);
 	await pad.evaluate((code) => {
@@ -66,7 +68,7 @@ test('PeerJS loads when its bytes match the pinned hash', async ({ page }) => {
 	// the real published file on every run, without the network.
 	await page.route(PEER_URL, (r) => r.fulfill({ path: 'node_modules/peerjs/dist/peerjs.min.js', headers: { 'access-control-allow-origin': '*' } }));
 	await open(page);
-	await page.locator('#btn-menu').click();
+	await menu(page);
 	await page.locator('#btn-remote').click();
 	await expect.poll(() => page.evaluate(() => typeof (window as unknown as { Peer?: unknown }).Peer)).toBe('function');
 });
@@ -76,7 +78,7 @@ test('a tampered PeerJS is refused by the browser', async ({ page, errors }) => 
 		r.fulfill({ body: 'window.Peer = function () {}', contentType: 'text/javascript', headers: { 'access-control-allow-origin': '*' } })
 	);
 	await open(page);
-	await page.locator('#btn-menu').click();
+	await menu(page);
 	await page.locator('#btn-remote').click();
 	await expect.poll(() => errors.some((e) => /integrity/i.test(e))).toBe(true);
 	expect(await page.evaluate(() => typeof (window as unknown as { Peer?: unknown }).Peer)).toBe('undefined');
@@ -89,6 +91,8 @@ test.describe('on a touch screen', () => {
 		const code = await hostWithRemote(page);
 		const pad = await context.newPage();
 		await pad.goto('/tick.html?rc=' + code);
+		await pad.clock.runFor(200); // the pad says hello after 100 ms
+	await pad.clock.runFor(200); // the pad says hello after 100 ms
 		await expect(pad.locator('#remote-status-bar')).toContainText('connected');
 		await pad.locator('[data-rc="start"]').tap();
 		await expect(digits(page)).toHaveClass(/s-run/);
@@ -105,9 +109,10 @@ test('reopening the remote while a pad is connected still says connected', async
 	const code = await hostWithRemote(page);
 	const pad = await context.newPage();
 	await pad.goto('/tick.html?rc=' + code);
+	await pad.clock.runFor(200); // the pad says hello after 100 ms
 	await expect(page.locator('#remote-status')).toContainText('connected');
 	await page.locator('#remote-modal-close').click();
-	await page.locator('#btn-menu').click();
+	await menu(page);
 	await page.locator('#btn-remote').click();
 	await expect(page.locator('#remote-status')).toContainText('connected');
 });
@@ -116,4 +121,16 @@ test("the broker's WebSocket is blocked like any other off-site request", async 
 	await page.route(PEER_URL, (r) => r.fulfill({ path: 'node_modules/peerjs/dist/peerjs.min.js', headers: { 'access-control-allow-origin': '*' } }));
 	await hostWithRemote(page);
 	await expect.poll(() => offsite.some((u) => u.startsWith('wss://'))).toBe(true);
+});
+
+test('a malformed adjustment from a pad is ignored', async ({ page, context }) => {
+	const code = await hostWithRemote(page);
+	const pad = await context.newPage();
+	await pad.goto('/tick.html?rc=' + code);
+	await pad.clock.runFor(200); // the pad says hello after 100 ms
+	await pad.locator('[data-rc="start"]').click();
+	await expect(digits(page)).toHaveClass(/s-run/);
+	await pad.evaluate((code) => new BroadcastChannel('tick-rc-' + code).postMessage({ type: 'cmd', cmd: 'adj:x', id: 'bad' }), code);
+	await page.clock.runFor(100);
+	await expect(digits(page)).toHaveText('20:00');
 });

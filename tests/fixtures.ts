@@ -45,9 +45,20 @@ export const test = base.extend<{ offsite: string[]; errors: string[] }>({
 });
 export { expect };
 
-/** Opens tick.html with a frozen clock, so time only moves when a test says so. */
+/**
+ * Pauses the page's clock at `time`. An installed clock otherwise keeps
+ * flowing in real time, and on a loaded machine a few real seconds leaked
+ * into every countdown. Installed a second early because pauseAt refuses a
+ * time the clock has already passed, and a few real milliseconds do pass.
+ */
+export async function freezeAt(page: Page, time: string) {
+	await page.clock.install({ time: new Date(+new Date(time) - 1000) });
+	await page.clock.pauseAt(new Date(time));
+}
+
+/** Opens tick.html with a paused clock, so time only moves when a test says so. */
 export async function open(page: Page, query = '', time = '2026-11-14T10:12:00') {
-	await page.clock.install({ time: new Date(time) });
+	await freezeAt(page, time);
 	await page.goto('/tick.html' + query);
 	await page.clock.runFor(50);
 }
@@ -58,4 +69,21 @@ export const label = (page: Page) => page.locator('#label-text');
 /** The toolbar opens itself on load and hides after a few seconds; skip that. */
 export async function settle(page: Page) {
 	await page.clock.runFor(6000);
+}
+
+/**
+ * Chromium commits localStorage writes to the browser process asynchronously;
+ * a reload within milliseconds of a write can read the old value. No user
+ * reloads that fast, so tests wait a moment of real time before reloading.
+ */
+export const letStorageSettle = (page: Page) => page.waitForTimeout(250);
+
+/**
+ * Opens the toolbar menu if it isn't open already. On load it is open, and
+ * with the clock paused its 5-second auto-hide never runs; tests that once
+ * waited for that in real time leaked those seconds into their countdowns.
+ */
+export async function menu(page: Page) {
+	if (!(await page.locator('#toolbar').evaluate((t) => t.classList.contains('visible'))))
+		await page.locator('#btn-menu').click();
 }

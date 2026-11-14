@@ -58,6 +58,15 @@ starts with nothing below the line.
 
 <!-- Newest entries go directly below this line. -->
 
+## 2026-11-14 — An installed fake clock still flows; pause it
+
+`page.clock.install` keeps time moving in real time. Tests that waited on
+the app's own timers (a toolbar's 5 s auto-hide) quietly spent real seconds,
+which showed up as countdowns off by five under parallel load. Pausing
+(`install` a second early, then `pauseAt`, since pauseAt refuses the past)
+made every test deterministic and the suite three times faster; the cost was
+driving those timers explicitly. osseus's e2e notes could say so up front.
+
 ## 2026-11-14 — The CSP allows inline script and style
 
 osseus's policy is `script-src 'self'`, with SvelteKit hashing what is

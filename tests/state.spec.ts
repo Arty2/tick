@@ -1,4 +1,4 @@
-import { test, expect, open, digits, settle } from './fixtures';
+import { test, expect, open, digits, settle, letStorageSettle, menu, freezeAt } from './fixtures';
 
 test('URL parameters set duration, label, queue, theme and sound', async ({ page }) => {
 	await open(page, '?mins=25&label=Keynote&next=Break:5,10&theme=light&sound=2');
@@ -13,6 +13,7 @@ test('preferences survive a reload; URL parameters do not overwrite them', async
 	await open(page);
 	await page.keyboard.press('PageDown'); // theme → light, saved
 	await expect(page.locator('body')).toHaveClass(/light/);
+	await letStorageSettle(page);
 	await page.goto('/tick.html?theme=dark');
 	await expect(page.locator('body')).not.toHaveClass(/light/);
 	await page.goto('/tick.html');
@@ -39,7 +40,7 @@ test('unreadable saved preferences fall back to defaults instead of breaking the
 test('share copies a URL that restores the same timer', async ({ page, context }) => {
 	await context.grantPermissions(['clipboard-read', 'clipboard-write']);
 	await open(page, '?mins=12&label=Panel&next=QA:8');
-	await page.locator('#btn-menu').click();
+	await menu(page);
 	await page.locator('#btn-share').click();
 	const url = await page.evaluate(() => navigator.clipboard.readText());
 	expect(new URL(url).searchParams.get('next')).toBe('QA:8');
@@ -67,6 +68,7 @@ test('a queue emptied on purpose stays empty after a reload', async ({ page }) =
 	await page.keyboard.press('n');
 	await page.locator('.qr-del').click();
 	await page.locator('#next-set').click();
+	await letStorageSettle(page);
 	await page.reload();
 	await page.clock.runFor(50);
 	await expect(page.locator('.sq-queued')).toHaveCount(0);
@@ -92,7 +94,7 @@ test('malformed saved presets and queue entries are dropped, not fatal', async (
 });
 
 test('the bare domain redirects to tick.html and keeps the timer in the query', async ({ page }) => {
-	await page.clock.install({ time: new Date('2026-11-14T10:12:00') });
+	await freezeAt(page, '2026-11-14T10:12:00');
 	await page.goto('/?mins=7&label=Short');
 	await expect(page).toHaveURL(/\/tick\.html\?mins=7&label=Short$/);
 	await expect(page.locator('#timer-display')).toHaveText('07:00');
@@ -119,8 +121,61 @@ test("a share link's settings don't replace the user's own when something saves"
 	await open(page, '?mins=1&next=Talk:2&theme=light&sound=2&label=Linked');
 	await page.keyboard.press('Space');
 	await page.clock.fastForward(62_000); // the hand-over saves
+	await letStorageSettle(page);
 	await page.goto('/tick.html');
 	await expect(page.locator('body')).not.toHaveClass(/light/);
 	await expect(page.locator('#btn-sound')).toHaveText('sound: off');
 	await expect(page.locator('.sq-queued')).toHaveText(['▶ 05:00 Mine']);
+});
+
+test('deleting a queue row keeps what was typed into the others', async ({ page }) => {
+	await open(page, '?next=A:5,B:10');
+	await page.keyboard.press('n');
+	await page.locator('.qr-label').first().fill('Keynote');
+	await page.locator('.qr-del').nth(1).click();
+	await expect(page.locator('.qr-label')).toHaveCount(1);
+	await expect(page.locator('.qr-label')).toHaveValue('Keynote');
+});
+
+test('minutes typed past 999 are kept at 999, not lost on reload', async ({ page }) => {
+	await open(page);
+	await menu(page);
+	await page.locator('.preset-btn').nth(3).click(); // an empty slot opens its editor
+	await page.locator('#preset-mins-input').fill('1200');
+	await page.locator('#preset-mins-input').press('Enter');
+	await letStorageSettle(page);
+	await page.reload();
+	await expect(page.locator('.preset-btn').nth(3)).toHaveText('999m');
+});
+
+test('labels with colons and commas survive a share link', async ({ page, context }) => {
+	await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+	await open(page);
+	await page.keyboard.press('n');
+	await page.locator('.qr-label').first().fill('Q&A: panel, part 2');
+	await page.locator('#next-set').click();
+	await menu(page);
+	await page.locator('#btn-share').click();
+	const url = await page.evaluate(() => navigator.clipboard.readText());
+	const other = await context.newPage();
+	await other.goto(url);
+	await expect(other.locator('.sq-queued')).toHaveText(['▶ 10:00 Q&A: panel, part 2']);
+});
+
+test("a hand-over saves the new slot's label with the shortened queue", async ({ page }) => {
+	await page.addInitScript(() => {
+		if (!sessionStorage.getItem('seeded')) {
+			localStorage.setItem('tick_prefs', JSON.stringify({ customLabel: 'Intro', nextQueue: [{ label: 'Talk', mins: 20 }, { label: 'QA', mins: 10 }] }));
+			sessionStorage.setItem('seeded', '1');
+		}
+	});
+	await open(page, '?mins=1');
+	await page.keyboard.press('Space');
+	await page.clock.fastForward(61_500); // overtime starts at −1 s
+	await page.clock.runFor(100);
+	await expect(page.locator('#session-label')).toHaveText('Talk');
+	await letStorageSettle(page);
+	await page.reload();
+	await expect(page.locator('#session-label')).toHaveText('Talk');
+	await expect(page.locator('.sq-queued')).toHaveText(['▶ 10:00 QA']);
 });

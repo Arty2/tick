@@ -63,8 +63,9 @@ spans. Easter eggs and hidden gestures stay out.
 
 ## How we work
 
-- **Tests drive the real page** in Chromium, with a frozen clock
-  (`page.clock`) so a 25-minute countdown takes milliseconds, and with
+- **Tests drive the real page** in Chromium, with a paused clock
+  (`freezeAt` in `tests/fixtures.ts`) so a 25-minute countdown takes
+  milliseconds and time moves only when a test moves it, and with
   every off-site request aborted so nothing passes because a CDN answered.
   A test fails on any console error.
 - **A bug found and not yet fixed is a `test.fail`**, with a comment saying
