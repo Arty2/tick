@@ -44,7 +44,7 @@ The file can also be put on any web server. It needs no other files.
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│  00:00 (since start)   v0.3.4   HH:MM:SS (clock)    │
+│  00:00 (since start)   v0.3.5   HH:MM:SS (clock)    │
 │                                                     │
 │              STATUS                                 │
 │              25:00                                  │
@@ -278,8 +278,8 @@ pnpm run serve     # serves the app at http://localhost:4173
 
 | Version change | When |
 |---|---|
-| Patch (`0.3.4` → `0.3.5`) | A fix |
-| Minor (`0.3.4` → `0.4.0`) | A new feature |
+| Patch (`0.3.5` → `0.3.6`) | A fix |
+| Minor (`0.3.5` → `0.4.0`) | A new feature |
 | The first number | Changes only when the project is decided to be finished |
 
 The version number is written in one place: `<meta name="version">` in `tick.html`. The manual shows it, and [CHANGELOG.md](./CHANGELOG.md) starts with it. [AGENTS.md](./AGENTS.md) explains how to work on the project.

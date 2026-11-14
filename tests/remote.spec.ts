@@ -361,6 +361,7 @@ test.describe('the pad on a 390×844 phone', () => {
 		expect(icon.x + icon.width).toBeGreaterThan(350); // kiosk button on the right
 		const size = await page.locator('#remote-state-display').evaluate((d) => parseFloat(getComputedStyle(d).fontSize));
 		expect(size).toBeGreaterThan(100); // was 62px at this width
+		await expect(page.locator('#remote-state-display')).toHaveCSS('font-weight', '400'); // regular, as on the kiosk
 		const [scroll, client] = await page.locator('#remote-pad').evaluate((p) => [p.scrollHeight, p.clientHeight]);
 		expect(scroll).toBeLessThanOrEqual(client);
 	});
