@@ -391,22 +391,28 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
   align-items:center;justify-content:center;gap:1.2rem;padding:1.5rem;
 }
 #remote-pad.open{display:flex}
-/* Centred when it fits, scrollable from the top when it doesn't: auto
-   margins on the ends instead of justify-content:center, which would push
-   the top out of reach on a short screen. */
-#remote-pad{justify-content:flex-start;overflow-y:auto;gap:0.9rem}
-#remote-pad > :first-child{margin-top:auto}
-#remote-pad > :last-child{margin-bottom:auto}
-#rc-top{display:flex;align-items:center;justify-content:center;gap:0.8rem;width:100%;max-width:640px}
+/* Laid out from the top and scrollable when taller than the screen
+   (justify-content:center would push the top out of reach). Spare height
+   goes to the time rather than to empty bands above and below. */
+#remote-pad{justify-content:flex-start;overflow-y:auto;gap:0.9rem;padding-top:0}
+/* A status bar along the top edge: connection on the left, the new-kiosk
+   button on the right. Sticky, so it stays in view while the pad scrolls. */
+#rc-top{
+  position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:0.8rem;
+  align-self:stretch;margin:0 -1.5rem;padding:0.5rem 1.5rem;
+  background:var(--bg);border-bottom:1px solid var(--dim);
+}
 .rc-icon-btn{
   background:rgba(128,128,128,0.1);border:1px solid var(--dim);color:var(--fg);cursor:pointer;
   font-size:20px;line-height:1;width:2.4rem;height:2.4rem;padding:0;flex-shrink:0;
   touch-action:manipulation;-webkit-tap-highlight-color:transparent;
 }
 #remote-state-display{
-  font-size:clamp(48px,16vw,120px);font-weight:900;letter-spacing:-0.03em;
+  /* Big enough to read at arm's length, by the screen's width and height;
+     its box grows into any spare height and centres the digits in it. */
+  font-size:clamp(56px,min(30vw,15vh),240px);font-weight:900;letter-spacing:-0.03em;
   font-variant-numeric:tabular-nums;color:var(--c-idle);transition:color 0.25s;
-  line-height:1;
+  line-height:1;flex:1 0 auto;display:flex;align-items:center;justify-content:center;
 }
 #remote-label-display{
   font-size:clamp(11px,2.5vw,18px);letter-spacing:0.3em;text-transform:uppercase;

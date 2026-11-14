@@ -330,3 +330,20 @@ test('the queue box shows the queue itself; its hint appears only when there is 
 	await expect(box).toHaveValue('Talk:25');
 	await expect(pad.locator('#rc-next')).toBeEnabled();
 });
+
+test.describe('the pad on a 390×844 phone', () => {
+	test.use({ viewport: { width: 390, height: 844 } });
+	test('has a status bar on the top edge and a larger time, and fits without scrolling', async ({ page }) => {
+		await page.goto('/tick.html?rc=ABCDEF');
+		const bar = (await page.locator('#rc-top').boundingBox())!;
+		expect(bar.y).toBe(0);
+		expect(bar.width).toBe(390); // edge to edge
+		const [status, icon] = [(await page.locator('#remote-status-bar').boundingBox())!, (await page.locator('#rc-new-kiosk').boundingBox())!];
+		expect(status.x).toBeLessThan(40); // status on the left
+		expect(icon.x + icon.width).toBeGreaterThan(350); // kiosk button on the right
+		const size = await page.locator('#remote-state-display').evaluate((d) => parseFloat(getComputedStyle(d).fontSize));
+		expect(size).toBeGreaterThan(100); // was 62px at this width
+		const [scroll, client] = await page.locator('#remote-pad').evaluate((p) => [p.scrollHeight, p.clientHeight]);
+		expect(scroll).toBeLessThanOrEqual(client);
+	});
+});
