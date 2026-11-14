@@ -1,9 +1,9 @@
 import { test as base, expect, type Page } from '@playwright/test';
 
 /*
- * Every test runs with the outside world switched off and watched. tick.html
- * is meant to work from file:// with no network, so a test that only passes
- * because some third-party host answered is a test of that host. Anything
+ * Every test runs with the outside world switched off and watched. /tick is
+ * meant to work with no network, so a test that only passes because some
+ * third-party host answered is a test of that host. Anything
  * off-origin is aborted and recorded; `offsite` lets a test assert on it.
  * Console errors and uncaught exceptions are collected the same way, and a
  * test fails at the end if there were any it didn't expect — a test that
@@ -56,12 +56,52 @@ export async function freezeAt(page: Page, time: string) {
 	await page.clock.pauseAt(new Date(time));
 }
 
-/** Opens tick.html with a paused clock, so time only moves when a test says so. */
-export async function open(page: Page, query = '', time = '2026-11-14T10:12:00') {
+/**
+ * Opens the app with a paused clock, so time only moves when a test says so.
+ * `hash` is the link's settings, written as they are in a link: '#mins=20'.
+ */
+export async function open(page: Page, hash = '', time = '2026-11-14T10:12:00') {
 	await freezeAt(page, time);
-	await page.goto('/tick.html' + query);
+	await visit(page, '/' + hash);
 	await page.clock.runFor(50);
 }
+
+/**
+ * Goes to a link of the app and waits until the app has started. The load
+ * event is too early: the page picks its part (timer or remote pad) and
+ * imports it after that, and marks <html data-ready> when it has drawn itself.
+ * And the settings are in the fragment, where a change alone is not a page
+ * load at all; so a tab already on the app leaves it first.
+ */
+export async function visit(page: Page, url = '/') {
+	// (To a picture on this origin, not about:blank: a test's init script may
+	// use storage, which about:blank refuses.)
+	if (page.url() !== 'about:blank') await page.goto('/icons/icon.svg');
+	await page.goto(url);
+	await ready(page);
+}
+
+/** Waits for the app to have started, after something else loaded the page. */
+export const ready = (page: Page) => expect(page.locator('html[data-ready]')).toBeAttached();
+
+/** The same tab, another link: `visit`, then the moment `open` gives the page. */
+export async function reopen(page: Page, hash = '') {
+	await visit(page, '/' + hash);
+	await page.clock.runFor(50);
+}
+
+/**
+ * Moves the clock on in half-second steps. The clock belongs to the whole
+ * browser context, and one long runFor moves each page's timers in turn — a
+ * pad twelve seconds ahead of its kiosk decides the kiosk is lost. Small
+ * steps keep the pages together, as real time does.
+ */
+export async function together(page: Page, ms: number) {
+	for (let left = ms; left > 0; left -= 500) await page.clock.runFor(Math.min(500, left));
+}
+
+/** Waits out CSS transitions (the counter changes size smoothly), so a measurement is of the settled page. */
+export const settled = (page: Page) => page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished)).then(() => {}));
 
 export const digits = (page: Page) => page.locator('#timer-display');
 export const label = (page: Page) => page.locator('#label-text');

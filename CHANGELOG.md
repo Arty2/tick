@@ -6,6 +6,15 @@ heading to the new number and adds its lines there, never a section of its own.
 Features only — not fixes, not why, not how; that is the README's. Three lines
 to a release, six at the very most. Plain text and `code` spans only.
 
+## 0.4.0 — 2026-11-14
+
+- Installs as an app, and opens without the internet once it has been visited.
+- Several remotes and several kiosks on one timer; extra kiosks are read only, and one takes over if the first is lost.
+- QR codes drawn by /tick itself, offline. PeerJS ships with it instead of coming from a CDN.
+- Link settings follow `#`, so they are never sent to the server. The app is at the site's root.
+- Remote pad: a green Start, minute buttons that set the length before the start, a count of other remotes.
+- The menu says `remote: waiting` or `remote: connected`, with Share and Install on its left.
+
 ## 0.3.6 — 2026-11-14
 
 - Live at acari.vercel.app, where a link with settings opens the timer as set.

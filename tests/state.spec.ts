@@ -1,7 +1,7 @@
-import { test, expect, open, digits, settle, letStorageSettle, menu, freezeAt } from './fixtures';
+import { test, expect, open, reopen, digits, settle, letStorageSettle, menu, freezeAt, visit } from './fixtures';
 
-test('URL parameters set duration, label, queue, theme and sound', async ({ page }) => {
-	await open(page, '?mins=25&label=Keynote&next=Break:5|10&theme=light&sound=2');
+test('settings in the link set duration, label, queue, theme and sound', async ({ page }) => {
+	await open(page, '#mins=25&label=Keynote&next=Break:5|10&theme=light&sound=2');
 	await expect(digits(page)).toHaveText('25:00');
 	await expect(page.locator('#session-label')).toHaveText('Keynote');
 	await expect(page.locator('.sq-queued')).toHaveCount(2);
@@ -9,26 +9,15 @@ test('URL parameters set duration, label, queue, theme and sound', async ({ page
 	await expect(page.locator('#btn-sound')).toHaveText('sound: min');
 });
 
-test('preferences survive a reload; URL parameters do not overwrite them', async ({ page }) => {
+test('preferences survive a reload; settings in a link do not overwrite them', async ({ page }) => {
 	await open(page);
 	await page.keyboard.press('PageDown'); // theme → light, saved
 	await expect(page.locator('body')).toHaveClass(/light/);
 	await letStorageSettle(page);
-	await page.goto('/tick.html?theme=dark');
+	await reopen(page, '#theme=dark');
 	await expect(page.locator('body')).not.toHaveClass(/light/);
-	await page.goto('/tick.html');
+	await reopen(page);
 	await expect(page.locator('body')).toHaveClass(/light/);
-});
-
-test('a queue saved by an older version (plain minutes) still loads', async ({ page }) => {
-	await page.addInitScript(() => {
-		if (!sessionStorage.getItem('seeded')) {
-			localStorage.setItem('tick_prefs', JSON.stringify({ nextQueue: [5, 15] }));
-			sessionStorage.setItem('seeded', '1');
-		}
-	});
-	await open(page);
-	await expect(page.locator('.sq-queued')).toHaveText(['▶ 05:00', '▶ 15:00']);
 });
 
 test('unreadable saved preferences fall back to defaults instead of breaking the page', async ({ page }) => {
@@ -39,14 +28,15 @@ test('unreadable saved preferences fall back to defaults instead of breaking the
 
 test('share copies a URL that restores the same timer', async ({ page, context }) => {
 	await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-	await open(page, '?mins=12&label=Panel&next=QA:8');
+	await open(page, '#mins=12&label=Panel&next=QA:8');
 	await menu(page);
 	await page.locator('#btn-share').click();
 	const url = await page.evaluate(() => navigator.clipboard.readText());
-	expect(new URL(url).searchParams.get('next')).toBe('QA:8');
+	expect(url).not.toContain('?'); // nothing a server would be sent
+	expect(new URLSearchParams(new URL(url).hash.slice(1)).get('next')).toBe('QA:8');
 
 	const other = await context.newPage();
-	await other.goto(url);
+	await visit(other, url);
 	await expect(other.locator('#timer-display')).toHaveText('12:00');
 	await expect(other.locator('#session-label')).toHaveText('Panel');
 	await expect(other.locator('.sq-queued')).toHaveText(['▶ 08:00 QA']);
@@ -93,21 +83,27 @@ test('malformed saved presets and queue entries are dropped, not fatal', async (
 	await expect(page.locator('#btn-sound')).toHaveText('sound: off');
 });
 
-test('the bare domain redirects to tick.html and keeps the timer in the query', async ({ page }) => {
+test("the app is at the root of the site, and the link's settings are not sent to the server", async ({ page }) => {
 	await freezeAt(page, '2026-11-14T10:12:00');
-	await page.goto('/?mins=7&label=Short');
-	await expect(page).toHaveURL(/\/tick\.html\?mins=7&label=Short$/);
+	const asked: string[] = [];
+	page.on('request', (r) => asked.push(r.url()));
+	await visit(page, '/#mins=7&label=Short');
 	await expect(page.locator('#timer-display')).toHaveText('07:00');
+	await expect(page.locator('#session-label')).toHaveText('Short');
+	await expect(page).toHaveURL(/\/#mins=7&label=Short$/);
+	expect(asked.length).toBeGreaterThan(3); // the page, its style and its modules
+	expect(asked.filter((u) => /mins|Short|[?#]/.test(u))).toEqual([]);
 });
 
 test('the page is served with the security policy from vercel.json', async ({ page }) => {
-	const res = await page.goto('/tick.html');
+	const res = await page.goto('/');
 	const csp = res!.headers()['content-security-policy'];
 	expect(csp).toContain("frame-ancestors 'none'");
 	expect(csp).toContain("object-src 'none'");
-	// The remote's third parties, and only those (see README § External services).
-	expect(csp).toContain('https://cdn.jsdelivr.net');
-	expect(csp).toContain('https://api.qrserver.com');
+	// Scripts from this origin only, none written into the page; and the one
+	// outside host is the remote's broker (see README § External services).
+	expect(csp).toContain("script-src 'self';");
+	expect(csp.match(/(https?|wss):\/\/[^\s;]+/g)).toEqual(['https://0.peerjs.com', 'wss://0.peerjs.com']);
 	expect(res!.headers()['x-frame-options']).toBe('DENY');
 });
 
@@ -118,18 +114,18 @@ test("a share link's settings don't replace the user's own when something saves"
 			sessionStorage.setItem('seeded', '1');
 		}
 	});
-	await open(page, '?mins=1&next=Talk:2&theme=light&sound=2&label=Linked');
+	await open(page, '#mins=1&next=Talk:2&theme=light&sound=2&label=Linked');
 	await page.keyboard.press('Space');
 	await page.clock.fastForward(62_000); // the hand-over saves
 	await letStorageSettle(page);
-	await page.goto('/tick.html');
+	await reopen(page);
 	await expect(page.locator('body')).not.toHaveClass(/light/);
 	await expect(page.locator('#btn-sound')).toHaveText('sound: off');
 	await expect(page.locator('.sq-queued')).toHaveText(['▶ 05:00 Mine']);
 });
 
 test('deleting a queue row keeps what was typed into the others', async ({ page }) => {
-	await open(page, '?next=A:5|B:10');
+	await open(page, '#next=A:5|B:10');
 	await page.keyboard.press('n');
 	await page.locator('.qr-label').first().fill('Keynote');
 	await page.locator('.qr-del').nth(1).click();
@@ -158,7 +154,7 @@ test('labels with colons and commas survive a share link', async ({ page, contex
 	await page.locator('#btn-share').click();
 	const url = await page.evaluate(() => navigator.clipboard.readText());
 	const other = await context.newPage();
-	await other.goto(url);
+	await visit(other, url);
 	await expect(other.locator('.sq-queued')).toHaveText(['▶ 10:00 Q&A: panel, part 2']);
 });
 
@@ -169,7 +165,7 @@ test("a hand-over saves the new slot's label with the shortened queue", async ({
 			sessionStorage.setItem('seeded', '1');
 		}
 	});
-	await open(page, '?mins=1');
+	await open(page, '#mins=1');
 	await page.keyboard.press('Space');
 	await page.clock.fastForward(61_500); // overtime starts at −1 s
 	await page.clock.runFor(100);
@@ -180,9 +176,3 @@ test("a hand-over saves the new slot's label with the shortened queue", async ({
 	await expect(page.locator('.sq-queued')).toHaveText(['▶ 10:00 QA']);
 });
 
-test('a first warning saved as the old fixed default becomes automatic', async ({ page }) => {
-	await page.addInitScript(() => localStorage.setItem('tick_prefs', JSON.stringify({ warnSecs1: 120 })));
-	await open(page);
-	await page.keyboard.press('w');
-	await expect(page.locator('#warn1-input')).toHaveValue('');
-});

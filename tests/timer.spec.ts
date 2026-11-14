@@ -9,7 +9,7 @@ test('opens idle at the default duration, and asks for nothing off-site', async 
 });
 
 test('space starts and pauses; the count follows the clock', async ({ page }) => {
-	await open(page, '?mins=25');
+	await open(page, '#mins=25');
 	await page.keyboard.press('Space');
 	await page.clock.runFor(3000);
 	await expect(digits(page)).toHaveText('24:57');
@@ -35,7 +35,7 @@ test('typed digits set the minutes, arrows adjust a running timer', async ({ pag
 });
 
 test('warning colours at the two thresholds, then overtime counts up in red', async ({ page }) => {
-	await open(page, '?mins=3');
+	await open(page, '#mins=3');
 	// A first visit queues one 10-minute slot, which would take over at zero.
 	await page.keyboard.press('n');
 	await page.locator('.qr-del').click();
@@ -52,7 +52,7 @@ test('warning colours at the two thresholds, then overtime counts up in red', as
 });
 
 test('the queue loads and starts the next slot when time runs out', async ({ page }) => {
-	await open(page, '?mins=1&label=Talk&next=Break:2|QA:5');
+	await open(page, '#mins=1&label=Talk&next=Break:2|QA:5');
 	await expect(page.locator('#session-label')).toHaveText('Talk');
 	await expect(page.locator('.sq-queued')).toHaveText(['▶ 02:00 Break', '▶ 05:00 QA']);
 	await page.keyboard.press('Space');
@@ -69,7 +69,7 @@ test('the queue loads and starts the next slot when time runs out', async ({ pag
 });
 
 test('enter in a modal saves the modal and leaves a running timer alone', async ({ page }) => {
-	await open(page, '?mins=20&next=Break:5');
+	await open(page, '#mins=20&next=Break:5');
 	await page.keyboard.press('Space');
 	await page.clock.runFor(2_000);
 	await page.keyboard.press('n');
@@ -84,7 +84,7 @@ test('enter in a modal saves the modal and leaves a running timer alone', async 
 });
 
 test('ctrl+enter skips to the next queued slot', async ({ page }) => {
-	await open(page, '?mins=25&next=Break:5');
+	await open(page, '#mins=25&next=Break:5');
 	await page.keyboard.press('Space');
 	await page.keyboard.press('Control+Enter');
 	await expect(digits(page)).toHaveText('05:00');
@@ -103,7 +103,7 @@ test('target mode defaults to the next half hour and counts down to it', async (
 });
 
 test('end resets to the starting duration', async ({ page }) => {
-	await open(page, '?mins=4');
+	await open(page, '#mins=4');
 	await page.keyboard.press('Space');
 	await page.clock.fastForward(10_000);
 	await page.keyboard.press('End');
@@ -111,7 +111,7 @@ test('end resets to the starting duration', async ({ page }) => {
 });
 
 test('running past zero by hand hands over to the queue', async ({ page }) => {
-	await open(page, '?mins=1&label=Talk&next=Break:5');
+	await open(page, '#mins=1&label=Talk&next=Break:5');
 	await page.keyboard.press('Space');
 	await page.clock.fastForward(30_000);
 	await page.keyboard.press('ArrowRight'); // −1 min: 0:30 → −0:30
@@ -144,7 +144,7 @@ test('the mouse wheel scrolls the manual instead of changing the timer', async (
 });
 
 test('out-of-range minutes in the URL are ignored', async ({ page }) => {
-	await open(page, '?mins=Infinity&next=Talk:0.01|QA:1e9|Break:5.5');
+	await open(page, '#mins=Infinity&next=Talk:0.01|QA:1e9|Break:5.5');
 	await expect(digits(page)).toHaveText('10:00');
 	await expect(page.locator('.sq-queued')).toHaveText(['▶ 05:00 Break']);
 });
@@ -157,7 +157,7 @@ test('the queue keeps counting down, and hands over, behind clock mode', async (
 			sessionStorage.setItem('seeded', '1');
 		}
 	});
-	await open(page, '?mins=1&label=Talk');
+	await open(page, '#mins=1&label=Talk');
 	await page.keyboard.press('Space');
 	await menu(page);
 	await page.locator('#btn-clock-watch').click();
@@ -176,7 +176,7 @@ test('the queue keeps counting down, and hands over, behind clock mode', async (
 });
 
 test('the queue under a running timer is not rebuilt every second', async ({ page }) => {
-	await open(page, '?mins=20&next=Break:5');
+	await open(page, '#mins=20&next=Break:5');
 	await page.keyboard.press('Space');
 	const row = await page.locator('.sq-queued').elementHandle();
 	await page.clock.runFor(3_000);
@@ -199,7 +199,7 @@ test('the session label survives starting over', async ({ page }) => {
 test.describe('on a touch screen', () => {
 	test.use({ hasTouch: true });
 	test('tapping the queue opens it and leaves the timer running', async ({ page }) => {
-		await open(page, '?mins=20&next=Break:5');
+		await open(page, '#mins=20&next=Break:5');
 		await settle(page); // the menu opens on load; its backdrop would take the tap
 		await page.locator('#timer-display').tap();
 		await page.clock.runFor(500);
@@ -212,7 +212,7 @@ test.describe('on a touch screen', () => {
 });
 
 test('a session longer than 10 minutes warns 5 minutes before the end', async ({ page }) => {
-	await open(page, '?mins=25&next=');
+	await open(page, '#mins=25&next=');
 	await page.keyboard.press('Space');
 	await page.clock.fastForward(19 * 60_000 + 59_000); // 5:01 left
 	await page.clock.runFor(100);
@@ -222,7 +222,7 @@ test('a session longer than 10 minutes warns 5 minutes before the end', async ({
 });
 
 test('a 10-minute session still warns 2 minutes before the end', async ({ page }) => {
-	await open(page, '?mins=10');
+	await open(page, '#mins=10');
 	await page.keyboard.press('Space');
 	await page.clock.fastForward(5 * 60_000 + 1_000); // 4:59 left
 	await page.clock.runFor(100);
@@ -233,7 +233,7 @@ test('a 10-minute session still warns 2 minutes before the end', async ({ page }
 });
 
 test('a first warning set by hand replaces the automatic one; empty restores it', async ({ page }) => {
-	await open(page, '?mins=25');
+	await open(page, '#mins=25');
 	await page.keyboard.press('w');
 	await expect(page.locator('#warn1-input')).toHaveValue('');
 	await page.locator('#warn1-input').fill('60');
@@ -262,7 +262,7 @@ test('a target time more than 10 minutes away also warns at 5 minutes', async ({
 });
 
 test('shortcuts work straight after a window is closed with Enter or Escape', async ({ page }) => {
-	await open(page, '?mins=25');
+	await open(page, '#mins=25');
 	await page.keyboard.press('n');
 	await page.keyboard.press('Enter'); // the queue window has the cursor; Enter saves
 	await page.keyboard.press('Space');

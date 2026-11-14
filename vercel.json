@@ -2,9 +2,8 @@
 	"$schema": "https://openapi.vercel.sh/vercel.json",
 	"framework": null,
 	"installCommand": "true",
-	"buildCommand": "mkdir -p public && cp tick.html public/",
-	"outputDirectory": "public",
-	"redirects": [{ "source": "/", "destination": "/tick.html", "permanent": false }],
+	"buildCommand": "true",
+	"outputDirectory": "app",
 	"headers": [
 		{
 			"source": "/(.*)",
@@ -15,7 +14,7 @@
 				{ "key": "X-Frame-Options", "value": "DENY" },
 				{
 					"key": "Content-Security-Policy",
-					"value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://api.qrserver.com; connect-src 'self' https://0.peerjs.com wss://0.peerjs.com; manifest-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+					"value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://0.peerjs.com wss://0.peerjs.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
 				},
 				{
 					"key": "Permissions-Policy",

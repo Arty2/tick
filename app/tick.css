@@ -1,0 +1,539 @@
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#0a0a0a;--fg:#e8e8e8;--dim:#484848;--panel:rgba(14,14,14,0.98);
+  --c-idle:#484848;--c-run:#e8e8e8;--c-warn:#e06a10;--c-pause:#d48f00;
+  --c-ot:#d63030;--c-reset:#28924a;--c-next:#7a52c8;--c-until:#3a7fbf;--c-watch:#3a9a7a;
+  --btn-bg:rgba(10,10,10,0.82);
+  --font:ui-monospace,'Cascadia Code','SF Mono','Segoe UI Mono',Menlo,Consolas,monospace;
+}
+body.light{
+  --bg:#f2efe9;--fg:#111;--dim:#aaa;--panel:rgba(228,225,218,0.98);
+  --c-idle:#aaa;--c-run:#111;--c-warn:#c85800;--c-pause:#b87800;
+  --c-ot:#c02828;--c-reset:#1e7a3c;--c-next:#6040b0;--c-until:#2a6aaa;--c-watch:#1a7a5a;
+  --btn-bg:rgba(242,239,233,0.82);
+}
+html,body{
+  width:100%;height:100%;background:var(--bg);color:var(--fg);font-family:var(--font);
+  overflow:hidden;-webkit-tap-highlight-color:transparent;
+  touch-action:none;user-select:none;-webkit-user-select:none;
+}
+#app{width:100vw;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer}
+
+#label-wrap{
+  font-size:clamp(16px,13vw,180px);font-weight:800;letter-spacing:0.06em;
+  text-transform:uppercase;color:var(--c-idle);
+  width:calc(100vw - 4rem);text-align:center;margin-bottom:0.5rem;min-height:1em;
+  transition:color 0.2s;white-space:normal;line-height:1.05;
+}
+:is(#label-wrap.s-idle,#label-wrap.s-run,#label-wrap.s-reset,#label-wrap.s-warn){
+  font-size:clamp(11px,1.8vw,17px);font-weight:500;letter-spacing:0.35em;
+}
+#label-wrap.editing{opacity:0.3}
+#label-text{
+  outline:none;background:transparent;border:none;color:inherit;font:inherit;
+  text-align:center;min-width:2em;caret-color:var(--fg);
+  user-select:text;-webkit-user-select:text;
+}
+#label-wrap.s-idle {color:var(--c-idle)} #label-wrap.s-run  {color:var(--c-idle)}
+#label-wrap.s-warn {color:var(--c-warn)} #label-wrap.s-warn2{color:var(--c-warn)}
+#label-wrap.s-pause{color:var(--c-pause)}#label-wrap.s-ot   {color:var(--c-ot)}
+#label-wrap.s-reset{color:var(--c-reset)}#label-wrap.s-next {color:var(--c-next)}
+#label-wrap.s-until{color:var(--c-until);font-size:clamp(14px,5vw,60px)}
+#label-wrap.s-watch{color:var(--c-watch);font-size:clamp(11px,1.8vw,17px);font-weight:500;letter-spacing:0.35em}
+
+#label-sub{
+  display:block;font-size:clamp(11px,1.8vw,17px);font-weight:500;letter-spacing:0.35em;
+  color:inherit;margin-top:0.4em;opacity:0;transition:opacity 0.2s;
+}
+:is(#label-wrap.s-next,#label-wrap.s-until,#label-wrap.s-pause,#label-wrap.s-ot) #label-sub{opacity:1}
+
+/* The session's name and the queue rows under it read as one list: same
+   size and spacing (--list-fs), on the kiosk and, larger, on the pad. */
+:root{--list-fs:12px}
+#session-label{
+  font-size:var(--list-fs);font-weight:500;letter-spacing:0.12em;
+  text-transform:uppercase;text-align:center;margin-top:0.3em;
+  transition:color 0.2s;pointer-events:none;min-height:0;
+}
+#session-label:empty{display:none}
+#timer-display.s-idle  ~ #session-label{color:var(--c-idle)}
+#timer-display.s-run   ~ #session-label{color:var(--c-idle)}
+#timer-display.s-warn  ~ #session-label,
+#timer-display.s-warn2 ~ #session-label{color:var(--c-warn)}
+#timer-display.s-pause ~ #session-label{color:var(--c-pause)}
+#timer-display.s-ot    ~ #session-label{color:var(--c-ot)}
+#timer-display.s-next  ~ #session-label{color:var(--c-next)}
+#timer-display.s-until ~ #session-label{color:var(--c-until)}
+#timer-display.s-watch ~ #session-label{color:var(--c-watch)}
+
+#timer-display{
+  /* 1.5x the old clamp(80px,19vw,240px), in regular weight. The vh term
+     keeps it inside a short screen (a landscape phone, a 16:9 stream) with
+     room for the label and queue; vw keeps hours mode inside a portrait one. */
+  font-size:clamp(48px,min(28.5vw,48vh),360px);font-weight:400;letter-spacing:-0.04em;white-space:nowrap;
+  line-height:1;color:var(--c-run);transition:color 0.3s,font-size 0.3s;font-variant-numeric:tabular-nums;
+}
+#timer-display .colon{display:inline-block;position:relative;top:-0.07em;letter-spacing:0}
+/* Hour-mode: small top-aligned hours + full-size minutes:seconds */
+#timer-display .disp-h{
+  font-size:0.44em;display:inline-block;vertical-align:top;
+  line-height:1;margin-right:0.15em;letter-spacing:0;
+}
+#timer-display .disp-h-suf{font-size:0.72em;letter-spacing:0}
+/* Hours make the line about a fifth wider ("16H 39:00"), so it gets a
+   smaller vw share to stay on screen in portrait. Without :has() support it
+   keeps the larger size, and nowrap keeps it on one line. */
+#timer-display:has(.disp-h){font-size:clamp(40px,min(23vw,48vh),360px)}
+#timer-display .disp-ms{display:inline-block;vertical-align:top;line-height:1}
+/* Watch-mode colon blink via class toggle instead of per-frame style writes */
+#timer-display.colon-off .colon{color:transparent}
+#timer-display.s-idle {color:var(--c-idle);opacity:0.65} #timer-display.s-warn {color:var(--c-warn)}
+#timer-display.s-pause{color:var(--c-pause);opacity:0.5} #timer-display.s-ot   {color:var(--c-ot)}
+#timer-display.s-reset{color:var(--c-reset)}             #timer-display.s-next {color:var(--c-next)}
+#timer-display.s-until{color:var(--c-until)}             #timer-display.s-watch{color:var(--c-watch)}
+#timer-display.s-warn2{color:var(--c-warn)}
+
+#key-buffer{
+  position:fixed;top:1.5rem;left:50%;transform:translateX(-50%);
+  font-size:clamp(16px,2.5vw,26px);letter-spacing:0.2em;color:var(--dim);
+  pointer-events:none;opacity:0;transition:opacity 0.2s;
+}
+#key-buffer.show{opacity:1}
+
+#top-bar{
+  position:fixed;top:0;left:0;right:0;height:3rem;z-index:150;
+  display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;pointer-events:none;
+}
+#session-timer{font-size:12px;letter-spacing:0.12em;color:var(--dim);text-transform:uppercase}
+/* Centred on the screen, not between its neighbours, whose widths differ. */
+#app-version{position:absolute;left:50%;transform:translateX(-50%);font-size:12px;letter-spacing:0.12em;color:var(--dim)}
+body.kiosk #app-version{display:none}
+/* A kiosk that follows another one says so, where the version was. */
+#kiosk-tag{display:none;position:absolute;left:50%;transform:translateX(-50%);font-size:12px;letter-spacing:0.12em;color:var(--dim);text-transform:uppercase}
+body.mirror #kiosk-tag{display:block}
+body.mirror #app{cursor:default}
+
+#status-hint{
+  position:fixed;top:3.2rem;left:1.5rem;font-size:clamp(22px,3.5vw,36px);font-weight:700;
+  letter-spacing:0.08em;color:var(--fg);text-transform:uppercase;
+  pointer-events:none;opacity:0;transition:opacity 0.25s;
+}
+#status-hint.show{opacity:1}
+
+#swipe-hint{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  font-size:clamp(36px,7vw,70px);pointer-events:none;z-index:50;opacity:0;transition:opacity 0.15s;
+}
+#swipe-hint.show{opacity:0.88}
+
+/* Corner buttons */
+.corner-btn{
+  position:fixed;bottom:1.5rem;z-index:200;
+  background:var(--btn-bg);border:1px solid var(--dim);color:var(--dim);
+  font-family:var(--font);line-height:1;width:2.2rem;height:2.2rem;
+  text-align:center;padding:0;cursor:pointer;
+  transition:color 0.12s,border-color 0.12s;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+  display:flex;align-items:center;justify-content:center;
+}
+.corner-btn:hover{color:var(--fg);border-color:var(--fg)}
+#btn-tick{left:1.5rem;font-size:14px}
+#btn-menu{right:1.5rem;font-size:18px}
+
+/* Manual floating close — sits at ? position (bottom-left) when manual is open */
+#manual-close-float{
+  display:none;position:fixed;bottom:1.5rem;left:1.5rem;z-index:420;
+  background:var(--btn-bg);border:1px solid var(--dim);color:var(--dim);
+  font-family:var(--font);font-size:11px;letter-spacing:0.12em;
+  width:2.2rem;height:2.2rem;cursor:pointer;text-transform:uppercase;
+  -webkit-tap-highlight-color:transparent;
+  align-items:center;justify-content:center;
+}
+#manual-close-float:hover{color:var(--fg);border-color:var(--fg)}
+#manual.open ~ #manual-close-float{display:flex}
+
+body.kiosk #btn-tick,body.kiosk #btn-menu,body.kiosk #manual-close-float{display:none}
+
+/* Wall clock — always shown top-right */
+#top-bar.in-pad{position:static;height:auto;padding:0;align-self:stretch;z-index:auto}
+#top-bar.in-pad #app-version{display:none}
+#top-bar.in-pad #session-timer,#top-bar.in-pad #wall-clock{font-size:clamp(13px,3.4vw,16px)}
+#wall-clock{
+  font-size:12px;letter-spacing:0.12em;color:var(--dim);text-transform:uppercase;
+  pointer-events:none;
+}
+body.kiosk #top-bar{pointer-events:none}
+
+/* Menu backdrop — closes menu on outside click */
+#menu-backdrop{
+  display:none;position:fixed;inset:0;z-index:99;
+}
+#menu-backdrop.open{display:block}
+
+#toolbar{
+  position:fixed;bottom:0;right:1.5rem;display:flex;flex-wrap:wrap;gap:0.4rem;
+  justify-content:flex-end;font-size:12px;letter-spacing:0.05em;
+  opacity:0;pointer-events:none;transition:opacity 0.35s;
+  /* Never under the ? button in the other corner: its width and a gap are left free. */
+  z-index:100;max-width:calc(100vw - 3rem - 2.6rem);touch-action:manipulation;
+  padding-bottom:1.5rem;
+}
+#toolbar.visible{opacity:1;pointer-events:auto}
+
+.tb-group{
+  display:flex;flex-wrap:nowrap;gap:0.15rem;align-items:center;
+  background:var(--btn-bg);border:1px solid var(--dim);padding:0.35rem 0.45rem;
+}
+.tb-btn{
+  background:none;border:1px solid transparent;color:var(--fg);font-family:var(--font);
+  font-size:12px;letter-spacing:0.07em;padding:0.26rem 0.52rem;cursor:pointer;
+  white-space:nowrap;text-transform:uppercase;
+  transition:border-color 0.12s,background 0.12s,color 0.12s;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+}
+.tb-btn:hover{border-color:var(--dim);background:rgba(128,128,128,0.12)}
+.tb-btn:active{background:rgba(128,128,128,0.22)}
+.tb-btn.dim{color:var(--dim)} .tb-btn.dim:hover{color:var(--fg)}
+.tb-btn.sound-on{color:var(--c-ot);border-color:var(--c-ot)}
+.tb-btn.next-set{color:var(--c-next);border-color:var(--c-next)}
+.tb-btn.until-set{color:var(--c-until);border-color:var(--c-until)}
+.tb-btn.watch-on,.tb-btn.remote-on{color:var(--c-watch);border-color:var(--c-watch)}
+.tb-btn[hidden]{display:none}
+/* The last group is a row of its own, as wide as the menu: share and install
+   sit on its left edge, remote and kiosk on its right. */
+.tb-last{flex-basis:100%}
+.tb-last #btn-remote{margin-left:auto}
+/* The queue button's triangle: tight against its label. */
+.tb-btn .ico{margin-right:0.4em}
+.tb-btn.preset-btn{color:var(--dim)} .tb-btn.preset-btn.filled{color:var(--fg)}
+
+/* Flash sync — JS class-toggled, locked to countdown second ticks */
+#timer-display.flash-dim  {opacity:0.75}
+#timer-display.flash-dim2 {opacity:0.5}
+#label-wrap.flash-off     {opacity:0}
+
+/* Kiosk mode — hides toolbar/chrome, keeps top-bar with wall clock */
+body.kiosk #toolbar{display:none!important}
+body.kiosk #key-buffer{display:none}
+body.kiosk #status-hint{display:none}
+body.kiosk #swipe-hint{display:none}
+
+/* Session queue — list of upcoming sessions below timer */
+#session-queue{
+  display:flex;flex-direction:column;align-items:center;gap:0.18rem;
+  margin-top:0.55rem;cursor:pointer;min-height:1em;
+}
+#sq-queue-block{
+  display:inline-flex;flex-direction:column;align-items:flex-start;gap:0.18rem;
+}
+.sq-item{
+  font-size:var(--list-fs);letter-spacing:0.12em;color:var(--c-next);
+  text-transform:uppercase;white-space:nowrap;opacity:0.8;transition:opacity 0.15s;
+  font-variant-numeric:tabular-nums;
+}
+.sq-item:hover{opacity:1}
+.sq-empty{color:var(--dim);opacity:0.35;font-size:12px}
+.sq-next-header{color:var(--dim);opacity:0.5;font-size:var(--list-fs);letter-spacing:0.12em;cursor:pointer}
+.sq-current-label{font-size:clamp(10px,1.3vw,13px);letter-spacing:0.24em;text-transform:uppercase;color:inherit;opacity:0.7;cursor:pointer;white-space:nowrap}
+
+/* Queue modal rows */
+#queue-list{display:flex;flex-direction:column;gap:0.3rem;max-height:240px;overflow-y:auto;padding:0.05rem 0}
+.qr-row{
+  display:flex;align-items:center;gap:0.35rem;padding:0.3rem 0.4rem;
+  border:1px solid transparent;background:rgba(128,128,128,0.06);
+  transition:border-color 0.1s;touch-action:none;
+}
+.qr-row.drag-over{border-color:var(--fg)!important}
+.qr-row.dragging{opacity:0.25}
+.qr-handle{color:var(--dim);cursor:grab;padding:0 0.15rem;user-select:none;font-size:14px;flex-shrink:0;line-height:1}
+.qr-label{flex:1;min-width:0}
+.qr-mins{width:76px!important;flex-shrink:0;text-align:center}
+.qr-del{background:none;border:none;color:var(--dim);cursor:pointer;font-size:16px;
+        padding:0 0.25rem;line-height:1;flex-shrink:0;font-family:var(--font);transition:color 0.1s}
+.qr-del:hover{color:var(--c-ot)}
+.qr-row .modal-input{font-size:13px;padding:0.35rem 0.5rem}
+#queue-add{margin-top:0.3rem;align-self:flex-start}
+
+@media(max-width:600px){
+  /* Above the corner buttons: full width here, so the ? button sat on it. */
+  #toolbar{z-index:250;right:0;bottom:0;left:0;max-width:100vw;flex-direction:column;align-items:stretch;gap:0;border-top:1px solid var(--dim);background:var(--panel);padding-bottom:0}
+  /* Right-aligned by an auto margin, not justify-content:flex-end: with
+     flex-end a row too long for the screen overflows off the left edge,
+     where no scroll position can reach it. An auto margin only takes up
+     space that is free, so a long row starts at the left and scrolls. */
+  .tb-group{border:none;border-bottom:1px solid var(--dim);width:100%;justify-content:flex-start;flex-wrap:nowrap;padding:0.4rem 0.8rem;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .tb-group:not(.tb-last) > :first-child{margin-left:auto}
+  .tb-group::-webkit-scrollbar{display:none}
+  .tb-group:last-child{border-bottom:none}
+  .tb-btn{flex-shrink:0}
+  .corner-btn{bottom:1rem}
+  #btn-tick,#manual-close-float{left:1rem}
+  #btn-menu{right:1rem}
+}
+
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:300;align-items:center;justify-content:center;touch-action:auto}
+.modal-overlay.open{display:flex}
+body.light .modal-overlay{background:rgba(0,0,0,0.42)}
+
+.modal-box{
+  /* Scrolls rather than running off a short screen (the remote window, with
+     its larger QR code, is taller than a landscape phone). */
+  max-height:calc(100vh - 2rem);overflow-y:auto;
+  background:var(--panel);border:1px solid var(--dim);padding:1.8rem 2rem;
+  width:min(360px,calc(100vw - 3rem));display:flex;flex-direction:column;gap:1.1rem;position:relative;
+}
+.modal-title{font-size:11px;letter-spacing:0.3em;text-transform:uppercase;color:var(--dim)}
+.modal-preview{
+  font-size:clamp(36px,10vw,64px);font-weight:900;letter-spacing:-0.03em;
+  text-align:center;font-variant-numeric:tabular-nums;min-height:1em;transition:color 0.15s;
+}
+.modal-preview.next-col{color:var(--c-next)}
+.modal-preview.until-col{color:var(--c-until);font-size:clamp(28px,7vw,52px);letter-spacing:0.04em}
+.modal-preview.dim{color:var(--dim)}
+
+.digit-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem}
+.digit-btn{
+  background:rgba(128,128,128,0.1);border:1px solid var(--dim);color:var(--fg);
+  font-family:var(--font);font-size:20px;font-weight:700;padding:0.7rem 0;
+  cursor:pointer;text-align:center;transition:background 0.1s;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+}
+.digit-btn:active{background:rgba(128,128,128,0.32)}
+.digit-btn.del-btn{font-size:16px;color:var(--dim)}
+.digit-btn.wide{grid-column:span 2}
+
+.modal-input{
+  width:100%;background:rgba(128,128,128,0.1);border:1px solid var(--dim);
+  color:var(--fg);font-family:var(--font);font-size:15px;letter-spacing:0.05em;
+  padding:0.6rem 0.8rem;outline:none;transition:border-color 0.15s;
+  user-select:text;-webkit-user-select:text;
+}
+.modal-input:focus{border-color:var(--fg)}
+input[type=time].modal-input{font-size:20px;text-align:center;cursor:pointer}
+input[type=time].modal-input::-webkit-calendar-picker-indicator{filter:invert(0.7);cursor:pointer}
+.modal-row{display:flex;gap:1rem}
+.modal-row label{font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:var(--dim);display:block;margin-bottom:0.3rem}
+.modal-actions{display:flex;gap:0.5rem}
+.modal-btn{
+  flex:1;background:none;border:1px solid var(--dim);color:var(--fg);font-family:var(--font);
+  font-size:12px;letter-spacing:0.1em;padding:0.5rem;cursor:pointer;text-transform:uppercase;
+  transition:background 0.12s,border-color 0.12s,color 0.12s;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+}
+.modal-btn:hover{background:rgba(128,128,128,0.12)} .modal-btn:active{background:rgba(128,128,128,0.26)}
+.modal-btn.primary-next{color:var(--c-next);border-color:var(--c-next)}
+.modal-btn.primary-until{color:var(--c-until);border-color:var(--c-until)}
+.modal-btn.danger{color:var(--c-ot);border-color:var(--c-ot)}
+.modal-kb-trap{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px;top:50%;left:50%}
+
+#manual{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:400;overflow-y:auto;padding:0 1rem 5rem;cursor:default;touch-action:auto}
+body.light #manual{background:rgba(170,165,158,0.92)}
+#manual.open{display:block}
+
+/* Sticky inside #manual rather than fixed to the window, so it is centred in
+   the same box as #manual-inner (a fixed bar ignored the scrollbar's width)
+   and the title starts on the text's left edge. */
+#manual-h1-fixed{
+  position:sticky;top:0;height:3rem;z-index:415;display:flex;align-items:center;
+  margin:0 -1rem;padding:0 1rem;pointer-events:none;border-bottom:1px solid var(--dim);background:rgba(0,0,0,0.96);
+}
+#manual-h1-fixed h1{width:100%;max-width:620px;margin:0 auto}
+body.light #manual-h1-fixed{background:rgba(150,145,138,0.98)}
+#manual-h1-fixed h1{font-size:1.1em;letter-spacing:0.3em;text-transform:uppercase;color:var(--fg)}
+
+#manual-close{
+  position:fixed;top:0;right:1.5rem;height:3rem;display:flex;align-items:center;
+  background:none;border:none;border-left:1px solid var(--dim);padding:0 0.8rem;
+  color:var(--fg);font-family:var(--font);font-size:11px;letter-spacing:0.12em;
+  cursor:pointer;text-transform:uppercase;z-index:420;-webkit-tap-highlight-color:transparent;
+}
+#manual-close:hover{opacity:0.7}
+
+#manual-inner{max-width:620px;width:100%;margin:0 auto;padding-top:1rem;font-size:13px;line-height:1.78;user-select:text;-webkit-user-select:text}
+#manual-inner h2{font-size:0.78em;letter-spacing:0.28em;text-transform:uppercase;color:var(--fg);margin-top:1.6rem;margin-bottom:0.5rem;padding-bottom:0.3rem;border-bottom:1px solid rgba(255,255,255,0.2)}
+#manual-inner ul{padding-left:1.35rem;margin-bottom:0.5rem}
+#manual-inner li{margin-bottom:0.3rem}
+#manual-inner p{margin-bottom:0.5rem;color:var(--fg);font-size:0.9em}
+#manual-inner a{color:inherit}
+#manual-inner .manual-credit{color:var(--dim)}
+/* The name and version sit under the title bar, not in it: on a phone the
+   longer title ran under the close button. */
+#manual-inner .manual-app{font-size:1em;letter-spacing:0.12em;font-weight:700}
+code{background:rgba(128,128,128,0.16);padding:0.08em 0.33em;font-family:var(--font);font-size:0.92em}
+/* Keys: ink on the page reversed, so they read as keycaps, apart from the
+   grey of things to type. */
+kbd{background:var(--fg);color:var(--bg);padding:0.08em 0.4em;font-family:var(--font);font-size:0.92em;font-weight:700;white-space:nowrap}
+
+/* ── Remote control ── */
+#remote-modal .modal-box{width:min(400px,calc(100vw - 2rem))}
+.rm-view{display:flex;flex-direction:column;gap:1.1rem}
+.rm-view[hidden]{display:none}
+.rm-note{font-size:13px;line-height:1.5;color:var(--fg)}
+#remote-modal .modal-btn{white-space:nowrap}
+#remote-code-display{
+  font-size:clamp(32px,9vw,56px);font-weight:900;letter-spacing:0.18em;
+  text-align:center;font-variant-numeric:tabular-nums;color:var(--c-next);
+  padding:0.4rem 0;
+}
+#remote-qr{display:flex;justify-content:center;margin:0.2rem 0}
+/* Twice the old 160px, so a phone across the room can scan it; never wider
+   than the window it sits in. */
+#remote-qr svg{width:min(320px,100%);height:auto;aspect-ratio:1;display:block}
+#remote-url-text{font-size:10px;word-break:break-all;text-align:center;padding:0.4rem 0;color:var(--dim)}
+#remote-url-text[hidden]{display:none}
+#remote-join-code{text-transform:uppercase;letter-spacing:0.15em}
+#remote-status{font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:var(--dim);text-align:center}
+#remote-status.connected{color:var(--c-watch)}
+
+/* Operator message (pad→kiosk). A solid band in the page's own flow, above
+   the time, rather than a box floating over it: the old one was translucent
+   and pulsed its opacity, so the digits showed through and it was hard to
+   read. It flashes bright once on arrival instead, and the time shrinks
+   while it shows so that both fit. */
+#blackout{position:fixed;inset:0;z-index:600;background:var(--bg);cursor:none}
+#blackout[hidden]{display:none}
+.rc-btn.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+/* Stop, play and pause drawn in CSS rather than taken from the font: the
+   font's symbols came in three different sizes and sat at different heights.
+   Each is exactly as tall as a capital in its label (1cap) and sits on the
+   label's baseline (an empty inline-block's bottom edge is its baseline). */
+.ico{display:inline-block;height:0.7em;height:1cap;background:currentColor;vertical-align:baseline;margin-right:0.5em}
+.ico-stop{aspect-ratio:1}
+.ico-play{aspect-ratio:0.85;clip-path:polygon(0 0,100% 50%,0 100%)}
+.ico-pause{aspect-ratio:0.8;background:linear-gradient(to right,currentColor 0 36%,transparent 36% 64%,currentColor 64%)}
+/* The bell: a silhouette used as a mask, so it takes the text colour like the
+   others. The SVG is a data: URL in the stylesheet (no request; img-src
+   already allows data:). Its viewBox is cropped to the bell, so 1cap is the
+   bell's own height. */
+.ico-bell{aspect-ratio:0.82;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='4 2 16 19.7'%3E%3Cpath d='M12 2a1.5 1.5 0 0 1 1.5 1.5v.6A6 6 0 0 1 18 10v4.5l2 2.5v1H4v-1l2-2.5V10a6 6 0 0 1 4.5-5.9v-.6A1.5 1.5 0 0 1 12 2zm-2.3 17.4h4.6a2.3 2.3 0 0 1-4.6 0z'/%3E%3C/svg%3E") center/contain no-repeat}
+#op-msg{
+  display:none;background:var(--c-warn);color:#111;
+  font-size:clamp(22px,min(6.5vw,9vh),72px);font-weight:700;line-height:1.15;
+  letter-spacing:0.04em;text-transform:uppercase;text-align:center;
+  padding:0.25em 0.7em;margin-bottom:0.4em;max-width:92vw;overflow-wrap:anywhere;
+}
+body.op-msg-on #op-msg{display:block;animation:op-in 0.9s ease-out}
+/* OVERTIME blinks; beside the band, its off beats looked like the band had
+   replaced it. It holds steady while a message shows. */
+body.op-msg-on #label-wrap.flash-off{opacity:1}
+@keyframes op-in{0%,30%,60%{filter:brightness(1.6)}15%,45%,100%{filter:none}}
+body.op-msg-on #timer-display{font-size:clamp(40px,min(18vw,26vh),220px)}
+body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),220px)}
+
+/* Remote pad — shown when the link has #remote=CODE */
+#remote-pad{
+  display:none;position:fixed;inset:0;
+  background:var(--bg);z-index:500;flex-direction:column;
+  align-items:center;justify-content:center;gap:1.2rem;padding:1.5rem;
+}
+#remote-pad.open{display:flex}
+/* Laid out from the top and scrollable when taller than the screen
+   (justify-content:center would push the top out of reach). Spare height
+   goes to the time rather than to empty bands above and below. */
+#remote-pad{justify-content:flex-start;overflow-y:auto;gap:0.9rem;padding-top:0}
+/* A status bar along the top edge: connection on the left, the new-kiosk
+   button on the right. Sticky, so it stays in view while the pad scrolls. */
+#rc-top{
+  position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:0.8rem;
+  align-self:stretch;margin:0 -1.5rem;padding:0.5rem 1.5rem;
+  background:var(--bg);border-bottom:1px solid var(--dim);
+}
+.rc-top-right{display:flex;align-items:center;gap:0.5rem}
+.rc-code{
+  /* The kiosk button's height, so the two read as one pair in the bar. */
+  height:2.4rem;box-sizing:border-box;width:calc(6ch + 0.8em + 0.8rem + 2px);
+  background:var(--bg);border:1px solid var(--dim);color:var(--fg);
+  font-family:var(--font);font-size:clamp(15px,4vw,18px);letter-spacing:0.12em;text-transform:uppercase;
+  padding:0 0.4rem;outline:none;text-align:center;
+  user-select:text;-webkit-user-select:text;
+}
+.rc-code:focus{border-color:var(--fg)}
+.rc-code.bad{border-color:var(--c-ot)}
+.rc-icon-btn:disabled{opacity:0.35;cursor:default}
+/* Other remotes on this timer, as "+1": a count, not a control. */
+#rc-others{font-size:clamp(13px,3.2vw,16px);letter-spacing:0.06em;color:var(--c-watch);border:1px solid var(--c-watch);padding:0.15rem 0.4rem;line-height:1.2}
+#rc-others[hidden]{display:none}
+.rc-icon-btn{
+  background:rgba(128,128,128,0.1);border:1px solid var(--dim);color:var(--fg);cursor:pointer;
+  font-size:20px;line-height:1;width:2.4rem;height:2.4rem;padding:0;flex-shrink:0;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+}
+#remote-state-display{
+  /* Big enough to read at arm's length, by the screen's width and height. */
+  font-size:clamp(56px,min(30vw,15vh),240px);font-weight:400;letter-spacing:-0.03em; /* regular, as on the kiosk */
+  font-variant-numeric:tabular-nums;color:var(--c-idle);transition:color 0.25s;
+  line-height:1;
+}
+#rc-time{flex:1 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.5rem}
+/* While the kiosk is lost the pad's time is its own copy: dotted underline. */
+#remote-state-display.local{text-decoration:underline dotted;text-decoration-thickness:0.04em;text-underline-offset:0.12em}
+#remote-label-display{
+  font-size:var(--rc-list-fs);letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--dim);min-height:1.2em;text-align:center;
+}
+/* One line, always: the messages are kept short, and anything longer is cut
+   with an ellipsis rather than pushing the bar to three lines. */
+#remote-status-bar{
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;
+  font-size:clamp(13px,3.2vw,16px);letter-spacing:0.2em;text-transform:uppercase;
+  color:var(--dim);min-height:1.2em;
+}
+#remote-status-bar.conn{color:var(--c-watch)}
+/* Beside the code box and kiosk button a phone leaves little room: tighter
+   spacing keeps the longest message ("⚠️ Kiosk lost") whole at 320 px. */
+@media(max-width:420px){#remote-status-bar{letter-spacing:0.06em}}
+#remote-status-bar.err {color:var(--c-ot)}
+/* The pad is used at arm's length, often one-handed: buttons, fields and its
+   window are twice the size of the rest of the app's. */
+.rc-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem;
+  width:100%;max-width:640px;
+}
+.rc-row{display:flex;gap:0.5rem;width:100%;max-width:640px}
+.rc-row .rc-btn{flex-shrink:0;padding-left:0.8rem;padding-right:0.8rem}
+.rc-row-btns .rc-btn{flex:1}
+.rc-input.span3{grid-column:span 3}
+.rc-btn:disabled{opacity:0.35;cursor:default}
+#rc-queue-display .rc-q-head{color:var(--dim);font-size:0.85em}
+#rc-queue-display .rc-q-row{color:var(--c-next)}
+/* Fields are as tall as the buttons (--rc-h, from the button's own font
+   size, padding and border) but on the page's colour, so they read as
+   places to type rather than things to press. */
+#remote-pad{--rc-fs:clamp(22px,5vw,32px);--rc-h:calc(1.15 * var(--rc-fs) + 1.6rem + 2px);--rc-list-fs:clamp(16px,4vw,22px)}
+.rc-input{
+  box-sizing:border-box;height:var(--rc-h);
+  flex:1;min-width:0;background:var(--bg);border:1px solid var(--dim);color:var(--fg);
+  font-family:var(--font);font-size:clamp(18px,4.5vw,26px);letter-spacing:0.04em;padding:0.5rem 0.6rem;
+  outline:none;user-select:text;-webkit-user-select:text;
+}
+.rc-input:focus{border-color:var(--fg)}
+#rc-queue-display{font-size:var(--rc-list-fs);letter-spacing:0.1em;text-transform:uppercase;line-height:1.45;text-align:left;align-self:center}
+#remote-pad .modal-box{width:min(560px,calc(100vw - 2rem));padding:1.4rem}
+#remote-pad .modal-title{font-size:22px}
+#remote-pad .modal-btn{font-size:clamp(18px,4.5vw,24px);padding:0.7rem 0.3rem;white-space:nowrap}
+#remote-pad .rc-note{font-size:clamp(16px,4vw,20px);line-height:1.4;color:var(--fg)}
+#rc-kiosk-qr{display:flex;justify-content:center}
+#rc-kiosk-qr svg{width:min(400px,100%);height:auto;aspect-ratio:1;display:block}
+#rc-kiosk-url{font-size:14px;word-break:break-all;text-align:center;color:var(--dim);user-select:text;-webkit-user-select:text}
+.rc-btn{
+  box-sizing:border-box;height:var(--rc-h);
+  background:rgba(128,128,128,0.1);border:1px solid var(--dim);
+  color:var(--fg);font-family:var(--font);font-size:var(--rc-fs);
+  letter-spacing:0.04em;padding:0.8rem 0.3rem;cursor:pointer;text-align:center;line-height:1.15;
+  white-space:nowrap; /* one line each: the labels are kept short to fit a 320px phone */
+  text-transform:uppercase;transition:background 0.1s,border-color 0.1s,color 0.1s;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+}
+.rc-btn:hover {border-color:var(--fg);background:rgba(128,128,128,0.18)}
+.rc-btn:active{background:rgba(128,128,128,0.35)}
+.rc-btn.wide{grid-column:span 2}
+.rc-btn.full{grid-column:span 4}
+/* Green for go: the reset flash's green, which the pad uses nowhere else. */
+.rc-btn.hi-start{color:var(--c-reset);border-color:var(--c-reset)}
+.rc-btn.hi-pause{color:var(--c-pause);border-color:var(--c-pause)}
+/* Red, not the green of the kiosk's reset flash: on the pad it's the button
+   that throws the current count away. */
+.rc-btn.hi-reset{color:var(--c-ot);border-color:var(--c-ot)}
+.rc-btn.hi-ot   {color:var(--c-ot);border-color:var(--c-ot)}
+.rc-btn.hi-warn {color:var(--c-warn);border-color:var(--c-warn)}

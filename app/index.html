@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="version" content="0.4.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="/tick">
+<title>/tick</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="stylesheet" href="tick.css">
+<!-- Fetched alongside main.js rather than one after another as each import is found. -->
+<link rel="modulepreload" href="js/util.js">
+<link rel="modulepreload" href="js/queue.js">
+<link rel="modulepreload" href="js/transport.js">
+<link rel="modulepreload" href="js/qr.js">
+<link rel="modulepreload" href="js/timer.js">
+<script type="module" src="js/main.js"></script>
+</head>
+<body>
+
+<body>
+
+<div id="app">
+  <div id="label-wrap" class="s-idle">
+    <span id="label-text" spellcheck="false"></span>
+    <span id="label-sub"></span>
+  </div>
+  <div id="op-msg" role="status" aria-live="assertive"></div>
+  <div id="timer-display" class="s-idle">10:00</div>
+  <div id="session-label"></div>
+  <div id="session-queue"></div>
+</div>
+
+<div id="key-buffer"></div>
+<div id="swipe-hint"></div>
+<div id="top-bar">
+  <div id="session-timer">00:00</div>
+  <div id="app-version"></div>
+  <div id="kiosk-tag"></div>
+  <div id="wall-clock"></div>
+</div>
+<div id="status-hint"></div>
+
+<div id="menu-backdrop"></div>
+<div id="toolbar">
+  <div class="tb-group" id="preset-buttons"></div>
+  <div class="tb-group">
+    <button class="tb-btn" id="btn-reset">reset</button>
+    <button class="tb-btn until-set" id="btn-until-active" style="display:none">target: &#x2014;</button>
+    <button class="tb-btn" id="btn-until-open">target</button>
+    <button class="tb-btn" id="btn-clock-watch">clock</button>
+    <button class="tb-btn" id="btn-next"><span class="ico ico-play" aria-hidden="true"></span><span class="lbl">queue: &#x2014;</span></button>
+  </div>
+  <div class="tb-group">
+    <button class="tb-btn" id="btn-theme">theme</button>
+    <button class="tb-btn" id="btn-warn">warn</button>
+    <button class="tb-btn" id="btn-sound">sound: off</button>
+  </div>
+  <!-- The last row: share and install on its left edge, the rest on its right. -->
+  <div class="tb-group tb-last">
+    <button class="tb-btn" id="btn-share">share</button>
+    <button class="tb-btn" id="btn-install">install</button>
+    <button class="tb-btn" id="btn-remote">remote</button>
+    <button class="tb-btn" id="btn-fullscreen">kiosk</button>
+  </div>
+</div>
+
+<button id="btn-tick" class="corner-btn" tabindex="2" aria-label="Help">?</button>
+<button id="btn-menu" class="corner-btn" tabindex="1" aria-label="Menu">&#x22EE;</button>
+<button id="manual-close-float" aria-label="Close manual">&#x2715;</button>
+
+<div id="next-modal" class="modal-overlay">
+  <div class="modal-box" style="gap:0.7rem">
+    <div class="modal-title">Queue</div>
+    <div>
+      <label style="font-size:10px;letter-spacing:0.22em;color:var(--dim);text-transform:uppercase;display:block;margin-bottom:0.3rem">Current session</label>
+      <input type="text" id="queue-current-label" class="modal-input" placeholder="Label" maxlength="32" style="width:100%">
+    </div>
+    <div>
+      <label style="font-size:10px;letter-spacing:0.22em;color:var(--dim);text-transform:uppercase;display:block;margin-bottom:0.3rem">Up next</label>
+      <div id="queue-list"></div>
+      <button class="modal-btn" id="queue-add" style="margin-top:0.4rem">+ Add</button>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn" id="next-cancel">Cancel</button>
+      <button class="modal-btn primary-next" id="next-set">Done</button>
+    </div>
+  </div>
+</div>
+
+<div id="until-modal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title">Countdown to time</div>
+    <div id="until-preview" class="modal-preview until-col dim">&#x2014;</div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:0.3rem">
+      <input type="number" id="until-hour" class="modal-input" min="0" max="23" placeholder="HH"
+        style="width:72px;text-align:center;font-size:28px;font-weight:700;padding:0.4rem 0.3rem;letter-spacing:0">
+      <span style="font-size:32px;font-weight:900;color:var(--dim);line-height:1;margin-bottom:0.1rem">:</span>
+      <input type="number" id="until-min" class="modal-input" min="0" max="59" placeholder="MM"
+        style="width:72px;text-align:center;font-size:28px;font-weight:700;padding:0.4rem 0.3rem;letter-spacing:0">
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn danger" id="until-clear">Clear</button>
+      <button class="modal-btn" id="until-cancel">Cancel</button>
+      <button class="modal-btn primary-until" id="until-set">Set</button>
+    </div>
+  </div>
+</div>
+
+<div id="preset-modal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title">Edit preset</div>
+    <div class="modal-row">
+      <div style="flex:1"><label>Label</label><input type="text" id="preset-label-input" class="modal-input" placeholder="e.g. Break" maxlength="12"></div>
+      <div style="width:90px"><label>Minutes</label><input type="number" id="preset-mins-input" class="modal-input" min="1" max="999" placeholder="10"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn danger" id="preset-delete">Delete</button>
+      <button class="modal-btn" id="preset-cancel">Cancel</button>
+      <button class="modal-btn primary-next" id="preset-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="warn-modal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title">Warning thresholds</div>
+    <div class="modal-row">
+      <div style="flex:1">
+        <label>First warning (sec)</label>
+        <input type="number" id="warn1-input" class="modal-input" min="0" max="7200" placeholder="auto">
+      </div>
+      <div style="flex:1">
+        <label>Second warning (sec)</label>
+        <input type="number" id="warn2-input" class="modal-input" min="0" max="7200" placeholder="60">
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--dim);text-align:center;letter-spacing:0.08em">
+      e.g. 300 = 5 min &nbsp;&#xB7;&nbsp; 60 = 1 min &nbsp;&#xB7;&nbsp; 0 = off<br>
+      First warning left empty: 2 min, or 5 min for sessions over 10 min
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn" id="warn-cancel">Cancel</button>
+      <button class="modal-btn primary-next" id="warn-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="manual">
+  <div id="manual-h1-fixed"><h1>Manual</h1></div>
+  <button id="manual-close">close</button>
+  <div id="manual-inner">
+    <p class="manual-app">/tick <span id="manual-version"></span></p>
+    <p>/tick is a countdown timer. People use it to keep time during talks, live streams, meetings and stage events. It can be installed, and works without the internet.</p>
+    <p class="manual-links">Live: <a href="https://acari.vercel.app">acari.vercel.app</a> &#xB7; Source: <a href="https://github.com/Arty2/tick">github.com/Arty2/tick</a> &#xB7; Website: <a href="https://heracl.es/tick">heracl.es/tick</a></p>
+    <p class="manual-credit">Dialectic Acheiropoieton of Heracles Papatheodorou and&nbsp;Claude</p>
+    <h2>Mouse and touch</h2>
+    <ul>
+      <li>Click or tap to start. Click again to pause, and again to start.</li>
+      <li>In overtime, a click loads the next session, or resets the timer if the queue is empty.</li>
+      <li>Click or tap the list under the timer to open the queue.</li>
+      <li>Double-click or double-tap to turn kiosk mode on or off.</li>
+      <li>While running, the mouse wheel adds or takes away 1 minute.</li>
+      <li>While running, swipe &#x1F446; to add 10 minutes, &#x1F447; to take away 5, &#x1F448; to add 1, &#x1F449; to take away 1.</li>
+    </ul>
+    <h2>Keyboard</h2>
+    <ul>
+      <li><kbd>Enter</kbd> starts again from the starting length. <kbd>Space</kbd> starts or pauses.</li>
+      <li>Type <kbd>0</kbd>&#x2013;<kbd>9</kbd>, then <kbd>Enter</kbd>, to set the length in minutes.</li>
+      <li><kbd>Ctrl+Enter</kbd> loads the next session now. It waits until it is started.</li>
+      <li><kbd>&#x2191;</kbd> adds 10 minutes, <kbd>&#x2193;</kbd> takes away 5, <kbd>&#x2190;</kbd> adds 1, <kbd>&#x2192;</kbd> takes away 1.</li>
+      <li><kbd>Ctrl+&#x2191;</kbd> and <kbd>Ctrl+&#x2193;</kbd> load the previous or next preset.</li>
+      <li><kbd>N</kbd> opens the queue. <kbd>U</kbd> opens the target time. <kbd>W</kbd> opens the warnings.</li>
+      <li><kbd>Delete</kbd> or <kbd>Backspace</kbd> changes the session name.</li>
+      <li><kbd>`</kbd> rings the bell. <kbd>Insert</kbd> changes the sound setting.</li>
+      <li><kbd>Page Up</kbd> turns kiosk mode on or off. <kbd>Page Down</kbd> changes the theme.</li>
+      <li><kbd>End</kbd> resets. <kbd>Home</kbd> opens this manual. <kbd>Tab</kbd> opens the menu.</li>
+      <li><kbd>Esc</kbd> closes the menu or a window. If none is open, it leaves target time, clock mode or kiosk mode.</li>
+    </ul>
+    <h2>Colours</h2>
+    <ul>
+      <li><strong style="color:var(--c-idle)">Grey</strong> &#x2014; not started.</li>
+      <li><strong style="color:var(--c-run)">White</strong> &#x2014; running.</li>
+      <li><strong style="color:var(--c-warn)">Orange</strong> &#x2014; first warning (2 minutes left, or 5 for sessions over 10 minutes).</li>
+      <li><strong style="color:var(--c-warn)">Flashing orange</strong> &#x2014; second warning (1 minute left, at first).</li>
+      <li><strong style="color:var(--c-pause)">Amber</strong> &#x2014; paused.</li>
+      <li><strong style="color:var(--c-ot)">Red</strong> &#x2014; overtime. The time has run out, and the timer counts up.</li>
+      <li><strong style="color:var(--c-reset)">Green</strong> &#x2014; just reset.</li>
+      <li><strong style="color:var(--c-next)">Purple</strong> &#x2014; the next session is loaded.</li>
+      <li><strong style="color:var(--c-until)">Blue</strong> &#x2014; counting down to a time of day.</li>
+      <li><strong style="color:var(--c-watch)">Teal</strong> &#x2014; clock mode.</li>
+    </ul>
+    <h2>Warnings</h2>
+    <ul>
+      <li>The <strong>warn</strong> button (or <kbd>W</kbd>) sets two warning points, in seconds.</li>
+      <li>At the <strong>first warning</strong> the numbers turn orange. It comes 2 minutes before the end, or 5 minutes before the end of a session longer than 10 minutes. A number typed in the box is used instead; leaving the box empty goes back to this.</li>
+      <li>At the <strong>second warning</strong> the numbers also flash. At first this is 60 seconds (1 minute) before the end.</li>
+      <li>Setting a warning to 0 turns it off. The settings are saved.</li>
+    </ul>
+    <h2>Kiosk mode</h2>
+    <ul>
+      <li>Kiosk mode hides the buttons and the menu. Only the time and the top line are shown.</li>
+      <li>Turn it on with the <strong>kiosk</strong> button, <kbd>Page Up</kbd>, or a double-click. Turn it off the same way, or with <kbd>Esc</kbd>.</li>
+      <li>On computers it also fills the screen and keeps the screen from going dark. On iPhones and iPads the address bar stays.</li>
+    </ul>
+    <h2>Presets</h2>
+    <ul>
+      <li>There are five presets in the menu. Click one to load it.</li>
+      <li>Hold a preset down, or right-click it, to change its name and length. An empty preset shows <strong>+</strong>.</li>
+      <li>Holding down <strong>reset</strong> for about one second removes everything /tick has saved.</li>
+    </ul>
+    <h2>Queue</h2>
+    <ul>
+      <li>The queue is a list of sessions that run one after another. Open it with <strong>queue</strong>, the list under the timer, or <kbd>N</kbd>.</li>
+      <li>Each session has a name and a length in minutes, or a time of day written <code>@14:30</code> to count down to it. <strong>+ Add</strong> adds one, <strong>&#xD7;</strong> removes one, and dragging a row changes the order.</li>
+      <li>As text (in a link or the remote's queue box), sessions are separated by <code>|</code>: <code>Talk:25|Break:5|Panel@14:30</code>. A <code>|</code> in a name is written <code>\|</code>.</li>
+      <li>When a session ends, the next one starts by itself. <kbd>Ctrl+Enter</kbd> loads it sooner.</li>
+    </ul>
+    <h2>Target time</h2>
+    <ul>
+      <li>The <strong>target</strong> button (or <kbd>U</kbd>) counts down to a time of day, in the 24-hour clock. If that time has passed today, it counts down to tomorrow.</li>
+    </ul>
+    <h2>Clock mode</h2>
+    <ul>
+      <li>The <strong>clock</strong> button shows the time of day instead of the timer. The timer keeps running, and the queue keeps moving.</li>
+      <li>A click, or the <strong>timer</strong> button, shows the timer again.</li>
+    </ul>
+    <h2>Remote control</h2>
+    <ul>
+      <li>The <strong>remote</strong> button shows a six-letter code and a QR code. Scan the code on another device to get a remote pad. Or, on that device, open /tick, choose <strong>remote</strong>, then <strong>Join</strong>, type the code and choose <strong>Remote</strong>. This screen then changes to kiosk mode, and stays in it if the remote disconnects. While a session is on, the menu button reads <strong>remote: waiting</strong> or <strong>remote: connected</strong>.</li>
+      <li>Any number of remote pads can control one timer. A pad shows <strong>+1</strong>, <strong>+2</strong>&#x2026; in its top bar for the other pads connected. The top bar also shows the code; typing another one there switches to that timer.</li>
+      <li>The remote pad shows the time left and the queue. Its buttons reset, start or pause, ring the bell, load the next or the previous session, and change the time. Before the start, the minute buttons change the length to count down from, and <strong>Reset</strong> is greyed out. On phones the buttons vibrate.</li>
+      <li><strong>Black</strong> covers this screen in the background colour while the timer runs on underneath; changes from the remote pad stay hidden until it is pressed again. <kbd>Esc</kbd>, a double tap or a double-click here also lifts it.</li>
+      <li>Its queue box holds the current queue. Change it and press <strong>Set</strong>; an empty box clears the queue.</li>
+      <li>A message typed on the remote pad appears on this screen for 6 seconds, on an orange band above the time. The time gets smaller while it shows. <strong>Clear</strong> removes it sooner.</li>
+      <li>A timer can show on more than one screen. The small screen button (&#x1F5A5;&#xFE0F;) on the remote pad shows a link and QR code for another kiosk; so does <strong>remote</strong>, <strong>Join</strong>, <strong>Kiosk</strong> on the other screen. The extra kiosk is <strong>read only</strong>: it follows the first one and takes no input. A double-click fills its screen; <kbd>Esc</kbd> makes it an ordinary timer again.</li>
+      <li>If the first kiosk stops answering, the remote pad says <strong>Kiosk lost</strong>, and after a few seconds a read-only kiosk takes over and continues the timer. A new kiosk opened from the pad's link does the same.</li>
+      <li>The timer doesn't stop when this screen is lost: the remote pad keeps counting, and its buttons work on its own copy. When this screen answers again, it takes the pad's timer. If the pad itself was offline, it takes this screen's timer instead.</li>
+      <li>Tabs in the same browser connect without the internet. Different devices need the internet to find each other, through a service called PeerJS. This may not work on some school or office networks.</li>
+    </ul>
+    <h2>Install</h2>
+    <ul>
+      <li>The <strong>install</strong> button adds /tick to this device as an app, in its own window. Where the browser has no install window of its own, the button says where to find it in the browser's menu.</li>
+      <li>Installed or not, once /tick has been opened it opens again without the internet.</li>
+    </ul>
+    <h2>Share</h2>
+    <p>The <strong>share</strong> button copies a link to the timer as it is now. Opening the link sets up the same timer. The settings follow a <code>#</code> in the link, so they are not sent to the server. They are used for that visit only; they do not replace the saved settings.</p>
+    <table style="width:100%;border-collapse:collapse;font-size:0.82em;margin-top:0.4rem">
+      <thead>
+        <tr style="border-bottom:1px solid var(--dim)">
+          <th style="text-align:left;padding:0.3rem 0.5rem 0.3rem 0;letter-spacing:0.15em;color:var(--dim)">Param</th>
+          <th style="text-align:left;padding:0.3rem 0.5rem;letter-spacing:0.15em;color:var(--dim)">Value</th>
+          <th style="text-align:left;padding:0.3rem 0 0.3rem 0.5rem;letter-spacing:0.15em;color:var(--dim)">Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid rgba(128,128,128,0.15)">
+          <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>mins</code></td>
+          <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>1&ndash;999</code></td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem">The starting length in minutes.</td>
+        </tr>
+        <tr style="border-bottom:1px solid rgba(128,128,128,0.15)">
+          <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>label</code></td>
+          <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>text</code></td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem">The session name shown under the timer.</td>
+        </tr>
+        <tr style="border-bottom:1px solid rgba(128,128,128,0.15)">
+          <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>next</code></td>
+          <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>Title:25|10</code></td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem">The queue. Sessions are separated by <code>|</code>; each is <code>name:minutes</code> (<code>Talk:25</code>), only minutes (<code>25</code>), or a countdown to a time of day (<code>Panel@14:30</code>): <code>Keynote:40|Break:5|Lunch@12:30</code>. A <code>|</code> in a name is written <code>\|</code>.</td>
+        </tr>
+        <tr style="border-bottom:1px solid rgba(128,128,128,0.15)">
+          <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>theme</code></td>
+          <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>dark&nbsp;|&nbsp;light</code></td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem">The theme.</td>
+        </tr>
+        <tr style="border-bottom:1px solid rgba(128,128,128,0.15)">
+          <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>sound</code></td>
+          <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>0&nbsp;|&nbsp;1&nbsp;|&nbsp;2</code></td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem"><code>0</code> off &middot; <code>1</code> a bell at the end &middot; <code>2</code> a bell every minute of overtime.</td>
+        </tr>
+        <tr>
+          <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>remote</code></td>
+          <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>XXXXXX</code></td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem">A six-letter remote code. The page opens as a remote pad instead of a timer. The <strong>remote</strong> button makes these links.</td>
+        </tr>
+        <tr>
+          <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>kiosk</code></td>
+          <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>XXXXXX</code></td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem">A six-letter remote code. The page opens as a kiosk for that code: read only while another kiosk holds the timer, or taking the timer over if none does. The small screen button on the remote pad makes these links.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="margin-top:0.6rem">Example:<br><code>#mins=25&amp;label=Keynote&amp;next=Break:5|QA:10&amp;theme=dark&amp;sound=1</code></p>
+  </div>
+</div>
+
+<!-- Remote window -->
+<div id="remote-modal" class="modal-overlay">
+  <!-- Two views, one at a time, so a device that came to join another timer
+       isn't shown a code of its own to confuse with the one it needs. -->
+  <div class="modal-box">
+    <div id="remote-share-view" class="rm-view">
+      <div class="modal-title">Remote control &#x2014; share this code</div>
+      <div id="remote-code-display">&#x2014;</div>
+      <div id="remote-qr"></div>
+      <div id="remote-url-text" hidden></div>
+      <div id="remote-status">waiting for remote&#x2026;</div>
+      <div class="modal-actions">
+        <!-- One word each, so the four fit on one line even on a phone. -->
+        <button class="modal-btn" id="remote-open-tab" title="Open the remote in a new tab">Open</button>
+        <button class="modal-btn" id="remote-to-join" title="Join another timer, as its remote or as one more screen">Join</button>
+        <button class="modal-btn danger" id="remote-stop">Stop</button>
+        <button class="modal-btn" id="remote-modal-close">Close</button>
+      </div>
+    </div>
+    <div id="remote-join-view" class="rm-view" hidden>
+      <div class="modal-title">Remote control &#x2014; join a timer</div>
+      <p class="rm-note">Type the code shown on another timer. <strong>Remote</strong> makes this device its remote control. <strong>Kiosk</strong> makes it one more screen for that timer, read only.</p>
+      <input type="text" id="remote-join-code" class="modal-input" maxlength="6" placeholder="Code" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Timer code">
+      <div class="modal-actions">
+        <button class="modal-btn primary-next" id="remote-join">Remote</button>
+        <button class="modal-btn" id="remote-join-kiosk">Kiosk</button>
+        <button class="modal-btn" id="remote-to-share">Back</button>
+        <button class="modal-btn" id="remote-join-close">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Blackout: covers the whole kiosk in the theme's background colour. The
+     timer runs on underneath; switched from the remote, or off with Esc. -->
+<div id="blackout" hidden></div>
+
+<!-- Remote pad (shown when the link has #remote=CODE) -->
+<div id="remote-pad">
+  <div id="rc-top">
+    <div id="remote-status-bar">connecting&#x2026;</div>
+    <div class="rc-top-right">
+      <!-- Other remotes on the same timer: "+1" is one besides this pad. -->
+      <span id="rc-others" hidden></span>
+      <!-- The code, typed by hand when there's no QR code to scan. Enter
+           switches the pad to the timer with that code. -->
+      <input type="text" id="rc-code-input" class="rc-code" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="CODE" aria-label="Timer code">
+      <!-- Rarely needed (one more screen, or a lost kiosk), so a small icon beside the status. -->
+      <button id="rc-new-kiosk" class="rc-icon-btn" aria-label="Add a kiosk" title="Add a kiosk">&#x1F5A5;&#xFE0F;</button>
+    </div>
+  </div>
+  <!-- The time with the session's name right under it, as on the kiosk; the
+       block grows into spare height and stays centred in it. -->
+  <div id="rc-time">
+    <div id="remote-state-display">&#x2014;</div>
+    <div id="remote-label-display"></div>
+  </div>
+  <div id="rc-queue-display"></div>
+  <div class="rc-grid">
+    <button class="rc-btn hi-reset wide" data-rc="reset" id="rc-reset"><span class="ico ico-stop" aria-hidden="true"></span>Reset</button>
+    <!-- One button for start and pause: it follows the kiosk's state. -->
+    <button class="rc-btn hi-start wide" data-rc="toggle" id="rc-toggle"><span class="ico ico-play" aria-hidden="true"></span><span class="lbl">Start</span></button>
+    <button class="rc-btn" data-rc="adj:-1">&#x2212;1m</button>
+    <button class="rc-btn" data-rc="adj:1">+1m</button>
+    <button class="rc-btn" data-rc="adj:-5">&#x2212;5m</button>
+    <button class="rc-btn" data-rc="adj:10">+10m</button>
+  </div>
+  <!-- The queue box holds the queue as it is, so editing it is a change and
+       Set; an empty box clears the queue. -->
+  <!-- On the grid: the box takes three columns and Set the fourth, so Set
+       lines up with +10m above it. -->
+  <div class="rc-grid">
+    <input type="text" id="rc-queue-input" class="rc-input span3" placeholder="No queue &#x2014; e.g. Talk:25|QA@14:30" autocomplete="off" aria-label="Queue">
+    <button class="rc-btn" id="rc-queue-send">Set</button>
+  </div>
+  <div class="rc-grid">
+    <!-- The queue's solid triangles, with U+FE0E so iOS keeps them as text
+         rather than drawing emoji. -->
+    <button class="rc-btn wide" data-rc="prev" id="rc-prev">&#x25C0;&#xFE0E; Prev</button>
+    <button class="rc-btn wide" data-rc="next" id="rc-next">&#x25B6;&#xFE0E; Next</button>
+    <button class="rc-btn wide" data-rc="black" id="rc-black">Black</button>
+    <button class="rc-btn wide" data-rc="bell"><span class="ico ico-bell" aria-hidden="true"></span>Bell</button>
+  </div>
+  <div class="rc-row">
+    <input type="text" id="rc-msg-input" class="rc-input" placeholder="Message to the kiosk&#x2026;" maxlength="40" autocomplete="off" aria-label="Message to the kiosk">
+  </div>
+  <div class="rc-row rc-row-btns">
+    <button class="rc-btn" id="rc-msg-clear">Clear</button>
+    <button class="rc-btn" id="rc-msg-send">Send</button>
+  </div>
+  <!-- One more kiosk: it opens with #kiosk=CODE and follows the kiosk that is
+       there, read only. If that one is lost, it takes over this code, and
+       this pad hands it the timer. -->
+  <div id="rc-kiosk-modal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-title">Add a kiosk</div>
+      <p class="rc-note">Open this on a screen that should show the timer. It follows the kiosk, read only. If the kiosk is lost, it takes over and carries on.</p>
+      <div id="rc-kiosk-qr"></div>
+      <div id="rc-kiosk-url"></div>
+      <div class="modal-actions">
+        <button class="modal-btn" id="rc-kiosk-copy">Copy</button>
+        <button class="modal-btn" id="rc-kiosk-open">Open</button>
+        <button class="modal-btn" id="rc-kiosk-close">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -12,8 +12,11 @@ export default defineConfig({
 	retries: process.env.CI ? 1 : 0,
 	reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
 	// Never reused: a server already on the port could be serving another
-	// checkout's tick.html, and every failure would then point at the wrong file.
+	// checkout's app, and every failure would then point at the wrong files.
 	webServer: { command: 'node scripts/serve.mjs', port: 4173, reuseExistingServer: false },
-	use: { baseURL: 'http://localhost:4173', trace: 'off' },
+	// The service worker is switched off for the suite: it answers from its own
+	// copy of the app, behind the routes the tests rely on. tests/install.spec.ts
+	// turns it back on to test it.
+	use: { baseURL: 'http://localhost:4173', trace: 'off', serviceWorkers: 'block' },
 	projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'], launchOptions: { executablePath } } }]
 });

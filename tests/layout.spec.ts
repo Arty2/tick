@@ -1,4 +1,4 @@
-import { test, expect, open, menu } from './fixtures';
+import { test, expect, open, menu, visit, settled } from './fixtures';
 
 // The counter is sized by both width and height, so it should never leave
 // the screen: not on a portrait phone, not on a short landscape one, and not
@@ -14,8 +14,9 @@ const screens = [
 for (const [width, height] of screens) {
 	test(`the counter fits on one line on a ${width}×${height} screen`, async ({ page }) => {
 		await page.setViewportSize({ width, height });
-		for (const query of ['?mins=25&label=Keynote&next=Break:5|QA:10', '?mins=999']) {
+		for (const query of ['#mins=25&label=Keynote&next=Break:5|QA:10', '#mins=999']) {
 			await open(page, query);
+			await settled(page);
 			const box = await page.evaluate(() => {
 				const d = document.getElementById('timer-display')!;
 				const r = document.createRange();
@@ -75,7 +76,7 @@ test.describe('on a phone', () => {
 	test.use({ viewport: { width: 390, height: 700 }, hasTouch: true });
 
 	test('a menu row too long for the screen scrolls, from its first button to its last', async ({ page }) => {
-		await open(page, '?next=Talk:10');
+		await open(page, '#next=Talk:10');
 		await page.keyboard.press('u');
 		await page.locator('#until-hour').press('Enter'); // "target: ▶ 10:30" makes the row long
 		await menu(page);
@@ -146,7 +147,7 @@ async function sendOpMsg(page: import('@playwright/test').Page, text: string) {
 for (const [width, height] of [[1280, 720], [390, 844], [844, 390], [320, 568]] as const) {
 	test(`an operator message is solid and fits beside the shrunken time on ${width}×${height}`, async ({ page }) => {
 		await page.setViewportSize({ width, height });
-		await open(page, '?mins=25&label=Keynote&next=Break:5|QA:10');
+		await open(page, '#mins=25&label=Keynote&next=Break:5|QA:10');
 		await page.keyboard.press('Space');
 		const before = await page.locator('#timer-display').evaluate((d) => parseFloat(getComputedStyle(d).fontSize));
 		await sendOpMsg(page, 'Please wrap up in two minutes'); // near the 40-character limit
@@ -185,7 +186,7 @@ for (const [width, height] of [[1280, 720], [390, 844], [844, 390], [320, 568]] 
 
 test('in overtime, OVERTIME stays on screen and steady while a message shows', async ({ page }) => {
 	await page.addInitScript(() => localStorage.setItem('tick_prefs', JSON.stringify({ nextQueue: [] })));
-	await open(page, '?mins=1');
+	await open(page, '#mins=1');
 	await page.keyboard.press('Space');
 	await page.clock.fastForward(64_000);
 	await page.clock.runFor(100);
@@ -200,39 +201,34 @@ test('in overtime, OVERTIME stays on screen and steady while a message shows', a
 	await expect(page.locator('#op-msg')).toBeVisible();
 });
 
-// The QR service is off-site and blocked in tests; any image stands in, since
-// the size under test is set by the page, not by the picture.
-const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
-
+// The QR codes are drawn by the app, with nothing asked of the network.
 for (const [width, height, want] of [[1280, 720, 320], [390, 844, 0], [844, 390, 320]] as const) {
-	test(`the remote window's QR code is twice the old size, and fits, at ${width}×${height}`, async ({ page }) => {
+	test(`the remote window's QR code is 320 px where there's room, and fits, at ${width}×${height}`, async ({ page, offsite }) => {
 		await page.setViewportSize({ width, height });
-		await page.route((u) => u.hostname === 'api.qrserver.com', (r) => r.fulfill({ contentType: 'image/png', body: PNG }));
 		await open(page);
 		await menu(page);
 		await page.locator('#btn-remote').click();
-		const img = page.locator('#remote-qr img');
-		await expect(img).toBeVisible();
-		expect(new URL((await img.getAttribute('src'))!).searchParams.get('size')).toBe('320x320'); // sharp at that size
-		const [q, box] = [(await img.boundingBox())!, (await page.locator('#remote-modal .modal-box').boundingBox())!];
+		const qr = page.locator('#remote-qr svg');
+		await expect(qr).toBeVisible();
+		const [q, box] = [(await qr.boundingBox())!, (await page.locator('#remote-modal .modal-box').boundingBox())!];
 		if (want) expect(Math.round(q.width)).toBe(want); // the full 320 where there's room
 		else expect(q.width).toBeGreaterThan(250); // as big as the phone allows
+		expect(Math.abs(q.width - q.height)).toBeLessThan(1); // square
 		expect(q.x).toBeGreaterThanOrEqual(box.x);
 		expect(q.x + q.width).toBeLessThanOrEqual(box.x + box.width);
 		expect(box.y + box.height).toBeLessThanOrEqual(height); // the window stays on screen (it scrolls inside)
+		expect(offsite.filter((u) => /qr/i.test(u))).toEqual([]); // no QR service
 	});
 }
 
-test("the pad's new-kiosk QR code is twice the old size, and fits a phone", async ({ page }) => {
+test("the pad's add-a-kiosk QR code fits a phone", async ({ page }) => {
 	await page.setViewportSize({ width: 390, height: 844 });
-	await page.route((u) => u.hostname === 'api.qrserver.com', (r) => r.fulfill({ contentType: 'image/png', body: PNG }));
-	await page.goto('/tick.html?rc=ABCDEF');
+	await visit(page, '/#remote=ABCDEF');
 	await page.locator('#rc-new-kiosk').click();
-	const img = page.locator('#rc-kiosk-qr img');
-	await expect(img).toBeVisible();
-	expect(new URL((await img.getAttribute('src'))!).searchParams.get('size')).toBe('400x400');
-	const [q, box] = [(await img.boundingBox())!, (await page.locator('#rc-kiosk-modal .modal-box').boundingBox())!];
-	expect(q.width).toBeGreaterThan(250); // was 200
+	const qr = page.locator('#rc-kiosk-qr svg');
+	await expect(qr).toBeVisible();
+	const [q, box] = [(await qr.boundingBox())!, (await page.locator('#rc-kiosk-modal .modal-box').boundingBox())!];
+	expect(q.width).toBeGreaterThan(250);
 	expect(q.x + q.width).toBeLessThanOrEqual(box.x + box.width);
 });
 
@@ -251,7 +247,9 @@ for (const width of [1280, 390, 320]) {
 			}).map((b) => b.textContent)
 		);
 		expect(bad).toEqual([]);
-		await expect(page.locator('#remote-open-tab')).toHaveText('Open');
-		await expect(page.locator('#remote-copy-url')).toHaveText('Copy');
+		await expect(page.locator('#remote-modal .modal-actions .modal-btn:visible')).toHaveText(['Open', 'Join', 'Stop', 'Close']);
+		await expect(page.locator('#remote-copy-url')).toHaveCount(0); // copying the link is gone
+		await page.locator('#remote-to-join').click(); // the other view's buttons too
+		await expect(page.locator('#remote-modal .modal-actions .modal-btn:visible')).toHaveText(['Remote', 'Kiosk', 'Back', 'Close']);
 	});
 }
