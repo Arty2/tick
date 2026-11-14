@@ -301,7 +301,7 @@ test('the queue box holds the current queue, so an edit and Set changes it, and 
 	await pad.goto('/tick.html?rc=' + code);
 	await pad.clock.runFor(200);
 	const box = pad.locator('#rc-queue-input');
-	await expect(box).toHaveValue('Break:5,QA:10,15');
+	await expect(box).toHaveValue('Break:5|QA:10|15'); // written with pipes
 	await box.fill('Break:5,Q&A\\, panel:20');
 	await pad.clock.runFor(2_500); // a heartbeat arrives while editing: the edit survives
 	await expect(box).toHaveValue('Break:5,Q&A\\, panel:20');
@@ -729,4 +729,14 @@ test("the session's name sits right under the time, on the pad and on the kiosk"
 	await under(pad, '#remote-state-display', '#remote-label-display');
 	await expect(page.locator('#session-label')).toHaveText('Keynote');
 	await under(page, '#timer-display', '#session-label');
+});
+
+test('with the kiosk lost, Next on the pad loads an @HH:MM session as a countdown to that time', async ({ page, context }) => {
+	const kiosk = await padWithFakeKiosk(page, context); // 10:12:01 by the pad's clock
+	await kiosk.send(kioskState({ nextQueue: [{ label: 'Panel', at: '10:30' }] }));
+	await page.clock.runFor(7_000); // lost
+	await page.locator('#rc-next').click();
+	await expect(page.locator('#remote-label-display')).toHaveText('Panel');
+	await expect(page.locator('#remote-state-display')).toHaveText(/^17:5\d$/); // to 10:30
+	await expect(page.locator('#rc-queue-display .rc-q-row')).toHaveCount(0);
 });

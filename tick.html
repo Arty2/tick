@@ -245,7 +245,7 @@ body.kiosk #swipe-hint{display:none}
 .qr-row.dragging{opacity:0.25}
 .qr-handle{color:var(--dim);cursor:grab;padding:0 0.15rem;user-select:none;font-size:14px;flex-shrink:0;line-height:1}
 .qr-label{flex:1;min-width:0}
-.qr-mins{width:46px!important;flex-shrink:0;text-align:center}
+.qr-mins{width:76px!important;flex-shrink:0;text-align:center}
 .qr-del{background:none;border:none;color:var(--dim);cursor:pointer;font-size:16px;
         padding:0 0.25rem;line-height:1;flex-shrink:0;font-family:var(--font);transition:color 0.1s}
 .qr-del:hover{color:var(--c-ot)}
@@ -713,7 +713,8 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
     <h2>Queue</h2>
     <ul>
       <li>The queue is a list of sessions that run one after another. Open it with <strong>&#x25B6; queue</strong>, the list under the timer, or <code>N</code>.</li>
-      <li>Each session has a name and a length in minutes. <strong>+ Add</strong> adds one, <strong>&#xD7;</strong> removes one, and dragging a row changes the order.</li>
+      <li>Each session has a name and a length in minutes, or a time of day written <code>@14:30</code> to count down to it. <strong>+ Add</strong> adds one, <strong>&#xD7;</strong> removes one, and dragging a row changes the order.</li>
+      <li>As text (in a link or the remote's queue box), sessions are separated by <code>|</code>: <code>Talk:25|Break:5|Panel@14:30</code>. A <code>|</code> in a name is written <code>\|</code>.</li>
       <li>When a session ends, the next one starts by itself. <code>Ctrl+Enter</code> loads it sooner.</li>
     </ul>
     <h2>Target time</h2>
@@ -760,7 +761,7 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
         <tr style="border-bottom:1px solid rgba(128,128,128,0.15)">
           <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>next</code></td>
           <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>Title:25,10</code></td>
-          <td style="padding:0.35rem 0 0.35rem 0.5rem">The queue. Each session is <code>name:minutes</code> (<code>Talk:25</code>) or only minutes (<code>25</code>), separated by commas: <code>Keynote:40,Break:5,10</code>. A comma inside a name is written <code>\,</code>.</td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem">The queue. Sessions are separated by <code>|</code>; each is <code>name:minutes</code> (<code>Talk:25</code>), only minutes (<code>25</code>), or a countdown to a time of day (<code>Panel@14:30</code>): <code>Keynote:40|Break:5|Lunch@12:30</code>. A <code>|</code> in a name is written <code>\|</code>.</td>
         </tr>
         <tr style="border-bottom:1px solid rgba(128,128,128,0.15)">
           <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>theme</code></td>
@@ -784,7 +785,7 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
         </tr>
       </tbody>
     </table>
-    <p style="margin-top:0.6rem">Example:<br><code>?mins=25&amp;label=Keynote&amp;next=Break:5,QA:10&amp;theme=dark&amp;sound=1</code></p>
+    <p style="margin-top:0.6rem">Example:<br><code>?mins=25&amp;label=Keynote&amp;next=Break:5|QA:10&amp;theme=dark&amp;sound=1</code></p>
   </div>
 </div>
 
@@ -859,7 +860,7 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
   <!-- On the grid: the box takes three columns and Set the fourth, so Set
        lines up with +10m above it. -->
   <div class="rc-grid">
-    <input type="text" id="rc-queue-input" class="rc-input span3" placeholder="No queue &#x2014; e.g. Talk:25,QA:10" autocomplete="off" aria-label="Queue">
+    <input type="text" id="rc-queue-input" class="rc-input span3" placeholder="No queue &#x2014; e.g. Talk:25|QA@14:30" autocomplete="off" aria-label="Queue">
     <button class="rc-btn" id="rc-queue-send">Set</button>
   </div>
   <div class="rc-grid">
@@ -906,15 +907,43 @@ const usp          = new URLSearchParams(location.search);
 const toMins       = v => { const n = Math.floor(+v); return n >= 1 && n <= 999 ? n : 0; };
 const DEFAULT_MINS = toMins(usp.get('mins')) || 10;
 const URL_LABEL    = usp.get('label') ?? '';
-// nextQueue: {label:string, mins:number}[]  — label may be ''
-// Entries split on commas not escaped as "\,", and minutes follow the last
-// colon, so a label may hold either ("Q&A: panel\, part 2:10").
-const parseNextStr = str => str.split(/(?<!\\),/).map(s => {
-  s = s.trim(); if (!s) return null;
+// ── Queue notation ──────────────────────────────────
+// nextQueue: {label, mins} | {label, at:'HH:MM'} — label may be ''.
+// Written as sessions separated by "|": "name:minutes", "minutes",
+// "name@HH:MM" or "@HH:MM" (a countdown to that time of day). Minutes follow
+// the last colon, so names may hold colons and commas; a "|" in a name is
+// written "\|". This is the one reader and the one writer: URLs, share links,
+// the queue window and the remote's queue box all go through them.
+// Older links separated sessions with commas ("Break:5,QA:10"). Those still
+// read, but only when every comma-separated part is shaped like a session
+// (ends in minutes or a time; an out-of-range value is then dropped as
+// usual), so "Q&A, panel:10" stays one session with a comma in its name.
+const p2 = n => String(n).padStart(2, '0'); // (pad() isn't defined yet here)
+const AT_RE = /@\s*(\d{1,2}):(\d{2})\s*$/;
+const parseEntry = raw => {
+  const s = raw.trim(); if (!s) return null;
+  const at = s.match(AT_RE);
+  if (at) {
+    const h = +at[1], m = +at[2];
+    return h <= 23 && m <= 59 ? {label: s.slice(0, at.index).trim().slice(0, 32), at: `${p2(h)}:${p2(m)}`} : null;
+  }
   const col = s.lastIndexOf(':');
-  if (col > 0) { const mins = toMins(s.slice(col+1)); return mins ? {label: s.slice(0,col).trim().replaceAll('\\,', ',').slice(0,32), mins} : null; }
-  const mins = toMins(s); return mins ? {label:'', mins} : null;
-}).filter(Boolean);
+  if (col > 0) { const mins = toMins(s.slice(col+1)); return mins ? {label: s.slice(0, col).trim().slice(0, 32), mins} : null; }
+  const mins = toMins(s); return mins ? {label: '', mins} : null;
+};
+const parseNextStr = str => {
+  const unescape = (x, c) => x.replaceAll('\\' + c, c);
+  if (!/(?<!\\)\|/.test(str) && /(?<!\\),/.test(str)) {
+    const parts = str.split(/(?<!\\),/).filter(x => x.trim());
+    const shaped = /(^|:)\s*[-+.\de]+\s*$|@\s*\d{1,2}:\d{2}\s*$/i;
+    if (parts.every(x => shaped.test(x))) return parts.map(x => parseEntry(unescape(x, ','))).filter(Boolean);
+  }
+  return str.split(/(?<!\\)\|/).map(x => parseEntry(unescape(x, '|'))).filter(Boolean);
+};
+const entryStr = e => (e.label ? String(e.label).replaceAll('|', '\\|') : '') + (e.at ? '@' + e.at : (e.label ? ':' : '') + e.mins);
+const queueStr = q => q.map(entryStr).join('|');
+// How a queued session's length reads in a list: minutes, or "@HH:MM".
+const entryTime = e => e.at ? '@' + e.at : p2(e.mins) + ':00';
 const URL_NEXT_ITEMS = parseNextStr(usp.get('next') ?? '');
 const URL_THEME    = usp.get('theme') ?? '';
 const URL_SOUND    = usp.has('sound') ? +usp.get('sound') : -1;
@@ -985,6 +1014,7 @@ let longPressTid = null, wakeLock = null;
 // (a queue of plain numbers), hand-edited, or garbage. Each field is checked
 // on its own, so one bad field costs that field and not the rest.
 const toEntry = e => typeof e === 'number' ? (toMins(e) ? {label:'', mins:toMins(e)} : null)
+  : e && typeof e === 'object' && typeof e.at === 'string' ? parseEntry((typeof e.label === 'string' ? e.label.replaceAll('@', '') : '') + '@' + e.at)
   : e && typeof e === 'object' && toMins(e.mins) ? {label: typeof e.label === 'string' ? e.label.slice(0,32) : '', mins: toMins(e.mins)} : null;
 let p = {};
 try { p = JSON.parse(localStorage.getItem('tick_prefs') ?? '{}') ?? {}; } catch {}
@@ -1115,7 +1145,6 @@ function renderSessionQueue() {
   sessionQueue.innerHTML = '';
   // Queued items — grouped block, left-aligned within a centred container
   if (nextQueue.length) {
-    const fmtQ = m => pad(m) + ':00';
     // "NEXT" header row — clickable, opens queue modal
     const header = document.createElement('div');
     header.className = 'sq-item sq-next-header';
@@ -1127,13 +1156,13 @@ function renderSessionQueue() {
     nextQueue.forEach(entry => {
       const row = document.createElement('div');
       row.className = 'sq-item sq-queued';
-      row.textContent = '\u25B6 ' + fmtQ(entry.mins) + (entry.label ? '\u2002' + entry.label : '');
+      row.textContent = '\u25B6 ' + entryTime(entry) + (entry.label ? '\u2002' + entry.label : '');
       row.addEventListener('click', e => { e.stopPropagation(); openNextModal(); });
       block.appendChild(row);
     });
     block.addEventListener('click', e => { e.stopPropagation(); openNextModal(); });
     sessionQueue.appendChild(block);
-    btnNext.textContent = '\u25B6 queue: ' + nextQueue.map(e => fmtQ(e.mins)).join(',');
+    btnNext.textContent = '\u25B6 queue: ' + nextQueue.map(entryTime).join(' ');
   } else {
     btnNext.textContent = '\u25B6 queue: \u2014';
   }
@@ -1321,8 +1350,16 @@ function loadNextTimer(silent) {
   // call startTimer(), which would be a no-op if the old timer still ran.
   running = false; lastRenderedSec = null;
   exitUntilMode(); const entry = nextQueue.shift();
+  customLabel = entry.label || '';
+  if (entry.at) {
+    // "@HH:MM": a countdown to that time of day, which runs from the start.
+    const [h, m] = entry.at.split(':').map(Number);
+    savePrefs(); enterUntilMode(nextUntilMs(h, m), '\u25B6 ' + entry.at);
+    renderSessionQueue(); if (!silent) playPing();
+    return true;
+  }
   totalSecs = entry.mins*60; remaining = resumeVal = totalSecs; bellRecord = null;
-  customLabel = entry.label || ''; savePrefs();
+  savePrefs();
   applyState('next'); renderSessionQueue(); renderDigits(remaining);
   if (!silent) playPing();
   return true;
@@ -1457,7 +1494,7 @@ function copyShareUrl() {
   p.set('mins', Math.max(1, Math.round(totalSecs/60)));
   if (customLabel) p.set('label', customLabel);
   if (nextQueue.length) {
-    const nextStr = nextQueue.map(e => e.label ? `${e.label.replaceAll(',', '\\,')}:${e.mins}` : e.mins).join(',');
+    const nextStr = queueStr(nextQueue);
     p.set('next', nextStr);
   }
   p.set('theme', document.body.classList.contains('light') ? 'light' : 'dark');
@@ -1504,9 +1541,11 @@ function buildQueueRow(entry, idx) {
   labelInp.value = entry.label;
 
   const minsInp = document.createElement('input');
-  minsInp.type = 'number'; minsInp.className = 'modal-input qr-mins';
-  minsInp.placeholder = 'min'; minsInp.min = 1; minsInp.max = 999;
-  minsInp.value = entry.mins || '';
+  // Minutes, or "@HH:MM" for a countdown to a time of day.
+  minsInp.type = 'text'; minsInp.className = 'modal-input qr-mins';
+  minsInp.placeholder = 'min'; minsInp.title = 'Minutes, or @HH:MM for a time of day';
+  minsInp.autocomplete = 'off'; minsInp.spellcheck = false;
+  minsInp.value = entry.at ? '@' + entry.at : (entry.mins || '');
 
   const del = document.createElement('button');
   del.className = 'qr-del'; del.textContent = '×';
@@ -1588,10 +1627,13 @@ function rebuildQueueList() {
 }
 
 function collectQueueRows() {
-  return [...$('queue-list').querySelectorAll('.qr-row')].map(row => ({
-    label: row.querySelector('.qr-label').value.trim(),
-    mins:  Math.min(999, Math.max(1, parseInt(row.querySelector('.qr-mins').value, 10) || 1)),
-  }));
+  return [...$('queue-list').querySelectorAll('.qr-row')].map(row => {
+    const label = row.querySelector('.qr-label').value.trim().slice(0, 32);
+    const v = row.querySelector('.qr-mins').value.trim();
+    const at = /^@?\s*\d{1,2}:\d{2}$/.test(v) ? parseEntry('@' + v.replace('@', '')) : null;
+    return at ? {label, at: at.at}
+      : {label, mins: Math.min(999, Math.max(1, parseInt(v, 10) || 1))};
+  });
 }
 
 const openNextModal = () => {
@@ -1605,10 +1647,10 @@ const closeNextModal = () => closeModal('next-modal');
 
 function nextCommit() {
   customLabel = $('queue-current-label').value.trim();
-  nextQueue = collectQueueRows().filter(e => e.mins > 0);
+  nextQueue = collectQueueRows().filter(e => e.mins > 0 || e.at);
   setPrefOwn('customLabel', 'nextQueue');
   closeNextModal(); savePrefs(); renderSessionQueue(); applyState(uiState);
-  showHint(customLabel || (nextQueue.length ? `next: ${nextQueue.map(e=>e.label||e.mins+'m').join(', ')}` : 'queue set'));
+  showHint(customLabel || (nextQueue.length ? `next: ${nextQueue.map(e=>e.label||entryTime(e)).join(', ')}` : 'queue set'));
 }
 
 wireBtn('queue-add', () => {
@@ -2216,16 +2258,8 @@ function execRemoteCmd(cmd) {
     return;
   }
   if (cmd.startsWith('setQueue:')) {
-    const raw = cmd.slice(9);
-    // Format: "Current Title|Slot1:25,Slot2:10" — pipe separates current label from queue
-    const pipe = raw.indexOf('|');
     setPrefOwn('nextQueue');
-    if (pipe >= 0) {
-      customLabel = raw.slice(0, pipe).trim().slice(0, 32); setPrefOwn('customLabel');
-      nextQueue = parseNextStr(raw.slice(pipe + 1));
-    } else {
-      nextQueue = parseNextStr(raw);
-    }
+    nextQueue = parseNextStr(cmd.slice(9));
     savePrefs(); renderSessionQueue(); applyState(uiState);
     return;
   }
@@ -2332,14 +2366,14 @@ if (IS_REMOTE) {
       qd.append(head);
       for (const e of snap.nextQueue) {
         const row = document.createElement('div'); row.className = 'rc-q-row';
-        row.textContent = '\u25B6\uFE0E ' + fmt((+e.mins || 0) * 60) + (e.label ? '\u2002' + e.label : '');
+        row.textContent = '\u25B6\uFE0E ' + entryTime(e) + (e.label ? '\u2002' + e.label : '');
         qd.append(row);
       }
     }
     // The queue box: written in the same form the box reads (and a share
     // link uses), unless it is being edited.
     if (!rcQueueDirty && document.activeElement !== rcQueueInput && Array.isArray(snap.nextQueue))
-      rcQueueInput.value = snap.nextQueue.map(e => e.label ? `${String(e.label).replaceAll(',', '\\,')}:${e.mins}` : e.mins).join(',');
+      rcQueueInput.value = queueStr(snap.nextQueue);
     // Black is lit while the kiosk is covered.
     $('rc-black').classList.toggle('on', !!snap.black);
     $('rc-black').setAttribute('aria-pressed', String(!!snap.black));
@@ -2453,6 +2487,13 @@ if (IS_REMOTE) {
     : !model.running ? (rem === model.totalSecs ? 'idle' : 'pause')
     : (model.warn2 > 0 && rem <= model.warn2) ? 'warn2'
     : (model.warn1 > 0 && rem <= model.warn1) ? 'warn' : 'run';
+  // The next session taken into the pad's copy, as the kiosk would load it.
+  const loadLocal = (m, e) => {
+    const [h, mm] = (e.at ?? '').split(':').map(Number);
+    return e.at
+      ? Object.assign(m, {customLabel: e.label || '', untilTarget: nextUntilMs(h, mm), untilLabel: '\u25B6 ' + e.at, running: true})
+      : Object.assign(m, {customLabel: e.label || '', totalSecs: e.mins*60, remaining: e.mins*60, untilTarget: null, untilLabel: ''});
+  };
   function localCmd(cmd) {
     if (!model) return;
     rebase();
@@ -2467,10 +2508,10 @@ if (IS_REMOTE) {
       Object.assign(m, {running: false, remaining: m.totalSecs, untilTarget: null, untilLabel: '', elapsed: null});
     } else if (cmd === 'next' && m.nextQueue?.length) {
       const [e, ...rest] = m.nextQueue;
-      Object.assign(m, {nextQueue: rest, customLabel: e.label || '', totalSecs: e.mins*60, remaining: e.mins*60,
-        running: false, untilTarget: null, untilLabel: '', uiState: 'next'});
+      Object.assign(m, {nextQueue: rest, running: false, uiState: 'next'});
+      loadLocal(m, e);
     } else if (cmd.startsWith('setQueue:')) {
-      m.nextQueue = parseNextStr(cmd.slice(9).split('|').pop());
+      m.nextQueue = parseNextStr(cmd.slice(9));
     } else if (cmd === 'black') {
       m.black = !m.black; // takes effect on the kiosk with the sync when it's back
     }
@@ -2485,8 +2526,8 @@ if (IS_REMOTE) {
       // Time ran out with the kiosk away: hand over to the next session here,
       // as the kiosk would have.
       const [e, ...rest] = model.nextQueue;
-      model = {...model, nextQueue: rest, customLabel: e.label || '', totalSecs: e.mins*60, remaining: e.mins*60};
-      modelAt = Date.now(); rem = model.remaining;
+      model = loadLocal({...model, nextQueue: rest}, e);
+      modelAt = Date.now(); rem = modelRemaining();
     }
     rcApplyState({...model, remaining: rem, uiState: kioskLost() ? localUi(rem) : model.uiState});
     // Elapsed time since the session started, moved on by the clock like the count.

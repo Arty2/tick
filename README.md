@@ -109,9 +109,22 @@ The keys only change the timer when no text box is being typed in.
 The queue is a list of sessions that run one after another. To open it, press `N`, choose **▶ queue** in the menu, or click the list under the timer.
 
 - **Current session** is the name shown under the timer.
-- **Up next** is the list of sessions. Each one has a name and a length in minutes. **+ Add** adds a session, **×** removes one, and dragging a row changes the order.
+- **Up next** is the list of sessions. Each one has a name and a length in minutes, or a time of day written `@14:30`, which makes that session count down to 14:30. **+ Add** adds a session, **×** removes one, and dragging a row changes the order.
 - When a session ends, the next one loads and starts by itself. A short sound plays.
 - The queue and the session name are saved in the browser. They are still there the next time /tick is opened.
+
+### Writing a queue
+
+A queue can also be written as text: in a link, or in the queue box on the remote pad. Sessions are separated by `|` (a vertical bar), and each session is one of these:
+
+| Written | Means |
+|---|---|
+| `Talk:25` | A session called Talk, 25 minutes long |
+| `25` | A 25-minute session with no name |
+| `Panel@14:30` | A session called Panel that counts down to 14:30 (the next 14:30, which may be tomorrow) |
+| `@14:30` | A countdown to 14:30 with no name |
+
+For example, `Keynote:40|Break:5|Q&A, panel:15|Lunch@12:30`. Names may contain commas and colons. A `|` inside a name is written `\|`. Older links that separate sessions with commas, such as `Break:5,QA:10`, still work.
 
 ---
 
@@ -148,7 +161,7 @@ The remote control lets another device start, pause and change the timer.
 2. On the other device, scan the QR code or open the link. Without a camera, open /tick on that device, choose **remote**, then **Control another timer instead**, type the code and choose **Join**.
 3. The other device now shows a **remote pad**, and the timer screen changes to kiosk mode. It stays in kiosk mode if the remote pad disconnects.
 
-The remote pad's top bar shows the connection, the timer's code and a small screen button (🖥️). Typing another code into the bar and pressing Enter switches the pad to that timer. Under the top bar, the remote pad shows the same line as the timer screen: the time since the session started on the left, and the time of day on the right. Below that it shows the time left, the session name and the queue. Its buttons reset, start or pause (one button, which changes between the two), ring the bell, load the next or the previous session, and add or take away time. **Prev** goes back to the session that ran before and puts the current one back at the front of the queue; it is greyed out until a session has handed over to the next. **Black** covers the whole timer screen in the theme's background colour (black in the dark theme, white in the light one). The timer keeps running underneath, and changes made from the remote pad don't show until **Black** is pressed again. The button is lit while the screen is covered. On the timer screen itself, `Escape`, a double tap or a double-click also lifts the cover, so it can be lifted without the remote or a keyboard; single taps and clicks on the cover do nothing. Its queue box shows the current queue, written as names and minutes, such as `Talk:25,QA:10`. Changing it and pressing **Set** changes the queue; emptying it and pressing **Set** clears the queue. On phones, the buttons vibrate when pressed.
+The remote pad's top bar shows the connection, the timer's code and a small screen button (🖥️). Typing another code into the bar and pressing Enter switches the pad to that timer. Under the top bar, the remote pad shows the same line as the timer screen: the time since the session started on the left, and the time of day on the right. Below that it shows the time left, the session name and the queue. Its buttons reset, start or pause (one button, which changes between the two), ring the bell, load the next or the previous session, and add or take away time. **Prev** goes back to the session that ran before and puts the current one back at the front of the queue; it is greyed out until a session has handed over to the next. **Black** covers the whole timer screen in the theme's background colour (black in the dark theme, white in the light one). The timer keeps running underneath, and changes made from the remote pad don't show until **Black** is pressed again. The button is lit while the screen is covered. On the timer screen itself, `Escape`, a double tap or a double-click also lifts the cover, so it can be lifted without the remote or a keyboard; single taps and clicks on the cover do nothing. Its queue box shows the current queue, written as described in [Writing a queue](#writing-a-queue), such as `Talk:25|QA@14:30`. Changing it and pressing **Set** changes the queue; emptying it and pressing **Set** clears the queue. On phones, the buttons vibrate when pressed.
 
 The remote pad has a message box. A message typed there appears on the timer screen for 6 seconds, in large dark letters on an orange band above the time. The time gets smaller while the message shows, so both can be read. It can tell the speaker, for example, to finish soon. **Clear** removes it sooner.
 
@@ -168,7 +181,7 @@ A link to /tick can include settings after a `?`. These settings are used for th
 |---|---|---|
 | `mins` | `1`–`999` | The starting length in minutes. |
 | `label` | text | The session name. |
-| `next` | `Break:5,QA:10` | The queue. Each session is `name:minutes`, or only minutes. Sessions are separated by commas. A comma inside a name is written `\,`. |
+| `next` | `Break:5\|QA@14:30` | The queue, written as described in [Writing a queue](#writing-a-queue): sessions separated by `\|`, each `name:minutes`, minutes alone, or `name@HH:MM`. |
 | `theme` | `dark` or `light` | The theme. |
 | `sound` | `0`, `1` or `2` | The sound setting: off, bell at the end, or a bell every minute of overtime. |
 | `rc` | a six-letter code | Opens the remote pad for that code. The **remote** button makes these links. |
@@ -177,7 +190,7 @@ A link to /tick can include settings after a `?`. These settings are used for th
 For example, this link opens a 25-minute keynote with a break and questions after it:
 
 ```
-https://acari.vercel.app/?mins=25&label=Keynote&next=Break:5,QA:10&theme=dark&sound=1
+https://acari.vercel.app/?mins=25&label=Keynote&next=Break:5|QA:10&theme=dark&sound=1
 ```
 
 The **share** button copies a link like this for the timer as it is now.
