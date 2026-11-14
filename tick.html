@@ -271,6 +271,9 @@ body.kiosk #swipe-hint{display:none}
 body.light .modal-overlay{background:rgba(0,0,0,0.42)}
 
 .modal-box{
+  /* Scrolls rather than running off a short screen (the remote window, with
+     its larger QR code, is taller than a landscape phone). */
+  max-height:calc(100vh - 2rem);overflow-y:auto;
   background:var(--panel);border:1px solid var(--dim);padding:1.8rem 2rem;
   width:min(360px,calc(100vw - 3rem));display:flex;flex-direction:column;gap:1.1rem;position:relative;
 }
@@ -367,7 +370,9 @@ code{background:rgba(128,128,128,0.16);padding:0.08em 0.33em;font-family:var(--f
   padding:0.4rem 0;
 }
 #remote-qr{display:flex;justify-content:center;margin:0.2rem 0}
-#remote-qr canvas,#remote-qr img{width:160px;height:160px}
+/* Twice the old 160px, so a phone across the room can scan it; never wider
+   than the window it sits in. */
+#remote-qr canvas,#remote-qr img{width:min(320px,100%);height:auto;aspect-ratio:1;box-sizing:border-box}
 #remote-status{font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:var(--dim);text-align:center}
 #remote-status.connected{color:var(--c-watch)}
 
@@ -473,7 +478,7 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
 #remote-pad .modal-btn{font-size:clamp(18px,4.5vw,24px);padding:0.7rem 0.3rem;white-space:nowrap}
 #remote-pad .rc-note{font-size:clamp(16px,4vw,20px);line-height:1.4;color:var(--fg)}
 #rc-kiosk-qr{display:flex;justify-content:center}
-#rc-kiosk-qr img{width:200px;height:200px}
+#rc-kiosk-qr img{width:min(400px,100%);height:auto;aspect-ratio:1;box-sizing:border-box}
 #rc-kiosk-url{font-size:14px;word-break:break-all;text-align:center;color:var(--dim);user-select:text;-webkit-user-select:text}
 .rc-btn{
   background:rgba(128,128,128,0.1);border:1px solid var(--dim);
@@ -1913,7 +1918,7 @@ const IS_REMOTE = usp.has('rc');
 const padUrl = code => `${location.origin}${location.pathname}?rc=${code}`;
 
 // ── QR code — online only (uses external API) ─────────────────────
-function renderQR(rcUrl, qrEl = $('remote-qr'), urlEl = $('remote-url-text'), size = 160) {
+function renderQR(rcUrl, qrEl = $('remote-qr'), urlEl = $('remote-url-text'), size = 320) {
   urlEl.textContent = rcUrl;
   if (navigator.onLine) {
     qrEl.style.display  = ''; urlEl.style.display = 'none'; qrEl.innerHTML = '';
@@ -2343,7 +2348,7 @@ if (IS_REMOTE) {
   $('rc-new-kiosk').addEventListener('click', () => {
     haptic();
     $('rc-kiosk-url').textContent = kioskUrl;
-    renderQR(kioskUrl, $('rc-kiosk-qr'), $('rc-kiosk-url'), 200);
+    renderQR(kioskUrl, $('rc-kiosk-qr'), $('rc-kiosk-url'), 400);
     $('rc-kiosk-url').style.display = ''; // the link shows with the QR, for copying by eye
     openModal('rc-kiosk-modal');
   });

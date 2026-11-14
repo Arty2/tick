@@ -199,3 +199,39 @@ test('in overtime, OVERTIME stays on screen and steady while a message shows', a
 	}
 	await expect(page.locator('#op-msg')).toBeVisible();
 });
+
+// The QR service is off-site and blocked in tests; any image stands in, since
+// the size under test is set by the page, not by the picture.
+const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+
+for (const [width, height, want] of [[1280, 720, 320], [390, 844, 0], [844, 390, 320]] as const) {
+	test(`the remote window's QR code is twice the old size, and fits, at ${width}×${height}`, async ({ page }) => {
+		await page.setViewportSize({ width, height });
+		await page.route((u) => u.hostname === 'api.qrserver.com', (r) => r.fulfill({ contentType: 'image/png', body: PNG }));
+		await open(page);
+		await menu(page);
+		await page.locator('#btn-remote').click();
+		const img = page.locator('#remote-qr img');
+		await expect(img).toBeVisible();
+		expect(new URL((await img.getAttribute('src'))!).searchParams.get('size')).toBe('320x320'); // sharp at that size
+		const [q, box] = [(await img.boundingBox())!, (await page.locator('#remote-modal .modal-box').boundingBox())!];
+		if (want) expect(Math.round(q.width)).toBe(want); // the full 320 where there's room
+		else expect(q.width).toBeGreaterThan(250); // as big as the phone allows
+		expect(q.x).toBeGreaterThanOrEqual(box.x);
+		expect(q.x + q.width).toBeLessThanOrEqual(box.x + box.width);
+		expect(box.y + box.height).toBeLessThanOrEqual(height); // the window stays on screen (it scrolls inside)
+	});
+}
+
+test("the pad's new-kiosk QR code is twice the old size, and fits a phone", async ({ page }) => {
+	await page.setViewportSize({ width: 390, height: 844 });
+	await page.route((u) => u.hostname === 'api.qrserver.com', (r) => r.fulfill({ contentType: 'image/png', body: PNG }));
+	await page.goto('/tick.html?rc=ABCDEF');
+	await page.locator('#rc-new-kiosk').click();
+	const img = page.locator('#rc-kiosk-qr img');
+	await expect(img).toBeVisible();
+	expect(new URL((await img.getAttribute('src'))!).searchParams.get('size')).toBe('400x400');
+	const [q, box] = [(await img.boundingBox())!, (await page.locator('#rc-kiosk-modal .modal-box').boundingBox())!];
+	expect(q.width).toBeGreaterThan(250); // was 200
+	expect(q.x + q.width).toBeLessThanOrEqual(box.x + box.width);
+});
