@@ -526,84 +526,86 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
   <div id="manual-h1-fixed"><h1>/tick manual <span id="manual-version"></span></h1></div>
   <button id="manual-close">close</button>
   <div id="manual-inner">
-    <p>/tick is a shortcut-first countdown timer for streams, webinars, or any reverse time-keeping needs.</p>
-    <h2>Mouse &amp; Touch</h2>
+    <p>/tick is a countdown timer. People use it to keep time during talks, live streams, meetings and stage events. It is one file and works without the internet.</p>
+    <h2>Mouse and touch</h2>
     <ul>
-      <li>Click or tap to start. Again to pause / unpause.</li>
-      <li>Click or tap to reset after overtime.</li>
-      <li>Double-click / double-tap for kiosk (fullscreen). Double again to exit.</li>
-      <li>Scroll &#x00B1;1 min (mouse, while running).</li>
-      <li>Swipe &#x1F446;+10 &#x1F447;&#x2212;5 &#x1F448;+1 &#x1F449;&#x2212;1 min (touch, while running).</li>
+      <li>Click or tap to start. Click again to pause, and again to start.</li>
+      <li>In overtime, a click loads the next session, or resets the timer if the queue is empty.</li>
+      <li>Click or tap the list under the timer to open the queue.</li>
+      <li>Double-click or double-tap to turn kiosk mode on or off.</li>
+      <li>While running, the mouse wheel adds or takes away 1 minute.</li>
+      <li>While running, swipe &#x1F446; to add 10 minutes, &#x1F447; to take away 5, &#x1F448; to add 1, &#x1F449; to take away 1.</li>
     </ul>
     <h2>Keyboard</h2>
     <ul>
-      <li><code>Enter</code> &#x2014; Start / restart &nbsp; <code>Space</code> &#x2014; Start / pause</li>
-      <li><code>Ctrl+Enter</code> &#x2014; Load next queued timer immediately</li>
-      <li><code>0&#x2013;9</code> &#x2014; Type minutes, confirm with <code>Enter</code></li>
-      <li><code>N</code> &#x2014; Queue next timer(s) &nbsp; <code>U</code> &#x2014; Countdown mode</li>
-      <li><code>W</code> &#x2014; Warning thresholds</li>
-      <li><code>&#x2191;</code>+10 <code>&#x2193;</code>&#x2212;5 <code>&#x2190;</code>+1 <code>&#x2192;</code>&#x2212;1 min</li>
-      <li><code>Ctrl+&#x2191;</code> / <code>Ctrl+&#x2193;</code> &#x2014; Previous / next preset</li>
-      <li><code>Page Up</code> &#x2014; Kiosk / fullscreen &nbsp; <code>Page Down</code> &#x2014; Theme</li>
-      <li><code>End</code> &#x2014; Reset &nbsp; <code>Esc</code> &#x2014; Close / exit kiosk</li>
-      <li><code>Insert</code> &#x2014; Cycle sound &nbsp; <code>`</code> &#x2014; Bell on demand</li>
-      <li><code>Del</code> / <code>Backspace</code> &#x2014; Edit label &nbsp; <code>Home</code> &#x2014; Manual</li>
+      <li><code>Enter</code> starts again from the starting length. <code>Space</code> starts or pauses.</li>
+      <li>Type <code>0</code>&#x2013;<code>9</code>, then <code>Enter</code>, to set the length in minutes.</li>
+      <li><code>Ctrl+Enter</code> loads the next session now. It waits until it is started.</li>
+      <li><code>&#x2191;</code> adds 10 minutes, <code>&#x2193;</code> takes away 5, <code>&#x2190;</code> adds 1, <code>&#x2192;</code> takes away 1.</li>
+      <li><code>Ctrl+&#x2191;</code> and <code>Ctrl+&#x2193;</code> load the previous or next preset.</li>
+      <li><code>N</code> opens the queue. <code>U</code> opens the target time. <code>W</code> opens the warnings.</li>
+      <li><code>Delete</code> or <code>Backspace</code> changes the session name.</li>
+      <li><code>`</code> rings the bell. <code>Insert</code> changes the sound setting.</li>
+      <li><code>Page Up</code> turns kiosk mode on or off. <code>Page Down</code> changes the theme.</li>
+      <li><code>End</code> resets. <code>Home</code> opens this manual. <code>Tab</code> opens the menu.</li>
+      <li><code>Esc</code> closes the menu or a window. If none is open, it leaves target time, clock mode or kiosk mode.</li>
     </ul>
-    <h2>Timer Status</h2>
+    <h2>Colours</h2>
     <ul>
-      <li><strong style="color:var(--c-idle)">Grey</strong> &#x2014; Idle.</li>
-      <li><strong style="color:var(--c-run)">White</strong> &#x2014; Running.</li>
-      <li><strong style="color:var(--c-warn)">Orange</strong> &#x2014; First warning (default: 2 min remaining).</li>
-      <li><strong style="color:var(--c-warn)">Orange flash</strong> &#x2014; Second warning (default: 1 min remaining).</li>
-      <li><strong style="color:var(--c-pause)">Amber</strong> &#x2014; Paused.</li>
-      <li><strong style="color:var(--c-ot)">Red</strong> &#x2014; Overtime. Timer counts up.</li>
-      <li><strong style="color:var(--c-reset)">Green</strong> &#x2014; Reset flash.</li>
-      <li><strong style="color:var(--c-next)">Purple</strong> &#x2014; Next timer loaded.</li>
-      <li><strong style="color:var(--c-until)">Blue</strong> &#x2014; Countdown to wall-clock time.</li>
-      <li><strong style="color:var(--c-watch)">Teal</strong> &#x2014; Clock mode.</li>
+      <li><strong style="color:var(--c-idle)">Grey</strong> &#x2014; not started.</li>
+      <li><strong style="color:var(--c-run)">White</strong> &#x2014; running.</li>
+      <li><strong style="color:var(--c-warn)">Orange</strong> &#x2014; first warning (2 minutes left, at first).</li>
+      <li><strong style="color:var(--c-warn)">Flashing orange</strong> &#x2014; second warning (1 minute left, at first).</li>
+      <li><strong style="color:var(--c-pause)">Amber</strong> &#x2014; paused.</li>
+      <li><strong style="color:var(--c-ot)">Red</strong> &#x2014; overtime. The time has run out, and the timer counts up.</li>
+      <li><strong style="color:var(--c-reset)">Green</strong> &#x2014; just reset.</li>
+      <li><strong style="color:var(--c-next)">Purple</strong> &#x2014; the next session is loaded.</li>
+      <li><strong style="color:var(--c-until)">Blue</strong> &#x2014; counting down to a time of day.</li>
+      <li><strong style="color:var(--c-watch)">Teal</strong> &#x2014; clock mode.</li>
     </ul>
-    <h2>Warning Thresholds</h2>
+    <h2>Warnings</h2>
     <ul>
-      <li>Click <strong>warn</strong> or press <code>W</code> to set two configurable thresholds.</li>
-      <li><strong>First warning</strong> — colour changes to orange (default 120 sec = 2 min).</li>
-      <li><strong>Second warning</strong> — orange + flashing digits (default 60 sec = 1 min).</li>
-      <li>Set either to 0 to disable that level. Settings saved across sessions.</li>
+      <li>The <strong>warn</strong> button (or <code>W</code>) sets two warning points, in seconds.</li>
+      <li>At the <strong>first warning</strong> the numbers turn orange. At first this is 120 seconds (2 minutes) before the end.</li>
+      <li>At the <strong>second warning</strong> the numbers also flash. At first this is 60 seconds (1 minute) before the end.</li>
+      <li>Setting a warning to 0 turns it off. The settings are saved.</li>
     </ul>
-    <h2>Kiosk Mode</h2>
+    <h2>Kiosk mode</h2>
     <ul>
-      <li>Click <strong>kiosk</strong>, press <code>Page Up</code>, or double-click to enter. Hides all UI chrome.</li>
-      <li>On desktop: enters fullscreen. Press <code>Esc</code> or double-click to exit.</li>
-      <li>On mobile: hides toolbar and top bar without requiring fullscreen. Double-tap to exit.</li>
+      <li>Kiosk mode hides the buttons and the menu. Only the time and the top line are shown.</li>
+      <li>Turn it on with the <strong>kiosk</strong> button, <code>Page Up</code>, or a double-click. Turn it off the same way, or with <code>Esc</code>.</li>
+      <li>On computers it also fills the screen and keeps the screen from going dark. On iPhones and iPads the address bar stays.</li>
     </ul>
     <h2>Presets</h2>
     <ul>
-      <li>Up to 5 presets. Click to load. <strong>Long-press</strong> or right-click to edit.</li>
-      <li>Empty slots show <strong>+</strong> &#x2014; click to configure.</li>
-      <li><strong>Long-press Reset</strong> to clear all saved data.</li>
+      <li>There are five presets in the menu. Click one to load it.</li>
+      <li>Hold a preset down, or right-click it, to change its name and length. An empty preset shows <strong>+</strong>.</li>
+      <li>Holding down <strong>reset</strong> for about one second removes everything /tick has saved.</li>
     </ul>
-    <h2>Next Timer Queue</h2>
+    <h2>Queue</h2>
     <ul>
-      <li>Click <strong>&#x25B6; queue</strong>, the queue under the timer, or press <code>N</code>. Each slot has a label and minutes; <strong>+ Add</strong> for more, drag to reorder.</li>
-      <li>The next slot loads and starts when the current timer ends. <code>Ctrl+Enter</code> to skip immediately.</li>
+      <li>The queue is a list of sessions that run one after another. Open it with <strong>&#x25B6; queue</strong>, the list under the timer, or <code>N</code>.</li>
+      <li>Each session has a name and a length in minutes. <strong>+ Add</strong> adds one, <strong>&#xD7;</strong> removes one, and dragging a row changes the order.</li>
+      <li>When a session ends, the next one starts by itself. <code>Ctrl+Enter</code> loads it sooner.</li>
     </ul>
-    <h2>Countdown Mode</h2>
+    <h2>Target time</h2>
     <ul>
-      <li>Click <strong>target</strong> or press <code>U</code>. Targets tomorrow if time has passed.</li>
+      <li>The <strong>target</strong> button (or <code>U</code>) counts down to a time of day, in the 24-hour clock. If that time has passed today, it counts down to tomorrow.</li>
     </ul>
-    <h2>Clock / Watch Mode</h2>
+    <h2>Clock mode</h2>
     <ul>
-      <li>Toggle <strong>timer &#x2194; clock</strong> in toolbar. Countdown keeps running in background.</li>
-      <li>Exiting clock mode resumes the current timer; the queue is not advanced.</li>
+      <li>The <strong>clock</strong> button shows the time of day instead of the timer. The timer keeps running, and the queue keeps moving.</li>
+      <li>A click, or the <strong>timer</strong> button, shows the timer again.</li>
     </ul>
-    <h2>Remote Control</h2>
+    <h2>Remote control</h2>
     <ul>
-      <li>Click <strong>remote</strong> to generate a 6-character code + QR. Open on any device via the URL or scan.</li>
-      <li>Same browser: works instantly via BroadcastChannel. Cross-device: uses WebRTC via a third-party broker (peerjs.com) — requires internet; may not work on restrictive networks.</li>
-      <li>Remote pad shows live timer state. Buttons vibrate on mobile.</li>
-      <li><strong>Operator message</strong> — type in the message field and press <code>Enter</code> or Send. Text flashes on the presenter&rsquo;s screen for 6 seconds. Send empty (Clear) to dismiss immediately.</li>
+      <li>The <strong>remote</strong> button shows a six-letter code and a QR code. Open the link or scan the code on another device to get a remote pad.</li>
+      <li>The remote pad shows the time left. Its buttons start, pause, reset, ring the bell, load the next session and change the time. On phones they vibrate.</li>
+      <li>A message typed in the remote window on this screen appears on the remote pad for 6 seconds. <strong>Clear</strong> removes it sooner.</li>
+      <li>Two tabs in the same browser connect without the internet. Two devices need the internet, and connect through a service called PeerJS. This may not work on some school or office networks.</li>
     </ul>
     <h2>Share</h2>
-    <p>Click <strong>share</strong> to copy the current state as a URL. Opening it restores the timer exactly as configured. Parameters override saved preferences but do not overwrite them.</p>
+    <p>The <strong>share</strong> button copies a link to the timer as it is now. Opening the link sets up the same timer. Settings in a link are used for that visit only; they do not replace the saved settings.</p>
     <table style="width:100%;border-collapse:collapse;font-size:0.82em;margin-top:0.4rem">
       <thead>
         <tr style="border-bottom:1px solid var(--dim)">
@@ -616,37 +618,37 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
         <tr style="border-bottom:1px solid rgba(128,128,128,0.15)">
           <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>mins</code></td>
           <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>1&ndash;999</code></td>
-          <td style="padding:0.35rem 0 0.35rem 0.5rem">Starting duration in whole minutes.</td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem">The starting length in minutes.</td>
         </tr>
         <tr style="border-bottom:1px solid rgba(128,128,128,0.15)">
           <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>label</code></td>
           <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>text</code></td>
-          <td style="padding:0.35rem 0 0.35rem 0.5rem">Current session title shown above the timer. URL-encoded if it contains spaces or special characters.</td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem">The session name shown under the timer.</td>
         </tr>
         <tr style="border-bottom:1px solid rgba(128,128,128,0.15)">
           <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>next</code></td>
           <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>Title:25,10</code></td>
-          <td style="padding:0.35rem 0 0.35rem 0.5rem">Comma-separated queue. Each entry is either plain minutes (<code>25</code>) or a labelled slot (<code>Talk:25</code>). Mixed formats are fine: <code>Keynote:40,Break:5,10</code>. A comma inside a label is written <code>\,</code>. Loaded in order when each timer ends.</td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem">The queue. Each session is <code>name:minutes</code> (<code>Talk:25</code>) or only minutes (<code>25</code>), separated by commas: <code>Keynote:40,Break:5,10</code>. A comma inside a name is written <code>\,</code>.</td>
         </tr>
         <tr style="border-bottom:1px solid rgba(128,128,128,0.15)">
           <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>theme</code></td>
           <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>dark&nbsp;|&nbsp;light</code></td>
-          <td style="padding:0.35rem 0 0.35rem 0.5rem">Force dark or light theme regardless of saved preference.</td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem">The theme.</td>
         </tr>
         <tr style="border-bottom:1px solid rgba(128,128,128,0.15)">
           <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>sound</code></td>
           <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>0&nbsp;|&nbsp;1&nbsp;|&nbsp;2</code></td>
-          <td style="padding:0.35rem 0 0.35rem 0.5rem"><code>0</code> off &middot; <code>1</code> bell at end &middot; <code>2</code> bell every minute.</td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem"><code>0</code> off &middot; <code>1</code> a bell at the end &middot; <code>2</code> a bell every minute of overtime.</td>
         </tr>
         <tr>
           <td style="padding:0.35rem 0.5rem 0.35rem 0;white-space:nowrap"><code>rc</code></td>
           <td style="padding:0.35rem 0.5rem;white-space:nowrap"><code>XXXXXX</code></td>
-          <td style="padding:0.35rem 0 0.35rem 0.5rem">6-character room code. When present, the page opens as a remote control pad instead of a timer. Generated automatically by the <strong>remote</strong> button; do not set manually.</td>
+          <td style="padding:0.35rem 0 0.35rem 0.5rem">A six-letter remote code. The page opens as a remote pad instead of a timer. The <strong>remote</strong> button makes these links.</td>
         </tr>
       </tbody>
     </table>
-    <p style="margin-top:0.6rem">Full example:<br><code>?mins=25&amp;label=Keynote&amp;next=Break:5,QA:10&amp;theme=dark&amp;sound=1</code></p>
-    <p style="margin-top:1.5rem;color:var(--dim)">Live at <a href="https://acari.vercel.app" style="color:inherit">acari.vercel.app</a>. Dialectic Acheiropoieton of Heracles Papatheodorou and&nbsp;Claude.</p>
+    <p style="margin-top:0.6rem">Example:<br><code>?mins=25&amp;label=Keynote&amp;next=Break:5,QA:10&amp;theme=dark&amp;sound=1</code></p>
+    <p style="margin-top:1.5rem;color:var(--dim)">The live version is at <a href="https://acari.vercel.app" style="color:inherit">acari.vercel.app</a>. Dialectic Acheiropoieton of Heracles Papatheodorou and&nbsp;Claude.</p>
   </div>
 </div>
 

@@ -1,182 +1,199 @@
 # /tick
 
-A single-file countdown timer for presentations, streams, and stage use.
+**/tick** is a countdown timer that runs in a web browser. People use it to keep time during talks, live streams, meetings and stage events. The whole program is one file, `tick.html`. It does not need to be installed, and it works without an internet connection.
 
-No install. No build step. No server. Open `tick.html` and go.
+- Live version: [acari.vercel.app](https://acari.vercel.app)
+- Source code: [github.com/Arty2/tick](https://github.com/Arty2/tick)
 
-- Live: [acari.vercel.app](https://acari.vercel.app)
-- Source: [github.com/Arty2/tick](https://github.com/Arty2/tick)
-
-![/tick in its last minute of a keynote, at 00:59 in warning orange, with a break and Q&A queued next](./screenshots/ticker-screenshot_01.png)
+![/tick showing 09:59 left in a keynote, with a break and a Q&A session waiting next](./screenshots/ticker-screenshot_01.png)
 
 ---
 
-## Quick start
+## Starting
 
-Open [acari.vercel.app](https://acari.vercel.app), or download `tick.html` and open it in any browser. That's it.
+There are two ways to use /tick:
 
-Or serve it from anywhere — it's one file with no external dependencies at load time.
+- Open [acari.vercel.app](https://acari.vercel.app) in a browser.
+- Download `tick.html` and open it. This copy works with no internet connection.
+
+The file can also be put on any web server. It needs no other files.
 
 ---
 
-## What it does
+## Features
 
-- Counts down from any duration (1–999 min)
-- Turns red and counts up in overtime — auto-advances to the next session if one is queued
-- Named session queue: label each slot, drag to reorder, loads automatically in sequence
-- Countdown to a wall-clock time (defaults to the next :00 or :30)
-- Clock/watch mode: shows current time while the timer runs in the background
-- Remote control pad: open on any device, control the timer from across the room
-- Two configurable warning thresholds with flash sync
-- Bell synthesis (no samples) — end-of-session or once per overtime minute
-- Five configurable presets
-- Kiosk mode: hides all chrome, enters fullscreen, enables WakeLock on desktop
-- Share URLs that restore exact timer state
-- Dark and light themes
+- Counts down from any length between 1 and 999 minutes.
+- After the time runs out, the numbers turn red and count up. This is called **overtime**.
+- Keeps a **queue**: a list of sessions, each with a name and a length. When one session ends, the next one starts by itself.
+- Can count down to a time of day, such as 14:30.
+- Has a **clock mode** that shows the time of day while the timer keeps running.
+- Can be controlled from a phone or another computer (**remote control**).
+- Changes colour at two warning points before the end.
+- Can ring a bell. The bell sound is made by the program, not played from a recording.
+- Has five **presets**: saved lengths that load with one click.
+- Has a **kiosk mode** that hides everything except the time.
+- Can make a link that opens the same timer on another device.
+- Has a dark theme and a light theme.
 
 ![The same timer in the light theme](./screenshots/ticker-screenshot_02.png)
-- Works offline: save the page and open it from disk
 
 ---
 
-## Layout
+## Screen layout
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│  00:00 (session elapsed)       HH:MM:SS (clock)     │
+│  00:00 (time since start)      HH:MM:SS (clock)     │
 │                                                     │
-│              STATUS / HINT                          │
+│              STATUS                                 │
 │              25:00                                  │
-│              Session Title                          │
+│              Session name                           │
 │              NEXT                                   │
 │              ▶ 10:00  Talk                          │
 │                                                     │
-│  [?]                                          [⋮]  │
+│  [?]                                          [⋮]   │
 └─────────────────────────────────────────────────────┘
 ```
 
-- **`?`** bottom-left — opens the manual
-- **`⋮`** bottom-right — opens the toolbar menu
-- Top-bar always visible: session elapsed time (left), wall clock with seconds (right)
+- The top left shows how long the timer has been running since it was first started.
+- The top right shows the time of day.
+- The **?** button (bottom left) opens the manual.
+- The **⋮** button (bottom right) opens the menu.
 
 ---
 
 ## Controls
 
-### Mouse / touch
+### Mouse and touch
 
-| Action | Effect |
+| Action | What it does |
 |---|---|
-| Click / tap | Start → pause → unpause |
-| Tap in overtime | Advance to next session, or reset |
-| Double-click / double-tap | Toggle kiosk mode |
-| Scroll (while running) | ±1 min |
-| Swipe up / down / left / right | +10 / −5 / +1 / −1 min |
+| Click or tap | Starts the timer. Another click pauses it, and another starts it again. |
+| Click or tap in overtime | Loads the next session in the queue. If the queue is empty, it resets the timer. |
+| Tap the queue under the timer | Opens the queue. |
+| Double-click or double-tap | Turns kiosk mode on or off. |
+| Mouse wheel (while running) | Adds or takes away 1 minute. |
+| Swipe up, down, left, right (while running) | Adds 10, takes away 5, adds 1, or takes away 1 minute. |
 
 ### Keyboard
 
-| Key | Action |
+| Key | What it does |
 |---|---|
-| `Enter` | Start / restart |
-| `Space` | Start / pause |
-| `0–9` | Type minutes, confirm with Enter |
-| `Ctrl+Enter` | Skip to next queued session immediately |
-| `↑ ↓ ← →` | +10 / −5 / +1 / −1 min |
-| `Ctrl+↑ / ↓` | Load previous / next preset |
-| `N` | Open queue modal |
-| `U` | Open target (countdown-to-clock) modal |
-| `W` | Open warning thresholds |
-| `Del` / `Backspace` | Edit session label |
-| `` ` `` | Ring bell on demand |
-| `Insert` | Cycle sound mode |
-| `Page Up` | Toggle kiosk |
-| `Page Down` | Toggle theme |
-| `End` | Reset |
-| `Home` | Toggle manual |
-| `Tab` | Open toolbar menu |
-| `Escape` | Close menu → close modal → exit mode |
+| `Enter` | Starts again from the starting length. |
+| `Space` | Starts or pauses. In overtime, loads the next session, or starts again. |
+| `0`–`9`, then `Enter` | Sets the length in minutes. For example, `2`, `5`, `Enter` sets 25 minutes. |
+| `Ctrl+Enter` | Loads the next session in the queue now. It waits until it is started. |
+| `↑` `↓` `←` `→` | Adds 10, takes away 5, adds 1, or takes away 1 minute. |
+| `Ctrl+↑`, `Ctrl+↓` | Loads the previous or next preset. |
+| `N` | Opens the queue. |
+| `U` | Opens the target time (counting down to a time of day). |
+| `W` | Opens the warning settings. |
+| `Delete` or `Backspace` | Changes the session name. `Enter` saves it. |
+| `` ` `` | Rings the bell. |
+| `Insert` | Changes the sound setting. |
+| `Page Up` | Turns kiosk mode on or off. |
+| `Page Down` | Changes between the dark and light themes. |
+| `End` | Resets the timer. |
+| `Home` | Opens or closes the manual. |
+| `Tab` | Opens the menu. |
+| `Escape` | Closes the menu or a window. If none is open, it leaves target time, clock mode or kiosk mode. |
+
+The keys only change the timer when no text box is being typed in.
 
 ---
 
-## Session queue
+## Queue
 
-Open with **N** or click any queue row below the timer.
+The queue is a list of sessions that run one after another. To open it, press `N`, choose **▶ queue** in the menu, or click the list under the timer.
 
-- **Current session** — sets the label shown below the timer
-- **Up next** — a list of named slots (label + minutes); drag to reorder
-- When a timer ends, the next slot loads automatically and starts running
-- `Ctrl+Enter` skips immediately with a ping
-- The label and queue are saved to localStorage
+- **Current session** is the name shown under the timer.
+- **Up next** is the list of sessions. Each one has a name and a length in minutes. **+ Add** adds a session, **×** removes one, and dragging a row changes the order.
+- When a session ends, the next one loads and starts by itself. A short sound plays.
+- The queue and the session name are saved in the browser. They are still there the next time /tick is opened.
 
 ---
 
-## Target mode
+## Target time
 
-Click **target** in the toolbar (or press **U**). Enter a wall-clock time (24h). The timer counts down to that moment. Defaults to the next :00 or :30.
+The **target** button (or `U`) makes the timer count down to a time of day. The time is written in the 24-hour clock, such as 14:30. The box first shows the next full or half hour. If the time has already passed today, the timer counts down to that time tomorrow.
 
 ---
 
 ## Presets
 
-Five slots in the toolbar. Click to load. Long-press (or right-click) to edit label and duration. Cycle with `Ctrl+↑/↓`.
+The menu has five preset buttons. Clicking one loads its length. Holding a preset down, or right-clicking it, opens a box to change its name and length. An empty preset shows **+**. At first, the presets are 5, 10 and 25 minutes.
+
+Holding down the **reset** button for about one second removes everything /tick has saved: presets, queue, settings and the session name.
+
+---
+
+## Warnings
+
+The timer changes colour before the end, at two points:
+
+- At the **first warning** the numbers turn orange. This is 2 minutes before the end at first.
+- At the **second warning** the numbers also flash. This is 1 minute before the end at first.
+
+The **warn** button (or `W`) changes these points. They are set in seconds. Setting one to `0` turns it off.
 
 ---
 
 ## Remote control
 
-Click **remote** in the toolbar.
+The remote control lets another device start, pause and change the timer.
 
-A 6-character code and QR code appear. Share the URL or scan the QR on any device to open the remote pad.
+1. Choose **remote** in the menu. A code of six letters and numbers appears, with a QR code.
+2. On the other device, scan the QR code or open the link.
+3. The other device now shows a **remote pad**.
 
-The remote pad mirrors the live timer state and provides: start, pause, reset, bell, skip next, ±1/5 min, and a queue editor. Buttons vibrate on mobile.
+The remote pad shows the time left and the session name. Its buttons start, pause, reset, ring the bell, load the next session, and add or take away time. It also has a box for changing the queue. A queue is written as names and minutes, such as `Talk:25,QA:10`. On phones, the buttons vibrate when pressed.
 
-**Operator message:** type in the host's message field and press Enter. The text flashes on the presenter's screen for 6 seconds.
+The remote control window on the timer has a message box. A message typed there appears on the remote pad for 6 seconds. **Clear** removes it sooner.
 
-**Transport note:** same-browser tabs connect instantly via BroadcastChannel. Cross-device requires internet access — the connection is brokered by [peerjs.com](https://peerjs.com) using WebRTC. This may not work on restrictive networks.
+Two tabs in the same browser connect straight away, without the internet. Two different devices need the internet. They are connected through a free service called [PeerJS](https://peerjs.com). This may not work on some school or office networks.
 
 ---
 
-## URL parameters
+## Links that set up the timer
 
-All parameters are optional and override saved preferences without overwriting them.
+A link to /tick can include settings after a `?`. These settings are used for that visit only. They do not replace the settings saved in the browser.
 
-| Param | Values | Effect |
+| Setting | Values | What it does |
 |---|---|---|
-| `mins` | `1–999` | Starting duration in minutes |
-| `label` | text | Session label (URL-encoded) |
-| `next` | `Title:25,10` | Queue — `Label:mins` or plain `mins`, comma-separated; a comma inside a label is written `\,` |
-| `theme` | `dark` \| `light` | Force theme |
-| `sound` | `0` \| `1` \| `2` | Off / end-bell / per-minute bell |
-| `rc` | `XXXXXX` | Open as remote pad for this room code |
+| `mins` | `1`–`999` | The starting length in minutes. |
+| `label` | text | The session name. |
+| `next` | `Break:5,QA:10` | The queue. Each session is `name:minutes`, or only minutes. Sessions are separated by commas. A comma inside a name is written `\,`. |
+| `theme` | `dark` or `light` | The theme. |
+| `sound` | `0`, `1` or `2` | The sound setting: off, bell at the end, or a bell every minute of overtime. |
+| `rc` | a six-letter code | Opens the remote pad for that code. The **remote** button makes these links. |
 
-Example:
+For example, this link opens a 25-minute keynote with a break and questions after it:
+
 ```
-tick.html?mins=25&label=Keynote&next=Break:5,QA:10&theme=dark&sound=1
+https://acari.vercel.app/?mins=25&label=Keynote&next=Break:5,QA:10&theme=dark&sound=1
 ```
+
+The **share** button copies a link like this for the timer as it is now.
 
 ---
 
 ## Kiosk mode
 
-Double-click, double-tap, or press `Page Up`. On desktop, enters real fullscreen and enables WakeLock (screen stays on). On iOS the browser bar remains — this is a platform limitation.
+Kiosk mode hides the buttons and the menu, so that only the time and the top line are shown. It is turned on with a double-click, a double-tap, `Page Up`, or the **kiosk** button. It is turned off the same way, or with `Escape`.
 
-The top-bar stays visible in kiosk with session elapsed time and the current clock. All other chrome is hidden.
-
-Exit: double-click, double-tap, or `Escape`.
+On computers, kiosk mode also fills the whole screen and stops the screen from going dark. On iPhones and iPads the browser's address bar stays, because Safari does not allow web pages to fill the screen.
 
 ---
 
 ## Sound
 
-Three modes cycled with the **sound** button or `Insert`:
+The **sound** button (or `Insert`) changes between three settings:
 
-- **Off**
-- **End bell** — one bell when the timer hits zero
-- **Per minute** — one bell each overtime minute
+- **Off**: no bell.
+- **End**: one bell when the time runs out.
+- **Min**: a bell when the time runs out, and another at each minute of overtime.
 
-Bells are synthesised from additive harmonics — no audio samples, works offline.
-
-Ring on demand with `` ` `` or long-press the sound button.
+`` ` `` rings the bell at any time, and so does holding down the **sound** button.
 
 ---
 
@@ -184,82 +201,82 @@ Ring on demand with `` ` `` or long-press the sound button.
 
 | Colour | Meaning |
 |---|---|
-| Grey | Idle |
+| Grey | Not started |
 | White | Running |
-| Orange | Warning (flashes at second threshold) |
+| Orange | Close to the end (flashing near the very end) |
 | Amber | Paused |
 | Red | Overtime |
-| Green | Reset |
-| Purple | Next session loaded / queue |
-| Blue | Target (countdown to clock time) |
-| Teal | Clock / watch mode |
+| Green | Just reset |
+| Purple | The next session is loaded |
+| Blue | Counting down to a time of day |
+| Teal | Clock mode |
 
 ---
 
-## Offline
+## Working offline
 
-The app works from `file://` with no network: save `tick.html` and open it from disk. Served from a web host it is an ordinary page, so it needs the connection to load; there is no service worker, because it would have to be a second file. It can still be added to a phone's home screen, where it opens without the browser bar.
+A downloaded copy of `tick.html` works with no internet connection. The live version needs the internet to load, like any web page. On a phone, the page can be added to the home screen, where it opens without the browser's address bar.
 
 ---
 
-## What leaves this machine
+## What leaves this computer
 
-Nothing, until you open the remote control. The timer, queue, presets and settings live in this browser's `localStorage` and are never sent anywhere.
+Nothing is sent anywhere until the remote control is opened. The timer, queue, presets and settings are kept only in this browser.
 
-Clicking **remote** makes these requests, and only these:
+When **remote** is chosen, /tick contacts these services, and no others:
 
-| Host | What for |
+| Service | Why |
 |---|---|
-| `api.qrserver.com` | Draws the QR code. The remote URL (with its room code) is sent to it. Skipped when offline; the URL is shown as text instead. |
-| `cdn.jsdelivr.net` | Downloads the PeerJS library for cross-device remote, checked against a pinned hash. |
-| `0.peerjs.com` | PeerJS's public broker, which introduces the two devices to each other. |
-| `stun.l.google.com`, `stun1.l.google.com` | STUN servers that help the two devices find a direct route. |
+| `api.qrserver.com` | Draws the QR code. The remote link, including its code, is sent to it. When there is no internet, the link is shown as text instead. |
+| `cdn.jsdelivr.net` | Sends the PeerJS program used to connect two devices. /tick checks that the program has not been changed before running it. |
+| `0.peerjs.com` | Introduces the two devices to each other. |
+| `stun.l.google.com`, `stun1.l.google.com` | Help the two devices find a direct connection. |
 
-After that, timer state and commands travel directly between the two devices over WebRTC. Two tabs in the same browser use `BroadcastChannel` and need none of the above.
+After that, the two devices talk to each other directly. Two tabs in the same browser use none of these services.
 
 ---
 
 ## Limitations
 
-- **iOS fullscreen**: not available in Safari; kiosk is CSS-only
-- **Remote cross-device**: requires internet and peerjs.com to be reachable
-- **QR code**: fetched from api.qrserver.com; falls back to plain text URL when offline
+- **iPhone and iPad**: kiosk mode cannot fill the whole screen.
+- **Remote control between devices**: needs the internet, and needs peerjs.com to be reachable.
+- **QR code**: needs the internet. Without it, the link is shown as text.
 
 ---
 
 ## Development
 
-The app is `tick.html` and needs nothing else. The tests do:
+/tick needs nothing except `tick.html`. The tests need [Node.js](https://nodejs.org) and pnpm:
 
 ```
 pnpm install
-pnpm test          # gates, then the browser suite against tick.html
-pnpm run serve     # http://localhost:4173, the way a web host serves it
+pnpm test          # checks the rules, then runs the browser tests
+pnpm run serve     # serves the app at http://localhost:4173
 ```
 
 | Version change | When |
 |---|---|
 | Patch (`0.2.1` → `0.2.2`) | A fix |
-| Minor (`0.2.1` → `0.3.0`) | A feature |
-| Leading zero | Moves only by a deliberate decision to call it finished |
+| Minor (`0.2.1` → `0.3.0`) | A new feature |
+| The first number | Changes only when the project is decided to be finished |
 
-The version lives in one place, `<meta name="version">` in `tick.html`; the manual shows it and [CHANGELOG.md](./CHANGELOG.md) heads with it. How to work on this repository is in [AGENTS.md](./AGENTS.md).
+The version number is written in one place: `<meta name="version">` in `tick.html`. The manual shows it, and [CHANGELOG.md](./CHANGELOG.md) starts with it. [AGENTS.md](./AGENTS.md) explains how to work on the project.
 
-| File | Purpose |
+| File | What it is |
 |---|---|
-| `tick.html` | The entire app |
+| `tick.html` | The whole program |
 | `README.md` | This file |
 | `CHANGELOG.md` | What each version added |
-| `AGENTS.md` | How to work on this repository, for people and agents |
+| `AGENTS.md` | How to work on the project, for people and AI agents |
 | `tests/` | Browser tests (Playwright) |
-| `scripts/` | The gates, a test server, the feedback stub |
-| `vercel.json` | How the live site is built, redirected and secured |
+| `scripts/` | The rule checks, a test server, and a feedback helper |
+| `vercel.json` | How the live version is built and protected |
 
 ---
 
 ## Deployment
 
-[acari.vercel.app](https://acari.vercel.app) is built by Vercel from `vercel.json`: no install, and the build copies `tick.html` alone into the site, so the tests and docs aren't published. The bare domain redirects to `/tick.html`, carrying any query string with it, so `https://acari.vercel.app/?mins=25` opens a 25-minute timer. Every response carries the security headers in `vercel.json`, including a Content-Security-Policy that allows only the remote control's hosts listed above. Pushes that don't touch `tick.html` or `vercel.json` don't redeploy.
+The live version at [acari.vercel.app](https://acari.vercel.app) is built by Vercel, using `vercel.json`. Only `tick.html` is published; the tests and documents are not. Visiting the main address opens `/tick.html`, and any settings in the link are kept, so `https://acari.vercel.app/?mins=25` opens a 25-minute timer. Every page is sent with the security headers in `vercel.json`. One of them, the Content-Security-Policy, lets the page reach only the services listed in [What leaves this computer](#what-leaves-this-computer). A change that does not touch `tick.html` or `vercel.json` does not publish a new version.
 
 ---
 
@@ -267,4 +284,4 @@ The version lives in one place, `<meta name="version">` in `tick.html`; the manu
 
 Dialectic Acheiropoieton of Heracles Papatheodorou and Claude.
 
-MIT licence — see [LICENSE](./LICENSE).
+The MIT licence applies. See [LICENSE](./LICENSE).
