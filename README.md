@@ -4,6 +4,7 @@
 
 - Live version: [acari.vercel.app](https://acari.vercel.app)
 - Source code: [github.com/Arty2/tick](https://github.com/Arty2/tick)
+- Website: [heracl.es/tick](https://heracl.es/tick)
 
 ![/tick showing 09:59 left in a keynote, with a break and a Q&A session waiting next](./screenshots/ticker-screenshot_01.png)
 
@@ -43,7 +44,7 @@ The file can also be put on any web server. It needs no other files.
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│  00:00 (time since start)      HH:MM:SS (clock)     │
+│  00:00 (since start)   v0.3.1   HH:MM:SS (clock)    │
 │                                                     │
 │              STATUS                                 │
 │              25:00                                  │
@@ -56,6 +57,7 @@ The file can also be put on any web server. It needs no other files.
 ```
 
 - The top left shows how long the timer has been running since it was first started.
+- The top middle shows the version number. It is hidden in kiosk mode.
 - The top right shows the time of day.
 - The **?** button (bottom left) opens the manual.
 - The **⋮** button (bottom right) opens the menu.
@@ -256,8 +258,8 @@ pnpm run serve     # serves the app at http://localhost:4173
 
 | Version change | When |
 |---|---|
-| Patch (`0.3.0` → `0.3.1`) | A fix |
-| Minor (`0.3.0` → `0.4.0`) | A new feature |
+| Patch (`0.3.1` → `0.3.2`) | A fix |
+| Minor (`0.3.1` → `0.4.0`) | A new feature |
 | The first number | Changes only when the project is decided to be finished |
 
 The version number is written in one place: `<meta name="version">` in `tick.html`. The manual shows it, and [CHANGELOG.md](./CHANGELOG.md) starts with it. [AGENTS.md](./AGENTS.md) explains how to work on the project.
@@ -276,7 +278,7 @@ The version number is written in one place: `<meta name="version">` in `tick.htm
 
 ## Deployment
 
-The live version at [acari.vercel.app](https://acari.vercel.app) is built by Vercel, using `vercel.json`. Only `tick.html` is published; the tests and documents are not. Visiting the main address opens `/tick.html`, and any settings in the link are kept, so `https://acari.vercel.app/?mins=25` opens a 25-minute timer. Every page is sent with the security headers in `vercel.json`. One of them, the Content-Security-Policy, lets the page reach only the services listed in [What leaves this computer](#what-leaves-this-computer). A change that does not touch `tick.html` or `vercel.json` does not publish a new version.
+The live version at [acari.vercel.app](https://acari.vercel.app) is built by Vercel, using `vercel.json`. Only `tick.html` is published; the tests and documents are not. Visiting the main address opens `/tick.html`, and any settings in the link are kept, so `https://acari.vercel.app/?mins=25` opens a 25-minute timer. Every page is sent with the security headers in `vercel.json`. One of them, the Content-Security-Policy, lets the page reach only the services listed in [What leaves this computer](#what-leaves-this-computer).
 
 ---
 

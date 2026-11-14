@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="version" content="0.3.0">
+<meta name="version" content="0.3.1">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0a0a0a">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -115,6 +115,9 @@ html,body{
   display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;pointer-events:none;
 }
 #session-timer{font-size:12px;letter-spacing:0.12em;color:var(--dim);text-transform:uppercase}
+/* Centred on the screen, not between its neighbours, whose widths differ. */
+#app-version{position:absolute;left:50%;transform:translateX(-50%);font-size:12px;letter-spacing:0.12em;color:var(--dim)}
+body.kiosk #app-version{display:none}
 
 #status-hint{
   position:fixed;top:3.2rem;left:1.5rem;font-size:clamp(22px,3.5vw,36px);font-weight:700;
@@ -337,6 +340,8 @@ body.light #manual-h1-fixed{background:rgba(150,145,138,0.98)}
 #manual-inner ul{padding-left:1.35rem;margin-bottom:0.5rem}
 #manual-inner li{margin-bottom:0.3rem}
 #manual-inner p{margin-bottom:0.5rem;color:var(--fg);font-size:0.9em}
+#manual-inner a{color:inherit}
+#manual-inner .manual-credit{color:var(--dim)}
 code{background:rgba(128,128,128,0.16);padding:0.08em 0.33em;font-family:var(--font);font-size:0.92em}
 
 /* ── Remote control ── */
@@ -427,6 +432,7 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
 <div id="swipe-hint"></div>
 <div id="top-bar">
   <div id="session-timer">00:00</div>
+  <div id="app-version"></div>
   <div id="wall-clock"></div>
 </div>
 <div id="status-hint"></div>
@@ -539,6 +545,8 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
   <button id="manual-close">close</button>
   <div id="manual-inner">
     <p>/tick is a countdown timer. People use it to keep time during talks, live streams, meetings and stage events. It is one file and works without the internet.</p>
+    <p class="manual-links">Live: <a href="https://acari.vercel.app">acari.vercel.app</a> &#xB7; Source: <a href="https://github.com/Arty2/tick">github.com/Arty2/tick</a> &#xB7; Website: <a href="https://heracl.es/tick">heracl.es/tick</a></p>
+    <p class="manual-credit">Dialectic Acheiropoieton of Heracles Papatheodorou and&nbsp;Claude</p>
     <h2>Mouse and touch</h2>
     <ul>
       <li>Click or tap to start. Click again to pause, and again to start.</li>
@@ -660,7 +668,6 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
       </tbody>
     </table>
     <p style="margin-top:0.6rem">Example:<br><code>?mins=25&amp;label=Keynote&amp;next=Break:5,QA:10&amp;theme=dark&amp;sound=1</code></p>
-    <p style="margin-top:1.5rem;color:var(--dim)">The live version is at <a href="https://acari.vercel.app" style="color:inherit">acari.vercel.app</a>. Dialectic Acheiropoieton of Heracles Papatheodorou and&nbsp;Claude.</p>
   </div>
 </div>
 
@@ -2120,7 +2127,9 @@ if (IS_REMOTE) {
 // ── Init ──────────────────────────────────────────────
 // The <meta name="version"> is the only copy of the version; CHANGELOG.md's
 // top heading is checked against it by scripts/gates.sh.
-$('manual-version').textContent = 'v' + (document.querySelector('meta[name="version"]')?.content ?? '');
+const APP_VERSION = 'v' + (document.querySelector('meta[name="version"]')?.content ?? '');
+$('manual-version').textContent = APP_VERSION;
+$('app-version').textContent = APP_VERSION;
 sessionQueue.addEventListener('click', e => { e.stopPropagation(); openNextModal(); });
 renderPresets(); renderSessionQueue(); renderUntilBtn(); applyState('idle'); showToolbar(); renderDigits(remaining);
 }

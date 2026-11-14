@@ -4,7 +4,6 @@
 	"installCommand": "true",
 	"buildCommand": "mkdir -p public && cp tick.html public/",
 	"outputDirectory": "public",
-	"ignoreCommand": "git diff --quiet ${VERCEL_GIT_PREVIOUS_SHA:-HEAD^} HEAD -- tick.html vercel.json",
 	"redirects": [{ "source": "/", "destination": "/tick.html", "permanent": false }],
 	"headers": [
 		{

@@ -47,3 +47,26 @@ test("the manual's title starts on the text's left edge", async ({ page }) => {
 	});
 	expect(Math.abs(title - text)).toBeLessThan(1);
 });
+
+test('the version shows at the top middle of the screen, and not in kiosk mode', async ({ page }) => {
+	const { readFileSync } = await import('node:fs');
+	const top = readFileSync('CHANGELOG.md', 'utf8').match(/^## (\d+\.\d+\.\d+) /m)?.[1];
+	await open(page);
+	const version = page.locator('#app-version');
+	await expect(version).toHaveText('v' + top);
+	const box = (await version.boundingBox())!;
+	expect(Math.abs(box.x + box.width / 2 - 640)).toBeLessThan(1); // 1280 / 2
+	expect(box.y).toBeLessThan(48);
+	await page.keyboard.press('PageUp');
+	await expect(version).toBeHidden();
+});
+
+test('the manual opens with the links and the credit', async ({ page }) => {
+	await open(page);
+	await page.keyboard.press('Home');
+	const links = page.locator('#manual .manual-links a');
+	await expect(links).toHaveText(['acari.vercel.app', 'github.com/Arty2/tick', 'heracl.es/tick']);
+	await expect(links.nth(1)).toHaveAttribute('href', 'https://github.com/Arty2/tick');
+	await expect(page.locator('#manual .manual-credit')).toHaveText('Dialectic Acheiropoieton of Heracles Papatheodorou and Claude');
+	await expect(page.locator('#manual .manual-credit')).toBeInViewport();
+});
