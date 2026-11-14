@@ -153,14 +153,17 @@ test('the first remote to connect turns the timer into a kiosk, which stays afte
 	await expect(page.locator('body')).toHaveClass(/kiosk/);
 });
 
-test('the pad says Connected with a check mark, and shows no state name', async ({ page, context }) => {
+test('the pad says Connected, shows no state name, and has a red reset', async ({ page, context }) => {
 	const code = await hostWithRemote(page);
 	const pad = await context.newPage();
 	await pad.goto('/tick.html?rc=' + code);
 	await pad.clock.runFor(200);
 	await pad.locator('#rc-toggle').click();
 	await pad.clock.runFor(600);
-	await expect(pad.locator('#remote-status-bar')).toHaveText('\u2705 Connected');
+	await expect(pad.locator('#remote-status-bar')).toHaveText('Connected');
+	// Reset is red (the overtime colour), not the green it used to share with the reset flash.
+	const [reset, red] = await pad.evaluate(() => [getComputedStyle(document.querySelector('[data-rc="reset"]')!).color, getComputedStyle(document.body).getPropertyValue('--c-ot')]);
+	expect(reset).toBe(await pad.evaluate((c) => { const d = document.createElement('div'); d.style.color = c; document.body.append(d); const v = getComputedStyle(d).color; d.remove(); return v; }, red.trim()));
 	await expect(pad.locator('#remote-label-display')).toHaveText('');
 });
 

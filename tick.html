@@ -458,7 +458,9 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
 .rc-btn.full{grid-column:span 4}
 .rc-btn.hi-start{color:var(--c-run);border-color:var(--c-run)}
 .rc-btn.hi-pause{color:var(--c-pause);border-color:var(--c-pause)}
-.rc-btn.hi-reset{color:var(--c-reset);border-color:var(--c-reset)}
+/* Red, not the green of the kiosk's reset flash: on the pad it's the button
+   that throws the current count away. */
+.rc-btn.hi-reset{color:var(--c-ot);border-color:var(--c-ot)}
 .rc-btn.hi-ot   {color:var(--c-ot);border-color:var(--c-ot)}
 .rc-btn.hi-warn {color:var(--c-warn);border-color:var(--c-warn)}
 </style>
@@ -2261,12 +2263,12 @@ if (IS_REMOTE) {
       rcTransport?.send({type:'restore', snap});
     }
     lastSnap = msg; lastSnapAt = lastHeardAt = Date.now();
-    rcHeard = true; rcSetStatus('conn', '\u2705 Connected'); rcApplyState(msg);
+    rcHeard = true; rcSetStatus('conn', 'Connected'); rcApplyState(msg);
   }
   function rcOnMessage(msg) {
     if (!msg || typeof msg !== 'object') return;
     if (msg.type === 'state') rcOnState(msg);
-    if (msg.type === '_peerOpen') { lastHeardAt = Date.now(); rcHeard = true; rcSetStatus('conn', '\u2705 Connected'); }
+    if (msg.type === '_peerOpen') { lastHeardAt = Date.now(); rcHeard = true; rcSetStatus('conn', 'Connected'); }
     if (msg.type === 'hostHello') rcTransport?.send({type:'hello'});
   }
   setInterval(() => {
