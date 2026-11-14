@@ -239,9 +239,9 @@ pnpm run serve     # http://localhost:4173, the way a web host serves it
 
 | Version change | When |
 |---|---|
-| Patch (`2.0.0` → `2.0.1`) | A fix |
-| Minor (`2.0.0` → `2.1.0`) | A feature |
-| Major | A redesign |
+| Patch (`0.2.1` → `0.2.2`) | A fix |
+| Minor (`0.2.1` → `0.3.0`) | A feature |
+| Leading zero | Moves only by a deliberate decision to call it finished |
 
 The version lives in one place, `<meta name="version">` in `tick.html`; the manual shows it and [CHANGELOG.md](./CHANGELOG.md) heads with it. How to work on this repository is in [AGENTS.md](./AGENTS.md).
 
