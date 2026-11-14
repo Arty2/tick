@@ -28,11 +28,11 @@ test('a remote pad in another tab starts, pauses and adjusts the host', async ({
 	await pad.locator('[data-rc="adj:10"]').click();
 	await page.clock.runFor(100);
 	await expect(digits(page)).toHaveText('30:00');
-	await expect(pad.locator('#rc-toggle')).toHaveText('\u23F8 Pause'); // the start button became pause
+	await expect(pad.locator('#rc-toggle')).toHaveText('Pause'); // the start button became pause
 	await pad.locator('#rc-toggle').click();
 	await expect(page.locator('#label-text')).toHaveText('PAUSED');
 	await page.clock.runFor(600); // the kiosk's next update
-	await expect(pad.locator('#rc-toggle')).toHaveText('\u25B6 Start');
+	await expect(pad.locator('#rc-toggle')).toHaveText('Start');
 });
 
 test('a command delivered twice (WebRTC and BroadcastChannel) runs once', async ({ page, context }) => {
@@ -220,9 +220,16 @@ for (const width of [320, 390]) {
 			await page.locator('#rc-new-kiosk').click(); // its window's buttons too
 			const bad = await page.locator('#remote-pad .rc-btn, #remote-pad .modal-btn').evaluateAll((bs) =>
 				bs.filter((b) => {
-					const r = document.createRange();
-					r.selectNodeContents(b);
-					const lines = new Set([...r.getClientRects()].map((x) => Math.round(x.top))).size;
+					// Lines of text only: a drawn icon is a box of its own, not a line.
+					const tops: number[] = [];
+					const walk = document.createTreeWalker(b, NodeFilter.SHOW_TEXT);
+					for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+						if (!n.textContent!.trim()) continue;
+						const r = document.createRange();
+						r.selectNodeContents(n);
+						for (const x of r.getClientRects()) tops.push(Math.round(x.bottom));
+					}
+					const lines = new Set(tops).size;
 					return lines > 1 || b.scrollWidth > b.clientWidth + 1;
 				}).map((b) => b.textContent)
 			);
@@ -495,7 +502,7 @@ test('with the kiosk lost, the pad keeps counting, and its buttons work on its o
 	await expect(page.locator('#remote-state-display')).toHaveClass(/local/);
 	await kiosk.clear();
 	await page.locator('#rc-toggle').click(); // pause, here
-	await expect(page.locator('#rc-toggle')).toHaveText('▶ Start');
+	await expect(page.locator('#rc-toggle')).toHaveText('Start');
 	await page.clock.runFor(3_000);
 	await expect(page.locator('#remote-state-display')).toHaveText('09:52');
 	await page.locator('#rc-toggle').click(); // and on again
@@ -596,4 +603,72 @@ test('in the light theme Black is a white-out', async ({ page, context }) => {
 	const bg = await page.locator('#blackout').evaluate((el) => getComputedStyle(el).backgroundColor);
 	const [r, g, b] = bg.match(/\d+/g)!.map(Number);
 	expect(Math.min(r, g, b)).toBeGreaterThan(200); // light
+});
+
+test('the cover lifts with a double click on the kiosk; single clicks reach nothing under it', async ({ page, context }) => {
+	const code = await hostWithRemote(page, '?mins=20');
+	const pad = await context.newPage();
+	await pad.goto('/tick.html?rc=' + code);
+	await pad.clock.runFor(200);
+	await pad.locator('#rc-black').click();
+	await expect(page.locator('#blackout')).toBeVisible();
+	await page.mouse.click(640, 360); // a single click: no start, no pause
+	await page.clock.runFor(500);
+	await expect(page.locator('#blackout')).toBeVisible();
+	await expect(digits(page)).not.toHaveClass(/s-run/);
+	await page.mouse.dblclick(640, 360);
+	await expect(page.locator('#blackout')).toBeHidden();
+	await expect(page.locator('body')).toHaveClass(/kiosk/); // only the cover lifted
+	await page.clock.runFor(2_500); // the next heartbeat tells the pad
+	await expect(pad.locator('#rc-black')).not.toHaveClass(/\bon\b/);
+});
+
+test.describe('on a touch screen', () => {
+	test.use({ hasTouch: true });
+	test('the cover lifts with a double tap on the kiosk; a single tap reaches nothing under it', async ({ page, context }) => {
+		const code = await hostWithRemote(page, '?mins=20');
+		const pad = await context.newPage();
+		await pad.goto('/tick.html?rc=' + code);
+		await pad.clock.runFor(200);
+		await pad.locator('#rc-black').click();
+		await expect(page.locator('#blackout')).toBeVisible();
+		await page.touchscreen.tap(640, 360);
+		await page.clock.runFor(500);
+		await expect(page.locator('#blackout')).toBeVisible();
+		await expect(digits(page)).not.toHaveClass(/s-run/);
+		await page.touchscreen.tap(640, 360);
+		await page.clock.runFor(100);
+		await page.touchscreen.tap(640, 360);
+		await expect(page.locator('#blackout')).toBeHidden();
+		await expect(page.locator('body')).toHaveClass(/kiosk/);
+	});
+});
+
+test('reset, start and pause icons are as tall as a capital in their labels, on the same baseline', async ({ page, context }) => {
+	const code = await hostWithRemote(page, '?mins=20');
+	const pad = await context.newPage();
+	await pad.setViewportSize({ width: 390, height: 844 });
+	await pad.goto('/tick.html?rc=' + code);
+	await pad.clock.runFor(200);
+	const measure = (sel: string) => pad.locator(sel).evaluate((btn) => {
+		const ico = btn.querySelector('.ico')!.getBoundingClientRect();
+		// A capital's height and baseline in this button's font, measured, not assumed.
+		const probe = document.createElement('span');
+		probe.style.cssText = 'display:inline-block;width:0;height:1cap;vertical-align:baseline';
+		btn.append(probe);
+		const cap = probe.getBoundingClientRect();
+		probe.remove();
+		return { h: ico.height, bottom: ico.bottom, capH: cap.height, capBottom: cap.bottom };
+	});
+	const reset = await measure('[data-rc="reset"]');
+	const start = await measure('#rc-toggle');
+	await pad.locator('#rc-toggle').click();
+	await pad.clock.runFor(600);
+	await expect(pad.locator('#rc-toggle')).toHaveText('Pause');
+	const pause = await measure('#rc-toggle');
+	for (const m of [reset, start, pause]) {
+		expect(Math.abs(m.h - m.capH)).toBeLessThan(0.5);
+		expect(Math.abs(m.bottom - m.capBottom)).toBeLessThan(0.5);
+	}
+	expect(reset.capH).toBeGreaterThan(14); // a real size, not zero
 });

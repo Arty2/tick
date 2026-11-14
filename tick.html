@@ -384,6 +384,14 @@ code{background:rgba(128,128,128,0.16);padding:0.08em 0.33em;font-family:var(--f
 #blackout{position:fixed;inset:0;z-index:600;background:var(--bg);cursor:none}
 #blackout[hidden]{display:none}
 .rc-btn.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+/* Stop, play and pause drawn in CSS rather than taken from the font: the
+   font's symbols came in three different sizes and sat at different heights.
+   Each is exactly as tall as a capital in its label (1cap) and sits on the
+   label's baseline (an empty inline-block's bottom edge is its baseline). */
+.ico{display:inline-block;height:0.7em;height:1cap;background:currentColor;vertical-align:baseline;margin-right:0.5em}
+.ico-stop{aspect-ratio:1}
+.ico-play{aspect-ratio:0.85;clip-path:polygon(0 0,100% 50%,0 100%)}
+.ico-pause{aspect-ratio:0.8;background:linear-gradient(to right,currentColor 0 36%,transparent 36% 64%,currentColor 64%)}
 #op-msg{
   display:none;background:var(--c-warn);color:#111;
   font-size:clamp(22px,min(6.5vw,9vh),72px);font-weight:700;line-height:1.15;
@@ -713,7 +721,7 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
     <ul>
       <li>The <strong>remote</strong> button shows a six-letter code and a QR code. Open the link or scan the code on another device to get a remote pad. Or, on that device, open /tick, choose <strong>remote</strong>, then <em>Control another timer instead</em>, type the code and choose <strong>Join</strong>. The remote pad's top bar shows the code; typing another one there switches to that timer. This screen then changes to kiosk mode, and stays in it if the remote disconnects.</li>
       <li>The remote pad shows the time left and the queue. Its buttons reset, start or pause, ring the bell, load the next or the previous session, and change the time. On phones they vibrate.</li>
-      <li><strong>Black</strong> covers this screen in the background colour while the timer runs on underneath; changes from the remote pad stay hidden until it is pressed again. <code>Esc</code> here also lifts it.</li>
+      <li><strong>Black</strong> covers this screen in the background colour while the timer runs on underneath; changes from the remote pad stay hidden until it is pressed again. <code>Esc</code>, a double tap or a double-click here also lifts it.</li>
       <li>Its queue box holds the current queue. Change it and press <strong>Set</strong>; an empty box clears the queue.</li>
       <li>A message typed on the remote pad appears on this screen for 6 seconds, on an orange band above the time. The time gets smaller while it shows. <strong>Clear</strong> removes it sooner.</li>
       <li>If this screen stops answering, the remote pad says <strong>Kiosk lost</strong>. The small screen button (&#x1F5A5;&#xFE0F;) next to its status shows a link and QR code for a new screen, which continues the timer.</li>
@@ -826,9 +834,9 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
   <div id="remote-state-display">&#x2014;</div>
   <div id="rc-queue-display"></div>
   <div class="rc-grid">
-    <button class="rc-btn hi-reset wide" data-rc="reset">&#x23F9; Reset</button>
+    <button class="rc-btn hi-reset wide" data-rc="reset"><span class="ico ico-stop" aria-hidden="true"></span>Reset</button>
     <!-- One button for start and pause: it follows the kiosk's state. -->
-    <button class="rc-btn hi-start wide" data-rc="toggle" id="rc-toggle">&#x25B6; Start</button>
+    <button class="rc-btn hi-start wide" data-rc="toggle" id="rc-toggle"><span class="ico ico-play" aria-hidden="true"></span><span class="lbl">Start</span></button>
     <button class="rc-btn" data-rc="adj:-1">&#x2212;1m</button>
     <button class="rc-btn" data-rc="adj:1">+1m</button>
     <button class="rc-btn" data-rc="adj:-5">&#x2212;5m</button>
@@ -947,6 +955,9 @@ let kioskMode = false, kioskByRemote = false, blackout = false;
 // Blackout covers the screen (in the theme's background colour) without
 // touching the timer, so changes made from the remote don't show until it lifts.
 function setBlackout(on) { blackout = !!on; $('blackout').hidden = !blackout; }
+// Lifted on the kiosk itself (Esc, double tap, double click): tell the remote.
+function liftBlackout() { setBlackout(false); remoteTransport?.send(stateSnap()); }
+let lastCoverTap = 0;
 const DEFAULT_PRESETS = [
   {label:'5 min',mins:5},{label:'10 min',mins:10},{label:'25 min',mins:25},
   {label:'',mins:0},{label:'',mins:0},
@@ -1742,7 +1753,7 @@ const showHint  = msg => { statusHint.textContent=msg; statusHint.classList.add(
 const showSwipe = icon => { swipeEl.textContent=icon; swipeEl.classList.add('show'); clearTimeout(swipeTid); swipeTid=setTimeout(()=>swipeEl.classList.remove('show'),700); };
 
 // ── Touch ─────────────────────────────────────────────
-const isUIChrome = el => !!(el.closest('#remote-pad')||el.closest('#session-queue')||el.closest('#toolbar')||el.closest('#top-bar')||el.closest('#manual')||el.closest('.modal-overlay')||el.closest('#btn-menu')||el.closest('#btn-tick')||el.closest('#menu-backdrop'));
+const isUIChrome = el => !!(el.closest('#blackout')||el.closest('#remote-pad')||el.closest('#session-queue')||el.closest('#toolbar')||el.closest('#top-bar')||el.closest('#manual')||el.closest('.modal-overlay')||el.closest('#btn-menu')||el.closest('#btn-tick')||el.closest('#menu-backdrop'));
 
 document.addEventListener('touchstart', e => {
   if (IS_REMOTE) return;
@@ -1761,6 +1772,14 @@ document.addEventListener('touchend', e => {
   // Reset isTouching after the synthetic mouse-click window (~300 ms) so real
   // mouse users on hybrid devices aren't locked out permanently.
   setTimeout(() => { isTouching = false; }, 400);
+  // On the cover, taps reach nothing underneath; a double tap lifts it, for a
+  // kiosk with no keyboard whose remote is gone.
+  if (e.target.closest('#blackout')) {
+    e.preventDefault();
+    const now = Date.now();
+    if (now - lastCoverTap < 380) { lastCoverTap = 0; liftBlackout(); } else lastCoverTap = now;
+    return;
+  }
   if (isUIChrome(e.target)) return;
   e.preventDefault();
   const x=e.changedTouches[0].clientX, y=e.changedTouches[0].clientY;
@@ -1817,7 +1836,7 @@ document.addEventListener('keydown', e => {
     case ' ':         e.preventDefault(); clearKeyBuf(); remaining<0 ? (nextQueue.length ? loadNextTimer() : fullReset(DEFAULT_MINS), startTimer()) : running ? pauseTimer() : startTimer(); break;
     case 'Escape':    clearKeyBuf();
       // A blackout lifts first, so a kiosk can't be left covered if its remote is gone.
-      if (blackout) { setBlackout(false); remoteTransport?.send(stateSnap()); break; }
+      if (blackout) { liftBlackout(); break; }
       if (toolbar.classList.contains('visible')) { hideToolbar(); break; }
       untilTarget ? (exitUntilMode(),running=false,applyState('idle')) : watchMode ? exitWatchMode() : kioskMode ? exitKiosk() : fsEl()&&fsLeave(); break;
     case 'ArrowUp':   e.preventDefault(); adjustMinutes(10);  break;
@@ -2309,7 +2328,8 @@ if (IS_REMOTE) {
     $('rc-next').disabled = !(snap.nextQueue?.length);
     // Start and pause share one button, which says what a press will do.
     const tg = $('rc-toggle');
-    tg.textContent = snap.running ? '\u23F8 Pause' : '\u25B6 Start';
+    tg.querySelector('.ico').className = 'ico ' + (snap.running ? 'ico-pause' : 'ico-play');
+    tg.querySelector('.lbl').textContent = snap.running ? 'Pause' : 'Start';
     tg.classList.toggle('hi-pause', !!snap.running);
     tg.classList.toggle('hi-start', !snap.running);
   }
@@ -2519,6 +2539,8 @@ if (IS_REMOTE) {
 // No service worker: one registered from a blob: URL (the only way to keep
 // it inside this file) is refused by browsers, so offline means saving the
 // page. A real one would need a second file next to tick.html.
+
+$('blackout').addEventListener('dblclick', liftBlackout);
 
 // A replacement kiosk starts listening on its code straight away.
 if (HOST_PARAM && !IS_REMOTE) { rcHostCode = HOST_PARAM; startHostTransports(); }
