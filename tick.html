@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="version" content="2.0.0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0a0a0a">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -522,7 +523,7 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
 </div>
 
 <div id="manual">
-  <div id="manual-h1-fixed"><h1>/tick manual</h1></div>
+  <div id="manual-h1-fixed"><h1>/tick manual <span id="manual-version"></span></h1></div>
   <button id="manual-close">close</button>
   <div id="manual-inner">
     <p>/tick is a shortcut-first countdown timer for streams, webinars, or any reverse time-keeping needs.</p>
@@ -1000,7 +1001,7 @@ let renderDigits = rem => {
   const sign = rem < 0 ? '+' : '', abs = Math.abs(rem);
   const h = Math.floor(abs/3600), m = Math.floor((abs%3600)/60), s = abs%60;
   if (h > 0) {
-    display.innerHTML =
+    display.innerHTML = // safe-markup: sign, h, m and s are numbers
       `<span class="disp-h">${sign}${h}<span class="disp-h-suf">H</span></span>` +
       `<span class="disp-ms">${withColons(pad(m)+':'+pad(s))}</span>`;
   } else {
@@ -2034,6 +2035,9 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
 }
 
 // ── Init ──────────────────────────────────────────────
+// The <meta name="version"> is the only copy of the version; CHANGELOG.md's
+// top heading is checked against it by scripts/gates.sh.
+$('manual-version').textContent = 'v' + (document.querySelector('meta[name="version"]')?.content ?? '');
 sessionQueue.addEventListener('click', e => { if (!isUIChrome(e.target)) openNextModal(); });
 renderPresets(); renderSessionQueue(); renderUntilBtn(); applyState('idle'); showToolbar(); renderDigits(remaining);
 }

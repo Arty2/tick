@@ -199,6 +199,23 @@ The app works from `file://` with no network. On HTTPS hosts, an inline service 
 
 ---
 
+## What leaves this machine
+
+Nothing, until you open the remote control. The timer, queue, presets and settings live in this browser's `localStorage` and are never sent anywhere.
+
+Clicking **remote** makes these requests, and only these:
+
+| Host | What for |
+|---|---|
+| `api.qrserver.com` | Draws the QR code. The remote URL (with its room code) is sent to it. Skipped when offline; the URL is shown as text instead. |
+| `cdnjs.cloudflare.com` | Downloads the PeerJS library for cross-device remote. |
+| `0.peerjs.com` | PeerJS's public broker, which introduces the two devices to each other. |
+| `stun.l.google.com`, `stun1.l.google.com` | STUN servers that help the two devices find a direct route. |
+
+After that, timer state and commands travel directly between the two devices over WebRTC. Two tabs in the same browser use `BroadcastChannel` and need none of the above.
+
+---
+
 ## Limitations
 
 - **iOS fullscreen**: not available in Safari; kiosk is CSS-only
@@ -207,10 +224,35 @@ The app works from `file://` with no network. On HTTPS hosts, an inline service 
 
 ---
 
-## Files
+## Development
+
+The app is `tick.html` and needs nothing else. The tests do:
+
+```
+pnpm install
+pnpm test          # gates, then the browser suite against tick.html
+pnpm run serve     # http://localhost:4173, the way a web host serves it
+```
+
+| Version change | When |
+|---|---|
+| Patch (`2.0.0` → `2.0.1`) | A fix |
+| Minor (`2.0.0` → `2.1.0`) | A feature |
+| Major | A redesign |
+
+The version lives in one place, `<meta name="version">` in `tick.html`; the manual shows it and [CHANGELOG.md](./CHANGELOG.md) heads with it. How to work on this repository is in [AGENTS.md](./AGENTS.md).
 
 | File | Purpose |
 |---|---|
 | `tick.html` | The entire app |
 | `README.md` | This file |
-| `PLAN.md` | Architecture, feature backlog, protocol reference |
+| `CHANGELOG.md` | What each version added |
+| `AGENTS.md` | How to work on this repository, for people and agents |
+| `tests/` | Browser tests (Playwright) |
+| `scripts/` | The gates, a test server, the feedback stub |
+
+---
+
+## Credits and licence
+
+By Heracles Papatheodorou. MIT licence — see [LICENSE](./LICENSE).
