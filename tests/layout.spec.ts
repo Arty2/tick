@@ -14,7 +14,7 @@ const screens = [
 for (const [width, height] of screens) {
 	test(`the counter fits on one line on a ${width}×${height} screen`, async ({ page }) => {
 		await page.setViewportSize({ width, height });
-		for (const query of ['?mins=25&label=Keynote&next=Break:5,QA:10', '?mins=999']) {
+		for (const query of ['?mins=25&label=Keynote&next=Break:5|QA:10', '?mins=999']) {
 			await open(page, query);
 			const box = await page.evaluate(() => {
 				const d = document.getElementById('timer-display')!;
@@ -146,7 +146,7 @@ async function sendOpMsg(page: import('@playwright/test').Page, text: string) {
 for (const [width, height] of [[1280, 720], [390, 844], [844, 390], [320, 568]] as const) {
 	test(`an operator message is solid and fits beside the shrunken time on ${width}×${height}`, async ({ page }) => {
 		await page.setViewportSize({ width, height });
-		await open(page, '?mins=25&label=Keynote&next=Break:5,QA:10');
+		await open(page, '?mins=25&label=Keynote&next=Break:5|QA:10');
 		await page.keyboard.press('Space');
 		const before = await page.locator('#timer-display').evaluate((d) => parseFloat(getComputedStyle(d).fontSize));
 		await sendOpMsg(page, 'Please wrap up in two minutes'); // near the 40-character limit

@@ -52,7 +52,7 @@ test('warning colours at the two thresholds, then overtime counts up in red', as
 });
 
 test('the queue loads and starts the next slot when time runs out', async ({ page }) => {
-	await open(page, '?mins=1&label=Talk&next=Break:2,QA:5');
+	await open(page, '?mins=1&label=Talk&next=Break:2|QA:5');
 	await expect(page.locator('#session-label')).toHaveText('Talk');
 	await expect(page.locator('.sq-queued')).toHaveText(['▶ 02:00 Break', '▶ 05:00 QA']);
 	await page.keyboard.press('Space');
@@ -144,7 +144,7 @@ test('the mouse wheel scrolls the manual instead of changing the timer', async (
 });
 
 test('out-of-range minutes in the URL are ignored', async ({ page }) => {
-	await open(page, '?mins=Infinity&next=Talk:0.01,QA:1e9,Break:5.5');
+	await open(page, '?mins=Infinity&next=Talk:0.01|QA:1e9|Break:5.5');
 	await expect(digits(page)).toHaveText('10:00');
 	await expect(page.locator('.sq-queued')).toHaveText(['▶ 05:00 Break']);
 });

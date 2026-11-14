@@ -914,10 +914,6 @@ const URL_LABEL    = usp.get('label') ?? '';
 // the last colon, so names may hold colons and commas; a "|" in a name is
 // written "\|". This is the one reader and the one writer: URLs, share links,
 // the queue window and the remote's queue box all go through them.
-// Older links separated sessions with commas ("Break:5,QA:10"). Those still
-// read, but only when every comma-separated part is shaped like a session
-// (ends in minutes or a time; an out-of-range value is then dropped as
-// usual), so "Q&A, panel:10" stays one session with a comma in its name.
 const p2 = n => String(n).padStart(2, '0'); // (pad() isn't defined yet here)
 const AT_RE = /@\s*(\d{1,2}):(\d{2})\s*$/;
 const parseEntry = raw => {
@@ -931,15 +927,8 @@ const parseEntry = raw => {
   if (col > 0) { const mins = toMins(s.slice(col+1)); return mins ? {label: s.slice(0, col).trim().slice(0, 32), mins} : null; }
   const mins = toMins(s); return mins ? {label: '', mins} : null;
 };
-const parseNextStr = str => {
-  const unescape = (x, c) => x.replaceAll('\\' + c, c);
-  if (!/(?<!\\)\|/.test(str) && /(?<!\\),/.test(str)) {
-    const parts = str.split(/(?<!\\),/).filter(x => x.trim());
-    const shaped = /(^|:)\s*[-+.\de]+\s*$|@\s*\d{1,2}:\d{2}\s*$/i;
-    if (parts.every(x => shaped.test(x))) return parts.map(x => parseEntry(unescape(x, ','))).filter(Boolean);
-  }
-  return str.split(/(?<!\\)\|/).map(x => parseEntry(unescape(x, '|'))).filter(Boolean);
-};
+const parseNextStr = str =>
+  str.split(/(?<!\\)\|/).map(x => parseEntry(x.replaceAll('\\|', '|'))).filter(Boolean);
 const entryStr = e => (e.label ? String(e.label).replaceAll('|', '\\|') : '') + (e.at ? '@' + e.at : (e.label ? ':' : '') + e.mins);
 const queueStr = q => q.map(entryStr).join('|');
 // How a queued session's length reads in a list: minutes, or "@HH:MM".

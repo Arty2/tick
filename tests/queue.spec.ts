@@ -1,7 +1,7 @@
 import { test, expect, open, digits, menu } from './fixtures';
 
 // Queue notation: sessions separated by "|"; "name:minutes", "minutes",
-// "name@HH:MM" or "@HH:MM". Older comma-separated links still read.
+// "name@HH:MM" or "@HH:MM".
 const q = (s: string) => '&next=' + encodeURIComponent(s);
 const rows = (page: import('@playwright/test').Page) => page.locator('.sq-queued');
 
@@ -23,11 +23,11 @@ test('an @HH:MM session counts down to that time of day when it loads', async ({
 	await expect(digits(page)).toHaveText(/^15:5\d$/); // and it runs
 });
 
-test('older comma-separated links still read; a comma inside one name stays a comma', async ({ page }) => {
-	await open(page, '?mins=20&next=Break:5,QA:10');
-	await expect(rows(page)).toHaveText(['▶ 05:00 Break', '▶ 10:00 QA']);
+test('commas are part of a name, never a separator', async ({ page }) => {
 	await open(page, '?mins=20' + q('Q&A, panel:10'));
-	await expect(rows(page)).toHaveText(['▶ 10:00 Q&A, panel']);
+	await expect(rows(page)).toHaveText(['\u25B6 10:00\u2002Q&A, panel']);
+	await open(page, '?mins=20&next=Break:5,QA:10'); // one session, named "Break:5,QA"
+	await expect(rows(page)).toHaveText(['\u25B6 10:00\u2002Break:5,QA']);
 });
 
 test('share writes the queue with pipes, and a "|" in a name survives the trip', async ({ page, context }) => {

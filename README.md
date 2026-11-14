@@ -124,7 +124,7 @@ A queue can also be written as text: in a link, or in the queue box on the remot
 | `Panel@14:30` | A session called Panel that counts down to 14:30 (the next 14:30, which may be tomorrow) |
 | `@14:30` | A countdown to 14:30 with no name |
 
-For example, `Keynote:40|Break:5|Q&A, panel:15|Lunch@12:30`. Names may contain commas and colons. A `|` inside a name is written `\|`. Older links that separate sessions with commas, such as `Break:5,QA:10`, still work.
+For example, `Keynote:40|Break:5|Q&A, panel:15|Lunch@12:30`. Names may contain commas and colons. A `|` inside a name is written `\|`.
 
 ---
 

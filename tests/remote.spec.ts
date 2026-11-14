@@ -253,7 +253,7 @@ test('the pad lays out reset then start, and the message box on its own line ove
 });
 
 test('the pad shows the queue with each session’s length and name', async ({ page, context }) => {
-	const code = await hostWithRemote(page, '?mins=20&next=Break:5,QA:10,15');
+	const code = await hostWithRemote(page, '?mins=20&next=Break:5|QA:10|15');
 	const pad = await context.newPage();
 	await pad.goto('/tick.html?rc=' + code);
 	await pad.clock.runFor(200);
@@ -296,15 +296,15 @@ test('the pad reads top to bottom: status and kiosk icon, time, queue, controls,
 });
 
 test('the queue box holds the current queue, so an edit and Set changes it, and empty clears it', async ({ page, context }) => {
-	const code = await hostWithRemote(page, '?mins=20&next=Break:5,QA:10,15');
+	const code = await hostWithRemote(page, '?mins=20&next=Break:5|QA:10|15');
 	const pad = await context.newPage();
 	await pad.goto('/tick.html?rc=' + code);
 	await pad.clock.runFor(200);
 	const box = pad.locator('#rc-queue-input');
 	await expect(box).toHaveValue('Break:5|QA:10|15'); // written with pipes
-	await box.fill('Break:5,Q&A\\, panel:20');
+	await box.fill('Break:5|Q&A, panel:20');
 	await pad.clock.runFor(2_500); // a heartbeat arrives while editing: the edit survives
-	await expect(box).toHaveValue('Break:5,Q&A\\, panel:20');
+	await expect(box).toHaveValue('Break:5|Q&A, panel:20');
 	await pad.locator('#rc-queue-send').click();
 	await expect(page.locator('.sq-queued')).toHaveText(['\u25B6 05:00\u2002Break', '\u25B6 20:00\u2002Q&A, panel']);
 	await box.fill('');
@@ -313,7 +313,7 @@ test('the queue box holds the current queue, so an edit and Set changes it, and 
 });
 
 test('Prev steps back to the session before, and Next steps forward again', async ({ page, context }) => {
-	const code = await hostWithRemote(page, '?mins=20&label=Talk&next=Break:5,QA:10');
+	const code = await hostWithRemote(page, '?mins=20&label=Talk&next=Break:5|QA:10');
 	const pad = await context.newPage();
 	await pad.goto('/tick.html?rc=' + code);
 	await pad.clock.runFor(200);
