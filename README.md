@@ -44,7 +44,7 @@ The file can also be put on any web server. It needs no other files.
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│  00:00 (since start)   v0.3.2   HH:MM:SS (clock)    │
+│  00:00 (since start)   v0.3.3   HH:MM:SS (clock)    │
 │                                                     │
 │              STATUS                                 │
 │              25:00                                  │
@@ -146,11 +146,13 @@ The remote control lets another device start, pause and change the timer.
 
 1. Choose **remote** in the menu. A code of six letters and numbers appears, with a QR code.
 2. On the other device, scan the QR code or open the link.
-3. The other device now shows a **remote pad**.
+3. The other device now shows a **remote pad**, and the timer screen changes to kiosk mode. It stays in kiosk mode if the remote pad disconnects.
 
 The remote pad shows the time left and the session name. Its buttons start, pause, reset, ring the bell, load the next session, and add or take away time. It also has a box for changing the queue. A queue is written as names and minutes, such as `Talk:25,QA:10`. On phones, the buttons vibrate when pressed.
 
-The remote control window on the timer has a message box. A message typed there appears on the remote pad for 6 seconds. **Clear** removes it sooner.
+The remote pad has a message box. A message typed there appears on the timer screen, in large letters, for 6 seconds. It can tell the speaker, for example, to finish soon. **Clear** removes it sooner.
+
+If the timer screen stops answering for a few seconds, the remote pad says **Kiosk disconnected**. Its **New kiosk** button shows a link and a QR code. Opening it on any screen starts a new timer screen with the same code. The new screen continues the timer from where the old one stopped.
 
 Two tabs in the same browser connect straight away, without the internet. Two different devices need the internet. They are connected through a free service called [PeerJS](https://peerjs.com). This may not work on some school or office networks.
 
@@ -168,6 +170,7 @@ A link to /tick can include settings after a `?`. These settings are used for th
 | `theme` | `dark` or `light` | The theme. |
 | `sound` | `0`, `1` or `2` | The sound setting: off, bell at the end, or a bell every minute of overtime. |
 | `rc` | a six-letter code | Opens the remote pad for that code. The **remote** button makes these links. |
+| `host` | a six-letter code | Opens a new timer screen for that code, which continues the timer. The **New kiosk** button on the remote pad makes these links. |
 
 For example, this link opens a 25-minute keynote with a break and questions after it:
 
@@ -225,7 +228,7 @@ A downloaded copy of `tick.html` works with no internet connection. The live ver
 
 Nothing is sent anywhere until the remote control is opened. The timer, queue, presets and settings are kept only in this browser.
 
-When **remote** is chosen, /tick contacts these services, and no others:
+When **remote** is chosen, or **New kiosk** on the remote pad, /tick contacts these services, and no others:
 
 | Service | Why |
 |---|---|
@@ -258,8 +261,8 @@ pnpm run serve     # serves the app at http://localhost:4173
 
 | Version change | When |
 |---|---|
-| Patch (`0.3.2` → `0.3.3`) | A fix |
-| Minor (`0.3.2` → `0.4.0`) | A new feature |
+| Patch (`0.3.3` → `0.3.4`) | A fix |
+| Minor (`0.3.3` → `0.4.0`) | A new feature |
 | The first number | Changes only when the project is decided to be finished |
 
 The version number is written in one place: `<meta name="version">` in `tick.html`. The manual shows it, and [CHANGELOG.md](./CHANGELOG.md) starts with it. [AGENTS.md](./AGENTS.md) explains how to work on the project.
