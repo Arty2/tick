@@ -77,7 +77,10 @@ html,body{
 #timer-display.s-watch ~ #session-label{color:var(--c-watch)}
 
 #timer-display{
-  font-size:clamp(80px,19vw,240px);font-weight:900;letter-spacing:-0.04em;
+  /* 1.5x the old clamp(80px,19vw,240px), in regular weight. The vh term
+     keeps it inside a short screen (a landscape phone, a 16:9 stream) with
+     room for the label and queue; vw keeps hours mode inside a portrait one. */
+  font-size:clamp(48px,min(28.5vw,48vh),360px);font-weight:400;letter-spacing:-0.04em;white-space:nowrap;
   line-height:1;color:var(--c-run);transition:color 0.3s;font-variant-numeric:tabular-nums;
 }
 #timer-display .colon{display:inline-block;position:relative;top:-0.07em;letter-spacing:0}
@@ -87,6 +90,10 @@ html,body{
   line-height:1;margin-right:0.15em;letter-spacing:0;
 }
 #timer-display .disp-h-suf{font-size:0.72em;letter-spacing:0}
+/* Hours make the line about a fifth wider ("16H 39:00"), so it gets a
+   smaller vw share to stay on screen in portrait. Without :has() support it
+   keeps the larger size, and nowrap keeps it on one line. */
+#timer-display:has(.disp-h){font-size:clamp(40px,min(23vw,48vh),360px)}
 #timer-display .disp-ms{display:inline-block;vertical-align:top;line-height:1}
 /* Watch-mode colon blink via class toggle instead of per-frame style writes */
 #timer-display.colon-off .colon{color:transparent}
@@ -306,12 +313,16 @@ input[type=time].modal-input::-webkit-calendar-picker-indicator{filter:invert(0.
 body.light #manual{background:rgba(170,165,158,0.92)}
 #manual.open{display:block}
 
+/* Sticky inside #manual rather than fixed to the window, so it is centred in
+   the same box as #manual-inner (a fixed bar ignored the scrollbar's width)
+   and the title starts on the text's left edge. */
 #manual-h1-fixed{
-  position:fixed;top:0;left:0;right:0;height:3rem;z-index:415;display:flex;align-items:center;
-  padding:0 1.5rem;pointer-events:none;border-bottom:1px solid var(--dim);background:rgba(0,0,0,0.82);
+  position:sticky;top:0;height:3rem;z-index:415;display:flex;align-items:center;
+  margin:0 -1rem;padding:0 1rem;pointer-events:none;border-bottom:1px solid var(--dim);background:rgba(0,0,0,0.96);
 }
-body.light #manual-h1-fixed{background:rgba(150,145,138,0.92)}
-#manual-h1-fixed h1{font-size:1.1em;letter-spacing:0.3em;text-transform:uppercase;color:var(--fg);margin:0}
+#manual-h1-fixed h1{width:100%;max-width:620px;margin:0 auto}
+body.light #manual-h1-fixed{background:rgba(150,145,138,0.98)}
+#manual-h1-fixed h1{font-size:1.1em;letter-spacing:0.3em;text-transform:uppercase;color:var(--fg)}
 
 #manual-close{
   position:fixed;top:0;right:1.5rem;height:3rem;display:flex;align-items:center;
@@ -321,7 +332,7 @@ body.light #manual-h1-fixed{background:rgba(150,145,138,0.92)}
 }
 #manual-close:hover{opacity:0.7}
 
-#manual-inner{max-width:620px;width:100%;margin:0 auto;padding-top:4rem;font-size:13px;line-height:1.78;user-select:text;-webkit-user-select:text}
+#manual-inner{max-width:620px;width:100%;margin:0 auto;padding-top:1rem;font-size:13px;line-height:1.78;user-select:text;-webkit-user-select:text}
 #manual-inner h2{font-size:0.78em;letter-spacing:0.28em;text-transform:uppercase;color:var(--fg);margin-top:1.6rem;margin-bottom:0.5rem;padding-bottom:0.3rem;border-bottom:1px solid rgba(255,255,255,0.2)}
 #manual-inner ul{padding-left:1.35rem;margin-bottom:0.5rem}
 #manual-inner li{margin-bottom:0.3rem}
