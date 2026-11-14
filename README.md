@@ -150,7 +150,7 @@ The remote control lets another device start, pause and change the timer.
 
 The remote pad shows the time left and the session name. Its buttons start, pause, reset, ring the bell, load the next session, and add or take away time. It also has a box for changing the queue. A queue is written as names and minutes, such as `Talk:25,QA:10`. On phones, the buttons vibrate when pressed.
 
-The remote pad has a message box. A message typed there appears on the timer screen, in large letters, for 6 seconds. It can tell the speaker, for example, to finish soon. **Clear** removes it sooner.
+The remote pad has a message box. A message typed there appears on the timer screen for 6 seconds, in large dark letters on an orange band above the time. The time gets smaller while the message shows, so both can be read. It can tell the speaker, for example, to finish soon. **Clear** removes it sooner.
 
 If the timer screen stops answering for a few seconds, the remote pad says **Kiosk disconnected**. Its **Kiosk** button shows a link and a QR code. Opening it on any screen starts a new timer screen with the same code. The new screen continues the timer from where the old one stopped.
 

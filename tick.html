@@ -81,7 +81,7 @@ html,body{
      keeps it inside a short screen (a landscape phone, a 16:9 stream) with
      room for the label and queue; vw keeps hours mode inside a portrait one. */
   font-size:clamp(48px,min(28.5vw,48vh),360px);font-weight:400;letter-spacing:-0.04em;white-space:nowrap;
-  line-height:1;color:var(--c-run);transition:color 0.3s;font-variant-numeric:tabular-nums;
+  line-height:1;color:var(--c-run);transition:color 0.3s,font-size 0.3s;font-variant-numeric:tabular-nums;
 }
 #timer-display .colon{display:inline-block;position:relative;top:-0.07em;letter-spacing:0}
 /* Hour-mode: small top-aligned hours + full-size minutes:seconds */
@@ -365,21 +365,21 @@ code{background:rgba(128,128,128,0.16);padding:0.08em 0.33em;font-family:var(--f
 #remote-status{font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:var(--dim);text-align:center}
 #remote-status.connected{color:var(--c-watch)}
 
-/* Operator message overlay (host→presenter) */
-#op-msg-overlay{
-  display:none;position:fixed;inset:0;z-index:450;
-  align-items:center;justify-content:center;pointer-events:none;
+/* Operator message (pad→kiosk). A solid band in the page's own flow, above
+   the time, rather than a box floating over it: the old one was translucent
+   and pulsed its opacity, so the digits showed through and it was hard to
+   read. It flashes bright once on arrival instead, and the time shrinks
+   while it shows so that both fit. */
+#op-msg{
+  display:none;background:var(--c-warn);color:#111;
+  font-size:clamp(22px,min(6.5vw,9vh),72px);font-weight:700;line-height:1.15;
+  letter-spacing:0.04em;text-transform:uppercase;text-align:center;
+  padding:0.25em 0.7em;margin-bottom:0.4em;max-width:92vw;overflow-wrap:anywhere;
 }
-#op-msg-overlay.show{display:flex}
-#op-msg-box{
-  background:rgba(0,0,0,0.85);border:2px solid var(--c-warn);
-  color:var(--c-warn);font-size:clamp(28px,6vw,72px);font-weight:900;
-  letter-spacing:0.08em;text-transform:uppercase;padding:0.6em 1.2em;
-  text-align:center;animation:op-flash 0.6s ease-in-out infinite alternate;
-  max-width:90vw;word-break:break-word;
-}
-@keyframes op-flash{from{opacity:1}to{opacity:0.55}}
-body.light #op-msg-box{background:rgba(255,255,255,0.9)}
+body.op-msg-on #op-msg{display:block;animation:op-in 0.9s ease-out}
+@keyframes op-in{0%,30%,60%{filter:brightness(1.6)}15%,45%,100%{filter:none}}
+body.op-msg-on #timer-display{font-size:clamp(40px,min(18vw,26vh),220px)}
+body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),220px)}
 
 /* Remote pad — shown when ?rc=CODE */
 #remote-pad{
@@ -451,6 +451,7 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
     <span id="label-text" spellcheck="false"></span>
     <span id="label-sub"></span>
   </div>
+  <div id="op-msg" role="status" aria-live="assertive"></div>
   <div id="timer-display" class="s-idle">10:00</div>
   <div id="session-label"></div>
   <div id="session-queue"></div>
@@ -650,7 +651,7 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
     <ul>
       <li>The <strong>remote</strong> button shows a six-letter code and a QR code. Open the link or scan the code on another device to get a remote pad. This screen then changes to kiosk mode, and stays in it if the remote disconnects.</li>
       <li>The remote pad shows the time left. Its buttons start, pause, reset, ring the bell, load the next session and change the time. On phones they vibrate.</li>
-      <li>A message typed on the remote pad appears on this screen for 6 seconds. <strong>Clear</strong> removes it sooner.</li>
+      <li>A message typed on the remote pad appears on this screen for 6 seconds, on an orange band above the time. The time gets smaller while it shows. <strong>Clear</strong> removes it sooner.</li>
       <li>If this screen stops answering, the remote pad says <strong>Kiosk disconnected</strong>. Its <strong>Kiosk</strong> button shows a link and QR code for a new screen, which continues the timer.</li>
       <li>Two tabs in the same browser connect without the internet. Two devices need the internet, and connect through a service called PeerJS. This may not work on some school or office networks.</li>
     </ul>
@@ -767,7 +768,6 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
   </div>
 </div>
 
-<div id="op-msg-overlay"><div id="op-msg-box"></div></div>
 
 <script>
 'use strict';
@@ -2051,13 +2051,15 @@ function stopRemote() {
 
 // ── Operator message ───────────────────────────────────────────────
 let opMsgTid = null;
+const OP_MSG_MS = 6000;
 function showOpMsg(text) {
-  const el = $('op-msg-overlay');
   clearTimeout(opMsgTid);
-  if (!text) { el.classList.remove('show'); return; }
-  $('op-msg-box').textContent = text;
-  el.classList.add('show');
-  opMsgTid = setTimeout(() => el.classList.remove('show'), 6000);
+  document.body.classList.remove('op-msg-on');
+  if (!text) return;
+  $('op-msg').textContent = text;
+  void document.body.offsetWidth; // restart the arrival flash for a new message
+  document.body.classList.add('op-msg-on');
+  opMsgTid = setTimeout(() => document.body.classList.remove('op-msg-on'), OP_MSG_MS);
 }
 
 

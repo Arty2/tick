@@ -168,12 +168,12 @@ test('an operator message typed on the pad shows on the kiosk, not the pad', asy
 	await pad.clock.runFor(200);
 	await pad.locator('#rc-msg-input').fill('Two minutes');
 	await pad.locator('#rc-msg-input').press('Enter');
-	await expect(page.locator('#op-msg-overlay')).toHaveClass(/show/);
-	await expect(page.locator('#op-msg-box')).toHaveText('Two minutes');
-	await expect(pad.locator('#op-msg-overlay')).not.toHaveClass(/show/);
+	await expect(page.locator('#op-msg')).toBeVisible();
+	await expect(page.locator('#op-msg')).toHaveText('Two minutes');
+	await expect(pad.locator('#op-msg')).toBeHidden();
 	await expect(page.locator('#op-msg-input')).toHaveCount(0); // no longer on the timer
 	await pad.locator('#rc-msg-clear').click();
-	await expect(page.locator('#op-msg-overlay')).not.toHaveClass(/show/);
+	await expect(page.locator('#op-msg')).toBeHidden();
 });
 
 test('a lost kiosk is reported, and a new kiosk from the pad carries on the timer', async ({ page, context }) => {
