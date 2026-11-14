@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="version" content="0.3.3">
+<meta name="version" content="0.3.4">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0a0a0a">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -364,6 +364,7 @@ code{background:rgba(128,128,128,0.16);padding:0.08em 0.33em;font-family:var(--f
 .rm-view{display:flex;flex-direction:column;gap:1.1rem}
 .rm-view[hidden]{display:none}
 .rm-note{font-size:13px;line-height:1.5;color:var(--fg)}
+#remote-modal .modal-btn{white-space:nowrap}
 .rm-switch{background:none;border:none;color:var(--dim);font-family:var(--font);font-size:12px;letter-spacing:0.06em;
   cursor:pointer;padding:0.2rem 0;text-align:center;text-decoration:underline;text-underline-offset:0.2em}
 .rm-switch:hover{color:var(--fg)}
@@ -801,8 +802,9 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
       <div id="remote-url-text" style="display:none;font-size:10px;word-break:break-all;text-align:center;padding:0.4rem 0;color:var(--dim)"></div>
       <div id="remote-status">waiting for connection&#x2026;</div>
       <div class="modal-actions">
-        <button class="modal-btn" id="remote-open-tab">Open remote</button>
-        <button class="modal-btn" id="remote-copy-url">Copy URL</button>
+        <!-- One word each, so the four fit on one line even on a phone. -->
+        <button class="modal-btn" id="remote-open-tab" title="Open the remote in a new tab">Open</button>
+        <button class="modal-btn" id="remote-copy-url" title="Copy the remote link">Copy</button>
         <button class="modal-btn danger" id="remote-stop">Stop</button>
         <button class="modal-btn" id="remote-modal-close">Close</button>
       </div>

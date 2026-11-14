@@ -235,3 +235,23 @@ test("the pad's new-kiosk QR code is twice the old size, and fits a phone", asyn
 	expect(q.width).toBeGreaterThan(250); // was 200
 	expect(q.x + q.width).toBeLessThanOrEqual(box.x + box.width);
 });
+
+for (const width of [1280, 390, 320]) {
+	test(`the remote window's buttons each fit on one line at ${width} px`, async ({ page }) => {
+		await page.setViewportSize({ width, height: 800 });
+		await open(page);
+		await menu(page);
+		await page.locator('#btn-remote').click();
+		const bad = await page.locator('#remote-modal .modal-actions .modal-btn').evaluateAll((bs) =>
+			bs.filter((b) => (b as HTMLElement).offsetParent).filter((b) => {
+				const r = document.createRange();
+				r.selectNodeContents(b);
+				const lines = new Set([...r.getClientRects()].map((x) => Math.round(x.bottom))).size;
+				return lines > 1 || b.scrollWidth > b.clientWidth + 1;
+			}).map((b) => b.textContent)
+		);
+		expect(bad).toEqual([]);
+		await expect(page.locator('#remote-open-tab')).toHaveText('Open');
+		await expect(page.locator('#remote-copy-url')).toHaveText('Copy');
+	});
+}
