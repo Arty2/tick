@@ -437,6 +437,8 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
   font-variant-numeric:tabular-nums;color:var(--c-idle);transition:color 0.25s;
   line-height:1;flex:1 0 auto;display:flex;align-items:center;justify-content:center;
 }
+/* While the kiosk is lost the pad's time is its own copy: dotted underline. */
+#remote-state-display.local{text-decoration:underline dotted;text-decoration-thickness:0.04em;text-underline-offset:0.12em}
 #remote-label-display{
   font-size:clamp(11px,2.5vw,18px);letter-spacing:0.3em;text-transform:uppercase;
   color:var(--dim);min-height:1.2em;text-align:center;
@@ -711,6 +713,7 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
       <li>Its queue box holds the current queue. Change it and press <strong>Set</strong>; an empty box clears the queue.</li>
       <li>A message typed on the remote pad appears on this screen for 6 seconds, on an orange band above the time. The time gets smaller while it shows. <strong>Clear</strong> removes it sooner.</li>
       <li>If this screen stops answering, the remote pad says <strong>Kiosk lost</strong>. The small screen button (&#x1F5A5;&#xFE0F;) next to its status shows a link and QR code for a new screen, which continues the timer.</li>
+      <li>The timer doesn't stop when this screen is lost: the remote pad keeps counting, and its buttons work on its own copy. When this screen answers again, it takes the pad's timer. If the pad itself was offline, it takes this screen's timer instead.</li>
       <li>Two tabs in the same browser connect without the internet. Two devices need the internet, and connect through a service called PeerJS. This may not work on some school or office networks.</li>
     </ul>
     <h2>Share</h2>
@@ -1943,7 +1946,8 @@ function makeCode() {
 // ── State snapshot sent host→remote ───────────────────────────────
 function stateSnap() {
   return { type:'state', uiState, remaining, totalSecs, customLabel, running, nextQueue: nextQueue.slice(),
-    untilTarget, untilLabel, fresh: awaitingRestore, prevCount: prevSessions.length };
+    untilTarget, untilLabel, fresh: awaitingRestore, prevCount: prevSessions.length,
+    warn1: firstWarnSecs(), warn2: warnSecs2 };
 }
 
 // ── Remote transport abstraction ───────────────────────────────────
@@ -2009,6 +2013,9 @@ function makePeerTransport(code, isRemote, onReady, onFail) {
         peer.on('connection', wireConn);
       }
       peer.on('error', e => { if (!t.connected) onFail(String(e)); });
+      // Back online after a drop: rejoin the broker, so the other side can
+      // be reached again without reloading either page.
+      window.addEventListener('online', () => { if (peer.disconnected && !peer.destroyed) peer.reconnect(); });
       peer.on('open', () => onReady(t));
     } catch(e) { onFail(String(e)); }
   };
@@ -2104,7 +2111,9 @@ function handleHostMessage(msg, _transport) {
     remoteTransport?.send(stateSnap());
     return;
   }
-  if (msg.type === 'restore') { applyRestore(msg.snap); remoteTransport?.send(stateSnap()); return; }
+  // A pad that kept the timer while it couldn't reach this kiosk (or that is
+  // handing a new kiosk the timer) sends its version, and it wins.
+  if (msg.type === 'sync') { applySync(msg.snap); remoteTransport?.send(stateSnap()); return; }
   if (msg.type === 'cmd') {
     if (typeof msg.cmd !== 'string') return;
     if (msg.id) {
@@ -2122,18 +2131,18 @@ function handleHostMessage(msg, _transport) {
   }
 }
 
-// A replacement kiosk takes the timer from the pad that opened it: the pad
-// kept the last state it saw and moves a running count on by the time since.
-// Accepted once, and checked like any other input from a pad.
-function applyRestore(snap) {
-  if (!awaitingRestore || !snap || typeof snap !== 'object') return;
+// The timer as a pad holds it, adopted whole: after the kiosk was lost (the
+// pad kept time meanwhile, so its version is the valid one), or by a new
+// kiosk taking over. Checked like any other input from a pad.
+function applySync(snap) {
+  if (!snap || typeof snap !== 'object') return;
   awaitingRestore = false;
   if (Array.isArray(snap.nextQueue)) nextQueue = snap.nextQueue.map(toEntry).filter(Boolean);
   if (typeof snap.customLabel === 'string') customLabel = snap.customLabel.slice(0, 32);
   if (typeof snap.untilTarget === 'number' && snap.untilTarget > Date.now()) {
     enterUntilMode(snap.untilTarget, String(snap.untilLabel ?? '').slice(0, 12));
   } else if (Number.isFinite(snap.remaining)) {
-    running = false; exitUntilMode();
+    running = false; exitUntilMode(); bellRecord = null;
     const total = toMins(snap.totalSecs / 60); if (total) totalSecs = total * 60;
     remaining = resumeVal = Math.max(-(99*60+59), Math.min(999*60, Math.round(snap.remaining)));
     lastRenderedSec = null; bellRecord = null;
@@ -2253,6 +2262,7 @@ if (IS_REMOTE) {
 
   function rcApplyState(snap) {
     stateDisp.textContent = fmt(snap.remaining);
+    stateDisp.classList.toggle('local', kioskLost());
     stateDisp.style.color = STATE_COLORS[snap.uiState] ?? 'var(--c-fg)';
     // The colour already says running, paused or overtime; the line above
     // the time is for the session's name, and stays empty without one.
@@ -2276,7 +2286,7 @@ if (IS_REMOTE) {
     if (!rcQueueDirty && document.activeElement !== rcQueueInput && Array.isArray(snap.nextQueue))
       rcQueueInput.value = snap.nextQueue.map(e => e.label ? `${String(e.label).replaceAll(',', '\\,')}:${e.mins}` : e.mins).join(',');
     // Prev and Next are greyed out when there's nowhere to go.
-    $('rc-prev').disabled = !snap.prevCount;
+    $('rc-prev').disabled = !snap.prevCount || kioskLost(); // the history lives on the kiosk
     $('rc-next').disabled = !(snap.nextQueue?.length);
     // Start and pause share one button, which says what a press will do.
     const tg = $('rc-toggle');
@@ -2297,6 +2307,8 @@ if (IS_REMOTE) {
   let rcCmdSeq = 0;
   const rcCmdBase = Math.random().toString(36).slice(2, 8);
   function sendCmd(cmd) {
+    // While the kiosk is lost, this pad's copy is the timer: commands act on it.
+    if (kioskLost()) { localCmd(cmd); return; }
     rcTransport?.send({type:'cmd', cmd, id: `${rcCmdBase}-${++rcCmdSeq}`});
   }
 
@@ -2357,19 +2369,81 @@ if (IS_REMOTE) {
   wireBtn('rc-kiosk-copy', () => (navigator.clipboard?.writeText(kioskUrl) ?? Promise.reject()).catch(() => {}));
   backdropClose('rc-kiosk-modal', () => closeModal('rc-kiosk-modal'));
 
-  // The last state the kiosk sent, and when: what a replacement kiosk gets.
-  let lastSnap = null, lastSnapAt = 0, lastHeardAt = 0, peerT = null;
+  // ── The pad's copy of the timer ──────────────────────────────────
+  // The last state the kiosk sent (model) and when (modelAt); a running count
+  // moves on from there by the clock. While the kiosk answers, it is a view
+  // of the kiosk. While the kiosk is lost, it is the timer: it keeps counting,
+  // the buttons act on it, and when the kiosk answers again it is sent over
+  // and wins — the kiosk was the one out of touch. Except when this pad knows
+  // it was itself offline: then the kiosk's timer wins, and the pad adopts it.
+  let model = null, modelAt = 0, lastHeardAt = 0, peerT = null, padWasOffline = false;
   const KIOSK_LOST_MS = 6000; // three missed heartbeats
-  function rcOnState(msg) {
-    // A replacement kiosk says so (fresh); hand it the timer as it would be now.
-    if (msg.fresh && lastSnap && !lastSnap.fresh) {
-      const gone = Math.floor((Date.now() - lastSnapAt) / 1000);
-      const snap = { ...lastSnap, remaining: lastSnap.running && !lastSnap.untilTarget ? lastSnap.remaining - gone : lastSnap.remaining };
-      rcTransport?.send({type:'restore', snap});
+  const kioskLost = () => rcHeard && Date.now() - lastHeardAt >= KIOSK_LOST_MS;
+  const modelRemaining = () => !model ? 0
+    : model.untilTarget ? Math.round((model.untilTarget - Date.now()) / 1000)
+    : model.running ? model.remaining - Math.floor((Date.now() - modelAt) / 1000)
+    : model.remaining;
+  const rebase = () => { model = {...model, remaining: modelRemaining()}; modelAt = Date.now(); };
+  // The state's name, worked out here while the kiosk can't say it.
+  const localUi = rem => model.untilTarget ? (rem < 0 ? 'ot' : 'until')
+    : rem < 0 ? 'ot'
+    : !model.running ? (rem === model.totalSecs ? 'idle' : 'pause')
+    : (model.warn2 > 0 && rem <= model.warn2) ? 'warn2'
+    : (model.warn1 > 0 && rem <= model.warn1) ? 'warn' : 'run';
+  function localCmd(cmd) {
+    if (!model) return;
+    rebase();
+    const m = model, untilOn = !!m.untilTarget;
+    if (cmd === 'toggle' || cmd === 'start' || cmd === 'pause') {
+      if (!untilOn) m.running = cmd === 'start' ? true : cmd === 'pause' ? false : !m.running;
+    } else if (cmd.startsWith('adj:')) {
+      const n = parseInt(cmd.slice(4), 10);
+      if (Number.isFinite(n) && m.running && !untilOn) m.remaining = Math.max(-(99*60+59), m.remaining + n*60);
+    } else if (cmd === 'reset') {
+      Object.assign(m, {running: false, remaining: m.totalSecs, untilTarget: null, untilLabel: ''});
+    } else if (cmd === 'next' && m.nextQueue?.length) {
+      const [e, ...rest] = m.nextQueue;
+      Object.assign(m, {nextQueue: rest, customLabel: e.label || '', totalSecs: e.mins*60, remaining: e.mins*60,
+        running: false, untilTarget: null, untilLabel: '', uiState: 'next'});
+    } else if (cmd.startsWith('setQueue:')) {
+      m.nextQueue = parseNextStr(cmd.slice(9).split('|').pop());
     }
-    lastSnap = msg; lastSnapAt = lastHeardAt = Date.now();
-    rcHeard = true; rcSetStatus('conn', 'Connected'); rcApplyState(msg);
+    rcRender();
   }
+  // Drawn from the copy four times a second, so the count runs smoothly and
+  // carries on by itself when the kiosk stops answering.
+  function rcRender() {
+    if (!model) return;
+    let rem = modelRemaining();
+    if (kioskLost() && model.running && !model.untilTarget && rem < 0 && model.nextQueue?.length) {
+      // Time ran out with the kiosk away: hand over to the next session here,
+      // as the kiosk would have.
+      const [e, ...rest] = model.nextQueue;
+      model = {...model, nextQueue: rest, customLabel: e.label || '', totalSecs: e.mins*60, remaining: e.mins*60};
+      modelAt = Date.now(); rem = model.remaining;
+    }
+    rcApplyState({...model, remaining: rem, uiState: kioskLost() ? localUi(rem) : model.uiState});
+  }
+  setInterval(rcRender, 250);
+  function rcOnState(msg) {
+    const wasLost = kioskLost();
+    // Hand our copy over instead of taking the kiosk's: to a new kiosk taking
+    // over (fresh), or to a kiosk that was lost while this pad stayed online.
+    if (model && ((msg.fresh && !model.fresh) || (wasLost && !padWasOffline))) {
+      rebase();
+      rcTransport?.send({type:'sync', snap: model});
+      lastHeardAt = Date.now(); padWasOffline = false;
+      rcSetStatus('conn', 'Connected'); rcRender();
+      return; // the kiosk answers with its new state, which is ours
+    }
+    padWasOffline = false;
+    model = msg; modelAt = lastHeardAt = Date.now();
+    rcHeard = true; rcSetStatus('conn', 'Connected'); rcRender();
+  }
+  // This pad's own connection. Offline, it says so; whatever it does then is
+  // overruled by the kiosk once both can talk again.
+  window.addEventListener('offline', () => { padWasOffline = true; rcSetStatus('err', '\u26A0\uFE0F Offline'); });
+  window.addEventListener('online', () => { peerT?.reconnect?.(); });
   function rcOnMessage(msg) {
     if (!msg || typeof msg !== 'object') return;
     if (msg.type === 'state') rcOnState(msg);
@@ -2377,8 +2451,8 @@ if (IS_REMOTE) {
     if (msg.type === 'hostHello') rcTransport?.send({type:'hello'});
   }
   setInterval(() => {
-    if (!rcHeard || Date.now() - lastHeardAt < KIOSK_LOST_MS) return;
-    rcSetStatus('err', '\u26A0\uFE0F Kiosk lost');
+    if (!kioskLost()) return;
+    rcSetStatus('err', padWasOffline ? '\u26A0\uFE0F Offline' : '\u26A0\uFE0F Kiosk lost');
     peerT?.reconnect?.();
   }, 1000);
 

@@ -154,6 +154,8 @@ The remote pad has a message box. A message typed there appears on the timer scr
 
 If the timer screen stops answering for a few seconds, the remote pad says **Kiosk lost**. The small screen button (🖥️) next to the connection status shows a link and a QR code. Opening it on any screen starts a new timer screen with the same code. The new screen continues the timer from where the old one stopped.
 
+The timer does not stop when the kiosk is lost. The remote pad keeps counting on its own, and its buttons (start, pause, the minute buttons, reset, Next and the queue box) work on the pad's copy; the time is underlined with dots while this is so. When the kiosk answers again, the pad's timer is sent to it and replaces the kiosk's, because the pad kept going while the kiosk was out of touch. There is one exception: if the remote pad itself went offline, it says **Offline**, and when it is back it takes the kiosk's timer instead.
+
 Two tabs in the same browser connect straight away, without the internet. Two different devices need the internet. They are connected through a free service called [PeerJS](https://peerjs.com). This may not work on some school or office networks.
 
 ---

@@ -448,3 +448,107 @@ test('leaving for the join view stops offering this timer’s code, unless a rem
 	await expect(page.locator('#remote-code-display')).toBeVisible();
 	await expect(page.locator('#remote-code-display')).not.toHaveText(code);
 });
+
+// ── When the kiosk is lost, the pad keeps the timer ─────────────────────────
+// A stand-in kiosk: a page on the same origin that speaks the kiosk's side of
+// the BroadcastChannel, so a test can stop it, bring it back, and read what
+// the pad sends it.
+type Page = import('@playwright/test').Page;
+const kioskState = (o: Record<string, unknown> = {}) => ({
+	type: 'state', uiState: 'run', remaining: 600, totalSecs: 600, customLabel: 'Talk', running: true,
+	nextQueue: [{ label: 'QA', mins: 5 }], untilTarget: null, untilLabel: '', fresh: false, prevCount: 0, warn1: 120, warn2: 60, ...o
+});
+async function fakeKiosk(context: import('@playwright/test').BrowserContext, code: string) {
+	const k = await context.newPage();
+	await k.goto('/README.md');
+	await k.evaluate((code) => {
+		const w = window as unknown as { ch: BroadcastChannel; got: { type: string }[] };
+		w.ch = new BroadcastChannel('tick-rc-' + code);
+		w.got = [];
+		w.ch.onmessage = (e) => w.got.push(e.data);
+	}, code);
+	return {
+		send: (msg: object) => k.evaluate((m) => (window as unknown as { ch: BroadcastChannel }).ch.postMessage(m), msg),
+		got: () => k.evaluate(() => (window as unknown as { got: { type: string; snap?: { remaining: number } }[] }).got),
+		clear: () => k.evaluate(() => ((window as unknown as { got: unknown[] }).got = []))
+	};
+}
+async function padWithFakeKiosk(page: Page, context: import('@playwright/test').BrowserContext) {
+	await open(page, '?rc=ABCDEF');
+	const kiosk = await fakeKiosk(context, 'ABCDEF');
+	await page.clock.runFor(200); // the pad says hello
+	await kiosk.send(kioskState());
+	await page.clock.runFor(1_000);
+	await expect(page.locator('#remote-state-display')).toHaveText('09:59');
+	return kiosk;
+}
+
+test('with the kiosk lost, the pad keeps counting, and its buttons work on its own copy', async ({ page, context }) => {
+	const kiosk = await padWithFakeKiosk(page, context);
+	await page.clock.runFor(7_000); // nothing from the kiosk: lost
+	await expect(page.locator('#remote-status-bar')).toHaveText('⚠️ Kiosk lost');
+	await expect(page.locator('#remote-state-display')).toHaveText('09:52'); // still counting
+	await expect(page.locator('#remote-state-display')).toHaveClass(/local/);
+	await kiosk.clear();
+	await page.locator('#rc-toggle').click(); // pause, here
+	await expect(page.locator('#rc-toggle')).toHaveText('▶ Start');
+	await page.clock.runFor(3_000);
+	await expect(page.locator('#remote-state-display')).toHaveText('09:52');
+	await page.locator('#rc-toggle').click(); // and on again
+	await page.locator('[data-rc="adj:10"]').click();
+	await expect(page.locator('#remote-state-display')).toHaveText('19:52');
+	expect((await kiosk.got()).filter((m) => m.type === 'cmd')).toEqual([]); // nothing sent to a kiosk that isn't there
+	await expect(page.locator('#rc-prev')).toBeDisabled();
+});
+
+test('with the kiosk lost, time running out hands over to the next session on the pad', async ({ page, context }) => {
+	const kiosk = await padWithFakeKiosk(page, context);
+	await kiosk.send(kioskState({ remaining: 3 }));
+	await page.clock.runFor(8_000); // lost, and past zero
+	await expect(page.locator('#remote-label-display')).toHaveText('QA');
+	await expect(page.locator('#remote-state-display')).toHaveText(/^0[45]:\d\d$/);
+	await expect(page.locator('#rc-queue-display .rc-q-row')).toHaveCount(0);
+});
+
+test('when the lost kiosk answers again, the pad sends its timer over, and it wins', async ({ page, context }) => {
+	const kiosk = await padWithFakeKiosk(page, context);
+	await page.clock.runFor(7_000);
+	await page.locator('[data-rc="adj:10"]').click(); // 19:52 on the pad
+	await kiosk.clear();
+	await kiosk.send(kioskState({ remaining: 300 })); // the kiosk is back with its own idea: 05:00
+	await page.clock.runFor(300);
+	const sync = (await kiosk.got()).find((m) => m.type === 'sync');
+	expect(sync, 'the pad sends its timer').toBeTruthy();
+	expect(sync!.snap!.remaining).toBe(1192); // 19:52
+	await expect(page.locator('#remote-state-display')).toHaveText('19:52'); // not 05:00
+	await expect(page.locator('#remote-status-bar')).toHaveText('Connected');
+});
+
+test('when the pad itself was offline, the kiosk’s timer wins instead', async ({ page, context }) => {
+	const kiosk = await padWithFakeKiosk(page, context);
+	await context.setOffline(true);
+	await page.clock.runFor(7_000);
+	await expect(page.locator('#remote-status-bar')).toHaveText('⚠️ Offline');
+	await page.locator('[data-rc="adj:10"]').click(); // a change made while offline...
+	await context.setOffline(false);
+	await kiosk.clear();
+	await kiosk.send(kioskState({ remaining: 300 }));
+	await page.clock.runFor(300);
+	expect((await kiosk.got()).filter((m) => m.type === 'sync')).toEqual([]); // ...is not pushed
+	await expect(page.locator('#remote-state-display')).toHaveText('05:00'); // the kiosk's timer
+	await expect(page.locator('#remote-status-bar')).toHaveText('Connected');
+});
+
+test('a kiosk adopts the timer a pad syncs to it', async ({ page, context }) => {
+	const code = await hostWithRemote(page, '?mins=20');
+	const pad = await context.newPage();
+	await pad.goto('/README.md');
+	await pad.evaluate((code) => new BroadcastChannel('tick-rc-' + code).postMessage({
+		type: 'sync', snap: { remaining: 123, running: false, totalSecs: 600, customLabel: 'Panel', nextQueue: [{ label: 'QA', mins: 5 }] }
+	}), code);
+	await page.clock.runFor(100);
+	await expect(digits(page)).toHaveText('02:03');
+	await expect(page.locator('#session-label')).toHaveText('Panel');
+	await expect(page.locator('#label-text')).toHaveText('PAUSED');
+	await expect(page.locator('.sq-queued')).toHaveText(['▶ 05:00 QA']);
+});
