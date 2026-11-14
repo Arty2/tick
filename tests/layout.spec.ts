@@ -322,13 +322,14 @@ const capFit = (btn: import('@playwright/test').Locator) => btn.evaluate((b) => 
 	return { dh: Math.abs(r.height - cap.height), db: Math.abs(r.bottom - cap.bottom), w: r.width, h: r.height, radius: s.borderTopLeftRadius, mask: s.maskImage, clip: s.clipPath };
 });
 
-test('the menu: reset has a circle, then clock, then target with a triangle and bar', async ({ page }) => {
+test('the menu: reset has two triangles pointing back, then clock, then target with a triangle and bar', async ({ page }) => {
 	await open(page);
 	await menu(page);
 	await expect(page.locator('#btn-reset').locator('xpath=..').locator('.tb-btn:visible')).toHaveText(['reset', 'clock', 'target', /^queue/]);
 	const reset = await capFit(page.locator('#btn-reset'));
-	expect(reset.radius).toBe('50%');
-	expect(Math.abs(reset.w - reset.h)).toBeLessThan(0.01); // a circle, not an oval
+	await expect(page.locator('#btn-reset .ico')).toHaveClass(/ico-rewind/);
+	expect(reset.clip.replace(/\b0px/g, '0%')).toContain('polygon(50% 0%, 0% 50%, 50% 100%, 50% 50%, 100% 100%, 100% 0%, 50% 50%)'); // two triangles, pointing left
+	expect(reset.w / reset.h).toBeCloseTo(1.5, 1);
 	const target = await capFit(page.locator('#btn-until-open'));
 	expect(target.clip).toContain('polygon'); // triangle and bar, one shape
 	const clock = await capFit(page.locator('#btn-clock-watch'));
@@ -367,15 +368,15 @@ test('sound is one switch: a bell, struck through when off', async ({ page }) =>
 	await expect(btn).toHaveAttribute('aria-pressed', 'true');
 });
 
-test('on the pad, Reset has a circle and Black has the square', async ({ page }) => {
+test('on the pad, Reset has the two triangles and Black has the square', async ({ page }) => {
 	await page.setViewportSize({ width: 390, height: 844 });
 	await visit(page, '/#remote=ABCDEF');
-	await expect(page.locator('#rc-reset .ico')).toHaveClass(/ico-circle/);
+	await expect(page.locator('#rc-reset .ico')).toHaveClass(/ico-rewind/);
 	await expect(page.locator('#rc-black .ico')).toHaveClass(/ico-stop/);
 	const [reset, black] = [await capFit(page.locator('#rc-reset')), await capFit(page.locator('#rc-black'))];
-	expect(reset.radius).toBe('50%');
-	expect(black.radius).toBe('0px');
-	for (const m of [reset, black]) { expect(m.dh).toBeLessThan(0.5); expect(m.db).toBeLessThan(0.5); expect(Math.abs(m.w - m.h)).toBeLessThan(0.01); }
+	expect(reset.clip).toContain('polygon');
+	expect(Math.abs(black.w - black.h)).toBeLessThan(0.01); // a square
+	for (const m of [reset, black]) { expect(m.dh).toBeLessThan(0.5); expect(m.db).toBeLessThan(0.5); }
 });
 
 test('a QR code has a white margin of six modules on every side', async ({ page }) => {

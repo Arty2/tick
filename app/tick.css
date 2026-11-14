@@ -231,6 +231,17 @@ body.kiosk #swipe-hint{display:none}
 /* In a row the icon sits between figures: a little air on both sides. */
 .sq-item .ico,.rc-q-row .ico{margin-right:0.5em}
 .q-left{font-variant-numeric:tabular-nums}
+/* The gutter left of the icons: closed unless a row has a target time; then
+   as wide as "HH:MM" in every row (five figures and their letter-spacing),
+   so the icons stay in one column and the heading starts on it. */
+.q-at{display:none;text-align:right;font-variant-numeric:tabular-nums}
+.has-at{--q-gutter:calc(5ch + 5 * var(--q-ls))}
+.has-at .q-at{display:inline-block;width:var(--q-gutter);margin-right:0.5em}
+.has-at :is(.sq-next-header,.rc-q-head){padding-left:calc(var(--q-gutter) + 0.5em)}
+/* The pad's heading is set at 0.85em, and the gutter is measured in the
+   type's own units: scaled back up so it lands on the rows' icons. */
+.has-at .rc-q-head{padding-left:calc((var(--q-gutter) + 0.5em) / 0.85)}
+#sq-queue-block{--q-ls:0.12em} #rc-queue-display{--q-ls:0.1em}
 #sq-queue-block{
   display:inline-flex;flex-direction:column;align-items:flex-start;gap:0.18rem;
 }
@@ -408,7 +419,8 @@ kbd{background:var(--fg);color:var(--bg);padding:0.08em 0.4em;font-family:var(--
    label's baseline (an empty inline-block's bottom edge is its baseline). */
 .ico{display:inline-block;height:0.7em;height:1cap;background:currentColor;vertical-align:baseline;margin-right:0.5em}
 .ico-stop{aspect-ratio:1}
-.ico-circle{aspect-ratio:1;border-radius:50%}
+/* Reset: back to the start — two triangles pointing left, tip to base. */
+.ico-rewind{aspect-ratio:1.5;clip-path:polygon(50% 0,0 50%,50% 100%,50% 50%,100% 100%,100% 0,50% 50%)}
 /* Target: the queue's triangle, running into a bar at its tip. */
 .ico-target{aspect-ratio:1;clip-path:polygon(0 0,76% 50%,76% 0,100% 0,100% 100%,76% 100%,76% 50%,0 100%)}
 /* Clock and stopwatch: the same disc, with the hands cut out of it. The clock
@@ -470,6 +482,8 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
 #rc-preview{
   flex:1 0 auto;align-self:stretch;display:flex;flex-direction:column;align-items:center;gap:0.5rem;
   border:1px solid var(--fg);padding:0.5rem 0.7rem 0.7rem;min-width:0;
+  /* Wider than the buttons: half their distance from the screen's edge. */
+  margin:0 -0.75rem;
 }
 #rc-preview > *{max-width:100%}
 /* The message on the kiosk, as it shows there: the orange band above the time. */

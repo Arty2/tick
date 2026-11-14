@@ -982,6 +982,10 @@ test('the pad frames what the kiosk shows in the ink colour, and its top bar has
 		expect(b.x + b.width, sel).toBeLessThanOrEqual(f.x + f.width);
 	}
 	expect((await pad.locator('#rc-toggle').boundingBox())!.y).toBeGreaterThan(f.y + f.height); // the buttons are outside it
+	// Its side margins are half the buttons': the frame is the wider of the two.
+	const btn = (await pad.locator('#rc-reset').boundingBox())!;
+	expect(f.x).toBeCloseTo(btn.x / 2, 0);
+	expect(390 - (f.x + f.width)).toBeCloseTo(btn.x / 2, 0);
 	await expect(pad.locator('#rc-top')).toHaveCSS('border-bottom-width', '0px');
 	const [scroll, client] = await pad.locator('#remote-pad').evaluate((p) => [p.scrollHeight, p.clientHeight]);
 	expect(scroll).toBeLessThanOrEqual(client); // still fits the phone

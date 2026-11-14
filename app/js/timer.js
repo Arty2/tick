@@ -3,7 +3,7 @@
 // isn't a remote pad.
 import { $, pad, absSec, fmt, nextUntilMs, params, codeParam, makeCode, remoteUrl, kioskUrl, go, copyText,
   PREFS_KEY, loadPrefs, openModal, closeModal, isAnyModalOpen, wireBtn, backdropClose, CODE_RE } from './util.js';
-import { toMins, parseEntry, parseQueue, queueStr, entryTime, toEntry, queueRow, tickQueueRows } from './queue.js';
+import { toMins, parseEntry, parseQueue, queueStr, entryTime, toEntry, queueRow, tickQueueRows, markQueue } from './queue.js';
 import { bcTransport, peerTransport, clientLink, HEARTBEAT_MS, LOST_MS } from './transport.js';
 import { qrSvg } from './qr.js';
 
@@ -205,9 +205,10 @@ function renderSessionQueue() {
     header.className = 'sq-item sq-next-header';
     header.textContent = 'NEXT';
     header.addEventListener('click', e => { e.stopPropagation(); openNextModal(); });
-    sessionQueue.appendChild(header);
     const block = document.createElement('div');
     block.id = 'sq-queue-block';
+    markQueue(block, nextQueue);
+    block.appendChild(header); // in the block, so it starts where the icons do
     nextQueue.forEach(entry => {
       const row = queueRow(entry, 'sq-item sq-queued');
       row.addEventListener('click', e => { e.stopPropagation(); openNextModal(); });

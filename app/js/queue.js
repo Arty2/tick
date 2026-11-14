@@ -43,9 +43,12 @@ export const toEntry = e => {
 };
 
 // ── A queue row, as the kiosk and the remote pad both list it ─────────
-// A length:        [triangle] 05:00  Name
+// A length:              [triangle] 05:00  Name
 // A time of day:   14:30 [triangle and bar] 17:59  Name   — the target, and
-//                  the time left until it (kept current by tickQueueRows).
+//                        the time left until it (kept current by tickQueueRows).
+// The icons of all rows stand in one column: the target time hangs to the
+// left of it, in a gutter that the list opens (class has-at, set by
+// markQueue) only when some row has a time to put there.
 // Built from text nodes: names come from links and from remote pads.
 const secsUntil = at => { const [h, m] = at.split(':').map(Number); return Math.round((nextUntilMs(h, m) - Date.now()) / 1000); };
 const icon = cls => { const i = document.createElement('span'); i.className = 'ico ' + cls; i.setAttribute('aria-hidden', 'true'); return i; };
@@ -56,12 +59,17 @@ export function queueRow(entry, className) {
   if (entry.at) {
     const left = document.createElement('span');
     left.className = 'q-left'; left.dataset.at = entry.at; left.textContent = fmt(secsUntil(entry.at));
-    row.append(entry.at + ' ', icon('ico-target'), left, name);
+    const at = document.createElement('span');
+    at.className = 'q-at'; at.textContent = entry.at;
+    row.append(at, icon('ico-target'), left, name);
   } else {
-    row.append(icon('ico-play'), entryTime(entry) + name);
+    const gutter = document.createElement('span');
+    gutter.className = 'q-at';
+    row.append(gutter, icon('ico-play'), entryTime(entry) + name);
   }
   return row;
 }
+export const markQueue = (list, queue) => list.classList.toggle('has-at', queue.some(e => e.at));
 export const tickQueueRows = root => root.querySelectorAll('.q-left').forEach(el => {
   const t = fmt(secsUntil(el.dataset.at)); if (el.textContent !== t) el.textContent = t;
 });

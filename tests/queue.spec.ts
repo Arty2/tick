@@ -7,7 +7,7 @@ const rows = (page: import('@playwright/test').Page) => page.locator('.sq-queued
 
 test('a pipe-separated queue reads, with commas and colons free in names', async ({ page }) => {
 	await open(page, '#mins=20' + q('Break@5|Q&A, panel@10|Panel>10:30|15'), '2026-11-14T10:12:00');
-	await expect(rows(page)).toHaveText(['05:00 Break', '10:00 Q&A, panel', /^10:30\s\d\d:\d\d\sPanel$/, '15:00']);
+	await expect(rows(page)).toHaveText(['05:00 Break', '10:00 Q&A, panel', /^10:30\s?\d\d:\d\d\sPanel$/, '15:00']);
 });
 
 test('a >HH:MM session counts down to that time of day when it loads', async ({ page }) => {
@@ -42,7 +42,7 @@ test('share writes the queue with pipes, and a "|" in a name survives the trip',
 	expect(new URLSearchParams(new URL(url).hash.slice(1)).get('next')).toBe('A\\|B@5|Panel>10:30');
 	const other = await context.newPage();
 	await visit(other, url);
-	await expect(rows(other)).toHaveText(['05:00 A|B', /^10:30\s\d\d:\d\d\sPanel$/]);
+	await expect(rows(other)).toHaveText(['05:00 A|B', /^10:30\s?\d\d:\d\d\sPanel$/]);
 });
 
 test('the queue window takes >HH:MM in the minutes box', async ({ page }) => {
@@ -51,7 +51,7 @@ test('the queue window takes >HH:MM in the minutes box', async ({ page }) => {
 	await page.locator('.qr-label').first().fill('Lunch');
 	await page.locator('.qr-mins').first().fill('>12:30');
 	await page.locator('#next-set').click();
-	await expect(rows(page)).toHaveText([/^12:30\s2:1[78]:\d\d\sLunch$/]);
+	await expect(rows(page)).toHaveText([/^12:30\s?2:1[78]:\d\d\sLunch$/]);
 	await page.keyboard.press('n');
 	await expect(page.locator('.qr-mins').first()).toHaveValue('>12:30');
 });
@@ -66,10 +66,10 @@ test("the remote's queue box writes and reads the same notation", async ({ page,
 	await pad.clock.runFor(200);
 	const box = pad.locator('#rc-queue-input');
 	await expect(box).toHaveValue('Break@5|Panel>10:30');
-	await expect(pad.locator('#rc-queue-display .rc-q-row')).toHaveText(['05:00 Break', /^10:30\s\d\d:\d\d\sPanel$/]);
+	await expect(pad.locator('#rc-queue-display .rc-q-row')).toHaveText(['05:00 Break', /^10:30\s?\d\d:\d\d\sPanel$/]);
 	await box.fill('Wrap>11:00|QA@10');
 	await box.press('Enter');
-	await expect(rows(page)).toHaveText([/^11:00\s\d\d:\d\d\sWrap$/, '10:00 QA']);
+	await expect(rows(page)).toHaveText([/^11:00\s?\d\d:\d\d\sWrap$/, '10:00 QA']);
 });
 
 test('in the list, a length has the queue triangle; a time of day has its time, a triangle with a bar, and the time left', async ({ page, context }) => {
@@ -77,10 +77,19 @@ test('in the list, a length has the queue triangle; a time of day has its time, 
 	const [length, timed] = [rows(page).nth(0), rows(page).nth(1)];
 	await expect(length.locator('.ico')).toHaveClass(/ico-play/);
 	await expect(timed.locator('.ico')).toHaveClass(/ico-target/);
-	await expect(timed).toHaveText(/^10:30\s1[78]:\d\d\sPanel$/);
+	await expect(timed).toHaveText(/^10:30\s?1[78]:\d\d\sPanel$/);
 	// Left to right: the target time, the icon, the time left.
 	const order = await timed.evaluate((row) => [...row.childNodes].map((n) => (n.nodeType === 3 ? 'text' : (n as Element).className)));
-	expect(order).toEqual(['text', 'ico ico-target', 'q-left', 'text']);
+	expect(order).toEqual(['q-at', 'ico ico-target', 'q-left', 'text']);
+	// Every icon in one column, with the target time hanging to its left; and
+	// the NEXT heading starts on that column instead of being centred.
+	const x = (sel: string) => page.locator(sel).first().evaluate((el) => el.getBoundingClientRect().left);
+	const [play, target, at, head] = [await x('.sq-queued .ico-play'), await x('.sq-queued .ico-target'), await timed.locator('.q-at').evaluate((el) => el.getBoundingClientRect().right), await page.locator('.sq-next-header').evaluate((h) => {
+		const r = document.createRange(); r.selectNodeContents(h); return r.getBoundingClientRect().left;
+	})];
+	expect(Math.abs(play - target)).toBeLessThan(0.5);
+	expect(at).toBeLessThan(target);
+	expect(Math.abs(head - play)).toBeLessThan(0.5);
 	// The same triangle as the menu's queue button, level with the figures beside it.
 	await menu(page);
 	const shape = (sel: string) => page.locator(sel).first().evaluate((i) => getComputedStyle(i).clipPath);
@@ -99,7 +108,7 @@ test('in the list, a length has the queue triangle; a time of day has its time, 
 	// The time left moves with the clock, without the row being rebuilt.
 	await timed.evaluate((row) => ((row as unknown as { mark: number }).mark = 1));
 	await page.clock.runFor(60_000);
-	await expect(timed).toHaveText(/^10:30\s1[67]:\d\d\sPanel$/);
+	await expect(timed).toHaveText(/^10:30\s?1[67]:\d\d\sPanel$/);
 	expect(await timed.evaluate((row) => (row as unknown as { mark?: number }).mark)).toBe(1);
 	await expect(page.locator('#btn-next')).toHaveText('queue: 05:00 >10:30');
 
@@ -110,13 +119,17 @@ test('in the list, a length has the queue triangle; a time of day has its time, 
 	const pad = await context.newPage();
 	await visit(pad, '/#remote=' + code);
 	await pad.clock.runFor(200);
-	await expect(pad.locator('.rc-q-row').nth(1)).toHaveText(/^10:30\s1[67]:\d\d\sPanel$/);
+	await expect(pad.locator('.rc-q-row').nth(1)).toHaveText(/^10:30\s?1[67]:\d\d\sPanel$/);
 	await expect(pad.locator('.rc-q-row').nth(1).locator('.ico')).toHaveClass(/ico-target/);
+	const px = (sel: string) => pad.locator(sel).first().evaluate((el) => el.getBoundingClientRect().left);
+	expect(Math.abs((await px('.rc-q-row .ico-play')) - (await px('.rc-q-row .ico-target')))).toBeLessThan(0.5);
+	const padHead = await pad.locator('.rc-q-head').evaluate((h) => { const r = document.createRange(); r.selectNodeContents(h); return r.getBoundingClientRect().left; });
+	expect(Math.abs(padHead - (await px('.rc-q-row .ico-play')))).toBeLessThan(0.5);
 });
 
 test('"@" before the minutes, ">" before a time of day; colons and "@" are free in names', async ({ page }) => {
 	await open(page, '#mins=20' + q('Q&A: part 2@15|me@example@5|>10:30|@7|12'), '2026-11-14T10:12:00');
-	await expect(rows(page)).toHaveText(['15:00 Q&A: part 2', '05:00 me@example', /^10:30\s1[78]:\d\d$/, '07:00', '12:00']);
+	await expect(rows(page)).toHaveText(['15:00 Q&A: part 2', '05:00 me@example', /^10:30\s?1[78]:\d\d$/, '07:00', '12:00']);
 });
 
 test.describe('on a narrow screen', () => {

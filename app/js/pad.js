@@ -3,7 +3,7 @@
 // Loaded by main.js instead of timer.js.
 import { $, pad, fmt, nextUntilMs, codeParam, remoteUrl, kioskUrl, go, copyText, haptic,
   openModal, closeModal, wireBtn, backdropClose, CODE_RE } from './util.js';
-import { parseQueue, queueStr, queueRow } from './queue.js';
+import { parseQueue, queueStr, queueRow, markQueue } from './queue.js';
 import { clientLink, LOST_MS } from './transport.js';
 import { qrSvg } from './qr.js';
 
@@ -46,6 +46,7 @@ function rcApplyState(snap) {
   // come from whoever set the queue.
   const qd = $('rc-queue-display');
   qd.replaceChildren();
+  markQueue(qd, Array.isArray(snap.nextQueue) ? snap.nextQueue : []);
   if (Array.isArray(snap.nextQueue) && snap.nextQueue.length) {
     const head = document.createElement('div'); head.className = 'rc-q-head'; head.textContent = 'Next';
     qd.append(head);
