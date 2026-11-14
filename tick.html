@@ -161,6 +161,9 @@ body.kiosk #app-version{display:none}
 body.kiosk #btn-tick,body.kiosk #btn-menu,body.kiosk #manual-close-float{display:none}
 
 /* Wall clock — always shown top-right */
+#top-bar.in-pad{position:static;height:auto;padding:0;align-self:stretch;z-index:auto}
+#top-bar.in-pad #app-version{display:none}
+#top-bar.in-pad #session-timer,#top-bar.in-pad #wall-clock{font-size:clamp(13px,3.4vw,16px)}
 #wall-clock{
   font-size:12px;letter-spacing:0.12em;color:var(--dim);text-transform:uppercase;
   pointer-events:none;
@@ -392,6 +395,11 @@ code{background:rgba(128,128,128,0.16);padding:0.08em 0.33em;font-family:var(--f
 .ico-stop{aspect-ratio:1}
 .ico-play{aspect-ratio:0.85;clip-path:polygon(0 0,100% 50%,0 100%)}
 .ico-pause{aspect-ratio:0.8;background:linear-gradient(to right,currentColor 0 36%,transparent 36% 64%,currentColor 64%)}
+/* The bell: a silhouette used as a mask, so it takes the text colour like the
+   others. The SVG is a data: URL in the stylesheet (no request; img-src
+   already allows data:). Its viewBox is cropped to the bell, so 1cap is the
+   bell's own height. */
+.ico-bell{aspect-ratio:0.82;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='4 2 16 19.7'%3E%3Cpath d='M12 2a1.5 1.5 0 0 1 1.5 1.5v.6A6 6 0 0 1 18 10v4.5l2 2.5v1H4v-1l2-2.5V10a6 6 0 0 1 4.5-5.9v-.6A1.5 1.5 0 0 1 12 2zm-2.3 17.4h4.6a2.3 2.3 0 0 1-4.6 0z'/%3E%3C/svg%3E") center/contain no-repeat}
 #op-msg{
   display:none;background:var(--c-warn);color:#111;
   font-size:clamp(22px,min(6.5vw,9vh),72px);font-weight:700;line-height:1.15;
@@ -856,7 +864,7 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
     <button class="rc-btn wide" data-rc="prev" id="rc-prev">&#x25C0;&#xFE0E; Prev</button>
     <button class="rc-btn wide" data-rc="next" id="rc-next">&#x25B6;&#xFE0E; Next</button>
     <button class="rc-btn wide" data-rc="black" id="rc-black">Black</button>
-    <button class="rc-btn wide" data-rc="bell">&#x1F514; Bell</button>
+    <button class="rc-btn wide" data-rc="bell"><span class="ico ico-bell" aria-hidden="true"></span>Bell</button>
   </div>
   <div class="rc-row">
     <input type="text" id="rc-msg-input" class="rc-input" placeholder="Message to the kiosk&#x2026;" maxlength="40" autocomplete="off" aria-label="Message to the kiosk">
@@ -1980,7 +1988,8 @@ function makeCode() {
 function stateSnap() {
   return { type:'state', uiState, remaining, totalSecs, customLabel, running, nextQueue: nextQueue.slice(),
     untilTarget, untilLabel, fresh: awaitingRestore, prevCount: prevSessions.length,
-    warn1: firstWarnSecs(), warn2: warnSecs2, black: blackout };
+    warn1: firstWarnSecs(), warn2: warnSecs2, black: blackout,
+    elapsed: T0_ABSSEC === null ? null : absSec() - T0_ABSSEC };
 }
 
 // ── Remote transport abstraction ───────────────────────────────────
@@ -2173,6 +2182,8 @@ function applySync(snap) {
   if (Array.isArray(snap.nextQueue)) nextQueue = snap.nextQueue.map(toEntry).filter(Boolean);
   if (typeof snap.customLabel === 'string') customLabel = snap.customLabel.slice(0, 32);
   if (typeof snap.black === 'boolean') setBlackout(snap.black);
+  // The session's elapsed time carries over too (a new kiosk counts on from it).
+  if (Number.isFinite(snap.elapsed) && snap.elapsed >= 0) { T0_ABSSEC = absSec() - Math.floor(snap.elapsed); lastSessionSec = -1; }
   if (typeof snap.untilTarget === 'number' && snap.untilTarget > Date.now()) {
     enterUntilMode(snap.untilTarget, String(snap.untilLabel ?? '').slice(0, 12));
   } else if (Number.isFinite(snap.remaining)) {
@@ -2283,7 +2294,12 @@ if (IS_REMOTE) {
   // Hide main UI
   app.style.display         = 'none';
   toolbar.style.display     = 'none';
-  $('top-bar').style.display = 'none';
+  // The kiosk's top line, elapsed time left and clock right, reused as is:
+  // moved into the pad under its status bar. The clock is this device's; the
+  // elapsed time is the kiosk's, from its snapshots.
+  const topBar = $('top-bar');
+  $('remote-pad').insertBefore(topBar, $('rc-top').nextSibling);
+  topBar.classList.add('in-pad');
 
   const statusBar  = $('remote-status-bar');
   const stateDisp  = $('remote-state-display');
@@ -2422,7 +2438,11 @@ if (IS_REMOTE) {
     : model.untilTarget ? Math.round((model.untilTarget - Date.now()) / 1000)
     : model.running ? model.remaining - Math.floor((Date.now() - modelAt) / 1000)
     : model.remaining;
-  const rebase = () => { model = {...model, remaining: modelRemaining()}; modelAt = Date.now(); };
+  const rebase = () => {
+    const moved = Math.floor((Date.now() - modelAt) / 1000);
+    model = {...model, remaining: modelRemaining(), elapsed: Number.isFinite(model.elapsed) ? model.elapsed + moved : model.elapsed};
+    modelAt = Date.now();
+  };
   // The state's name, worked out here while the kiosk can't say it.
   const localUi = rem => model.untilTarget ? (rem < 0 ? 'ot' : 'until')
     : rem < 0 ? 'ot'
@@ -2435,11 +2455,12 @@ if (IS_REMOTE) {
     const m = model, untilOn = !!m.untilTarget;
     if (cmd === 'toggle' || cmd === 'start' || cmd === 'pause') {
       if (!untilOn) m.running = cmd === 'start' ? true : cmd === 'pause' ? false : !m.running;
+    if (m.running && !Number.isFinite(m.elapsed)) m.elapsed = 0; // a first start begins the session
     } else if (cmd.startsWith('adj:')) {
       const n = parseInt(cmd.slice(4), 10);
       if (Number.isFinite(n) && m.running && !untilOn) m.remaining = Math.max(-(99*60+59), m.remaining + n*60);
     } else if (cmd === 'reset') {
-      Object.assign(m, {running: false, remaining: m.totalSecs, untilTarget: null, untilLabel: ''});
+      Object.assign(m, {running: false, remaining: m.totalSecs, untilTarget: null, untilLabel: '', elapsed: null});
     } else if (cmd === 'next' && m.nextQueue?.length) {
       const [e, ...rest] = m.nextQueue;
       Object.assign(m, {nextQueue: rest, customLabel: e.label || '', totalSecs: e.mins*60, remaining: e.mins*60,
@@ -2464,6 +2485,8 @@ if (IS_REMOTE) {
       modelAt = Date.now(); rem = model.remaining;
     }
     rcApplyState({...model, remaining: rem, uiState: kioskLost() ? localUi(rem) : model.uiState});
+    // Elapsed time since the session started, moved on by the clock like the count.
+    sessionEl.textContent = Number.isFinite(model.elapsed) ? fmt(model.elapsed + Math.floor((Date.now() - modelAt) / 1000)) : '00:00';
   }
   setInterval(rcRender, 250);
   function rcOnState(msg) {

@@ -672,3 +672,44 @@ test('reset, start and pause icons are as tall as a capital in their labels, on 
 	}
 	expect(reset.capH).toBeGreaterThan(14); // a real size, not zero
 });
+
+test("the pad shows the kiosk's elapsed time on the left and the clock on the right, under its status bar", async ({ page, context }) => {
+	const code = await hostWithRemote(page, '?mins=20');
+	const pad = await context.newPage();
+	await pad.setViewportSize({ width: 390, height: 844 });
+	await pad.goto('/tick.html?rc=' + code);
+	await pad.clock.runFor(200);
+	await pad.locator('#rc-toggle').click();
+	await pad.clock.runFor(12_000);
+	const [elapsed, clock, bar] = [pad.locator('#remote-pad #session-timer'), pad.locator('#remote-pad #wall-clock'), pad.locator('#rc-top')];
+	await expect(elapsed).toHaveText(await page.locator('#session-timer').textContent() as string); // the kiosk's, same figure
+	await expect(elapsed).toHaveText(/^00:1[12]$/);
+	await expect(clock).toHaveText(/^\d\d:\d\d:\d\d$/);
+	const [e, c, b] = [(await elapsed.boundingBox())!, (await clock.boundingBox())!, (await bar.boundingBox())!];
+	expect(e.y).toBeGreaterThan(b.y + b.height - 1); // under the status bar
+	expect(e.x).toBeLessThan(40); // left
+	expect(c.x + c.width).toBeGreaterThan(350); // right
+	expect(Math.abs(e.y - c.y)).toBeLessThan(2); // one line
+	await expect(pad.locator('#remote-pad #app-version')).toBeHidden();
+	const [scroll, client] = await pad.locator('#remote-pad').evaluate((p) => [p.scrollHeight, p.clientHeight]);
+	expect(scroll).toBeLessThanOrEqual(client); // still fits a 390×844 phone
+});
+
+test('the bell is drawn in CSS like the other icons, a capital tall, on the baseline', async ({ page }) => {
+	await page.goto('/tick.html?rc=ABCDEF');
+	const bell = page.locator('[data-rc="bell"]');
+	await expect(bell).toHaveText('Bell'); // no emoji left in the label
+	const m = await bell.evaluate((btn) => {
+		const ico = btn.querySelector('.ico-bell')!;
+		const r = ico.getBoundingClientRect();
+		const probe = document.createElement('span');
+		probe.style.cssText = 'display:inline-block;width:0;height:1cap;vertical-align:baseline';
+		btn.append(probe);
+		const cap = probe.getBoundingClientRect();
+		probe.remove();
+		return { h: r.height, bottom: r.bottom, capH: cap.height, capBottom: cap.bottom, mask: getComputedStyle(ico).maskImage };
+	});
+	expect(m.mask).toContain('data:image/svg+xml');
+	expect(Math.abs(m.h - m.capH)).toBeLessThan(0.5);
+	expect(Math.abs(m.bottom - m.capBottom)).toBeLessThan(0.5);
+});
