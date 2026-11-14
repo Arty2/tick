@@ -355,6 +355,12 @@ code{background:rgba(128,128,128,0.16);padding:0.08em 0.33em;font-family:var(--f
 
 /* ── Remote control ── */
 #remote-modal .modal-box{width:min(400px,calc(100vw - 2rem))}
+.rm-view{display:flex;flex-direction:column;gap:1.1rem}
+.rm-view[hidden]{display:none}
+.rm-note{font-size:13px;line-height:1.5;color:var(--fg)}
+.rm-switch{background:none;border:none;color:var(--dim);font-family:var(--font);font-size:12px;letter-spacing:0.06em;
+  cursor:pointer;padding:0.2rem 0;text-align:center;text-decoration:underline;text-underline-offset:0.2em}
+.rm-switch:hover{color:var(--fg)}
 #remote-code-display{
   font-size:clamp(32px,9vw,56px);font-weight:900;letter-spacing:0.18em;
   text-align:center;font-variant-numeric:tabular-nums;color:var(--c-next);
@@ -430,11 +436,17 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
   font-size:clamp(11px,2.5vw,18px);letter-spacing:0.3em;text-transform:uppercase;
   color:var(--dim);min-height:1.2em;text-align:center;
 }
+/* One line, always: the messages are kept short, and anything longer is cut
+   with an ellipsis rather than pushing the bar to three lines. */
 #remote-status-bar{
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;
   font-size:clamp(13px,3.2vw,16px);letter-spacing:0.2em;text-transform:uppercase;
   color:var(--dim);min-height:1.2em;
 }
 #remote-status-bar.conn{color:var(--c-watch)}
+/* Beside the code box and kiosk button a phone leaves little room: tighter
+   spacing keeps the longest message ("⚠️ Kiosk lost") whole at 320 px. */
+@media(max-width:420px){#remote-status-bar{letter-spacing:0.06em}}
 #remote-status-bar.err {color:var(--c-ot)}
 /* The pad is used at arm's length, often one-handed: buttons, fields and its
    window are twice the size of the rest of the app's. */
@@ -689,11 +701,11 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
     </ul>
     <h2>Remote control</h2>
     <ul>
-      <li>The <strong>remote</strong> button shows a six-letter code and a QR code. Open the link or scan the code on another device to get a remote pad. Or, on that device, open /tick, choose <strong>remote</strong>, type the code under <em>Use this device as a remote</em> and choose <strong>Join</strong>. The remote pad's top bar shows the code; typing another one there switches to that timer. This screen then changes to kiosk mode, and stays in it if the remote disconnects.</li>
+      <li>The <strong>remote</strong> button shows a six-letter code and a QR code. Open the link or scan the code on another device to get a remote pad. Or, on that device, open /tick, choose <strong>remote</strong>, then <em>Control another timer instead</em>, type the code and choose <strong>Join</strong>. The remote pad's top bar shows the code; typing another one there switches to that timer. This screen then changes to kiosk mode, and stays in it if the remote disconnects.</li>
       <li>The remote pad shows the time left and the queue. Its buttons reset, start or pause, ring the bell, load the next or the previous session, and change the time. On phones they vibrate.</li>
       <li>Its queue box holds the current queue. Change it and press <strong>Set</strong>; an empty box clears the queue.</li>
       <li>A message typed on the remote pad appears on this screen for 6 seconds, on an orange band above the time. The time gets smaller while it shows. <strong>Clear</strong> removes it sooner.</li>
-      <li>If this screen stops answering, the remote pad says <strong>Kiosk disconnected</strong>. The small screen button (&#x1F5A5;&#xFE0F;) next to its status shows a link and QR code for a new screen, which continues the timer.</li>
+      <li>If this screen stops answering, the remote pad says <strong>Kiosk lost</strong>. The small screen button (&#x1F5A5;&#xFE0F;) next to its status shows a link and QR code for a new screen, which continues the timer.</li>
       <li>Two tabs in the same browser connect without the internet. Two devices need the internet, and connect through a service called PeerJS. This may not work on some school or office networks.</li>
     </ul>
     <h2>Share</h2>
@@ -750,26 +762,34 @@ body.op-msg-on #timer-display:has(.disp-h){font-size:clamp(32px,min(15vw,26vh),2
 
 <!-- Remote host modal -->
 <div id="remote-modal" class="modal-overlay">
+  <!-- Two views, one at a time, so a device that came to join another timer
+       isn't shown a code of its own to confuse with the one it needs. -->
   <div class="modal-box">
-    <div class="modal-title">Remote control &#x2014; share this code</div>
-    <div id="remote-code-display">&#x2014;</div>
-    <div id="remote-qr"></div>
-    <div id="remote-url-text" style="display:none;font-size:10px;word-break:break-all;text-align:center;padding:0.4rem 0;color:var(--dim)"></div>
-    <div id="remote-status">waiting for connection&#x2026;</div>
-    <!-- The other way round: make this device the remote for another timer,
-         by typing the code that timer shows. -->
-    <div class="modal-row" style="flex-direction:column;gap:0">
-      <label for="remote-join-code">Use this device as a remote</label>
+    <div id="remote-share-view" class="rm-view">
+      <div class="modal-title">Remote control &#x2014; share this code</div>
+      <div id="remote-code-display">&#x2014;</div>
+      <div id="remote-qr"></div>
+      <div id="remote-url-text" style="display:none;font-size:10px;word-break:break-all;text-align:center;padding:0.4rem 0;color:var(--dim)"></div>
+      <div id="remote-status">waiting for connection&#x2026;</div>
+      <div class="modal-actions">
+        <button class="modal-btn" id="remote-open-tab">Open remote</button>
+        <button class="modal-btn" id="remote-copy-url">Copy URL</button>
+        <button class="modal-btn danger" id="remote-stop">Stop</button>
+        <button class="modal-btn" id="remote-modal-close">Close</button>
+      </div>
+      <button class="rm-switch" id="remote-to-join">Control another timer instead &#x2192;</button>
+    </div>
+    <div id="remote-join-view" class="rm-view" hidden>
+      <div class="modal-title">Remote control &#x2014; join a timer</div>
+      <p class="rm-note">Type the code shown on the timer you want to control. This device becomes its remote.</p>
       <div style="display:flex;gap:0.5rem">
-        <input type="text" id="remote-join-code" class="modal-input" maxlength="6" placeholder="Code" autocomplete="off" autocapitalize="characters" spellcheck="false" style="flex:1;text-transform:uppercase;letter-spacing:0.15em">
+        <input type="text" id="remote-join-code" class="modal-input" maxlength="6" placeholder="Code" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Timer code" style="flex:1;text-transform:uppercase;letter-spacing:0.15em">
         <button class="modal-btn" id="remote-join" style="flex:0 0 auto;padding:0 1.2rem">Join</button>
       </div>
-    </div>
-    <div class="modal-actions">
-      <button class="modal-btn" id="remote-open-tab">Open remote</button>
-      <button class="modal-btn" id="remote-copy-url">Copy URL</button>
-      <button class="modal-btn danger" id="remote-stop">Stop</button>
-      <button class="modal-btn" id="remote-modal-close">Close</button>
+      <div class="modal-actions">
+        <button class="modal-btn" id="remote-join-close">Close</button>
+      </div>
+      <button class="rm-switch" id="remote-to-share">&#x2190; Share this timer instead</button>
     </div>
   </div>
 </div>
@@ -906,7 +926,7 @@ let soundMode = 0, bellRecord = null;
 let nextQueue = URL_NEXT_ITEMS.length ? URL_NEXT_ITEMS.slice() : [{label:'', mins:10}];
 let untilTarget = null, untilLabel = '';
 let watchMode = false;
-let kioskMode = false;
+let kioskMode = false, kioskByRemote = false;
 const DEFAULT_PRESETS = [
   {label:'5 min',mins:5},{label:'10 min',mins:10},{label:'25 min',mins:25},
   {label:'',mins:0},{label:'',mins:0},
@@ -1010,7 +1030,8 @@ const absSec   = () => Math.floor(Date.now() / 1000);
 const COLON_RE = /:/g;
 const withColons = s => s.replace(COLON_RE, '<span class="colon">:</span>');
 const isTouchDev = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-const startHint  = () => (isTouchDev || hasTouched) ? 'tap to start' : 'click or enter to start';
+// A kiosk run from a remote is started from the remote: no hint to click.
+const startHint  = () => kioskByRemote ? '' : (isTouchDev || hasTouched) ? 'tap to start' : 'click or enter to start';
 const stateFor = rem => rem < 0 ? 'ot' : (warnSecs2 > 0 && rem <= warnSecs2) ? 'warn2' : (firstWarnSecs() > 0 && rem <= firstWarnSecs()) ? 'warn' : 'run';
 
 function fmt(secs) {
@@ -1994,8 +2015,13 @@ function broadcastState() {
   remoteTransport?.send(stateSnap());
 }
 
+function showRemoteView(view) {
+  $('remote-share-view').hidden = view !== 'share';
+  $('remote-join-view').hidden  = view !== 'join';
+}
 function openRemoteModal() {
   if (IS_REMOTE) return;
+  showRemoteView('share');
   if (!rcHostCode) rcHostCode = makeCode();
   const rcUrl = `${location.origin}${location.pathname}?rc=${rcHostCode}`;
 
@@ -2066,6 +2092,7 @@ function handleHostMessage(msg, _transport) {
     if (!rcHostConnected) {
       closeModal('remote-modal');
       if (!kioskMode) enterKiosk();
+      kioskByRemote = true; applyState(uiState); // drop the "click to start" hint
     }
     rcHostConnected = true;
     updateRemoteStatus('connected');
@@ -2140,11 +2167,11 @@ function execRemoteCmd(cmd) {
   }
 }
 
-function stopRemote() {
+function stopHosting() {
   rcGeneration++; rcHostConnected = false; rcQrUrl = ''; clearInterval(rcHeartbeat);
   remoteTransport?.close(); remoteTransport = null; rcHostCode = '';
-  closeModal('remote-modal');
 }
+function stopRemote() { stopHosting(); closeModal('remote-modal'); }
 
 // ── Operator message ───────────────────────────────────────────────
 let opMsgTid = null;
@@ -2168,6 +2195,14 @@ const joinAsRemote = () => {
   stopRemote(); location.href = padUrl(code);
 };
 wireBtn('remote-join', joinAsRemote);
+// To the join view: this device is about to be a remote, so it stops offering
+// a code of its own — unless a remote is already connected to it.
+wireBtn('remote-to-join', () => {
+  if (!rcHostConnected) stopHosting();
+  showRemoteView('join'); $('remote-join-code').focus();
+});
+wireBtn('remote-to-share', () => openRemoteModal());
+wireBtn('remote-join-close', () => closeModal('remote-modal'));
 $('remote-join-code').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); joinAsRemote(); } });
 wireBtn('remote-stop',        stopRemote);
 wireBtn('remote-modal-close', () => closeModal('remote-modal'));
@@ -2338,7 +2373,7 @@ if (IS_REMOTE) {
   }
   setInterval(() => {
     if (!rcHeard || Date.now() - lastHeardAt < KIOSK_LOST_MS) return;
-    rcSetStatus('err', '\u26A0\uFE0F Kiosk disconnected \u2014 open a new kiosk');
+    rcSetStatus('err', '\u26A0\uFE0F Kiosk lost');
     peerT?.reconnect?.();
   }, 1000);
 
@@ -2367,14 +2402,14 @@ if (IS_REMOTE) {
       },
       err => {
         // PeerJS failed — BroadcastChannel only, so only this browser's tabs.
-        if (!rcHeard) rcSetStatus('', 'same browser only');
+        if (!rcHeard) rcSetStatus('', 'This browser only');
       }
     );
 
     // Start with BC as default transport
     rcTransport = { send(msg){bc.send(msg);}, close(){bc.close();} };
     // rcTransport always exists by now, so "did anything answer" is the test.
-    setTimeout(() => { if (!rcHeard) rcSetStatus('err','\u26A0\uFE0F No connection \u2014 check the code'); }, 8000);
+    setTimeout(() => { if (!rcHeard) rcSetStatus('err','\u26A0\uFE0F No connection'); }, 8000);
   }
 
   if (RC_PARAM) connectRemote();

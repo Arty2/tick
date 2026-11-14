@@ -191,7 +191,7 @@ test('a lost kiosk is reported, and a new kiosk from the pad carries on the time
 	await pad.clock.runFor(3_000); // 19:57 left, and the pad has heard so
 	await page.close();
 	await pad.clock.runFor(7_000); // three heartbeats missed
-	await expect(pad.locator('#remote-status-bar')).toContainText(/kiosk disconnected/i);
+	await expect(pad.locator('#remote-status-bar')).toHaveText('\u26A0\uFE0F Kiosk lost');
 
 	await pad.locator('#rc-new-kiosk').click();
 	await expect(pad.locator('#rc-kiosk-modal')).toHaveClass(/open/);
@@ -387,6 +387,12 @@ test("another timer's remote window can turn that device into this timer's remot
 	await open(other);
 	await menu(other);
 	await other.locator('#btn-remote').click();
+	// The window opens on sharing; joining is one step away, and shows no code of its own.
+	await expect(other.locator('#remote-join-view')).toBeHidden();
+	await other.locator('#remote-to-join').click();
+	await expect(other.locator('#remote-code-display')).toBeHidden();
+	await expect(other.locator('#remote-qr')).toBeHidden();
+	await expect(other.locator('#remote-join-code')).toBeFocused();
 	await other.locator('#remote-join-code').fill('nope');
 	await other.locator('#remote-join').click();
 	await expect(other).toHaveURL(/\/tick\.html$/); // a typo stays put
@@ -396,4 +402,49 @@ test("another timer's remote window can turn that device into this timer's remot
 	await other.clock.runFor(200);
 	await expect(other.locator('#remote-status-bar')).toContainText(/connected/i);
 	await expect(page.locator('body')).toHaveClass(/kiosk/); // and the timer became the kiosk
+});
+
+test('the pad status stays on one line at 320 px, even when the kiosk is lost', async ({ page, context }) => {
+	await page.setViewportSize({ width: 1280, height: 720 });
+	const code = await hostWithRemote(page);
+	const pad = await context.newPage();
+	await pad.setViewportSize({ width: 320, height: 568 });
+	await pad.goto('/tick.html?rc=' + code);
+	await pad.clock.runFor(200);
+	const lines = () => pad.locator('#remote-status-bar').evaluate((el) => {
+		const r = document.createRange(); r.selectNodeContents(el);
+		return new Set([...r.getClientRects()].map((x) => Math.round(x.top))).size;
+	});
+	expect(await lines()).toBe(1);
+	await page.close();
+	await pad.clock.runFor(7_000);
+	await expect(pad.locator('#remote-status-bar')).toHaveText('\u26A0\uFE0F Kiosk lost');
+	expect(await lines()).toBe(1);
+	const clipped = await pad.locator('#remote-status-bar').evaluate((el) => el.scrollWidth > el.clientWidth);
+	expect(clipped).toBe(false); // short enough to need no ellipsis
+});
+
+test('a timer run from a remote drops the "click to start" hint', async ({ page, context }) => {
+	const code = await hostWithRemote(page);
+	await expect(page.locator('#label-text')).toHaveText(/to start/i);
+	const pad = await context.newPage();
+	await pad.goto('/tick.html?rc=' + code);
+	await pad.clock.runFor(200);
+	await expect(page.locator('body')).toHaveClass(/kiosk/);
+	await expect(page.locator('#label-text')).toHaveText('');
+	await page.keyboard.press('End'); // a reset brings the idle state back
+	await page.clock.runFor(1_000);
+	await expect(page.locator('#label-text')).toHaveText('');
+});
+
+test('leaving for the join view stops offering this timer’s code, unless a remote is connected', async ({ page, context }) => {
+	const code = await hostWithRemote(page);
+	await page.locator('#remote-to-join').click();
+	const pad = await context.newPage();
+	await pad.goto('/tick.html?rc=' + code);
+	await pad.clock.runFor(9_000);
+	await expect(pad.locator('#remote-status-bar')).toHaveText('\u26A0\uFE0F No connection'); // nobody answers that code now
+	await page.locator('#remote-to-share').click(); // back: a fresh code is offered again
+	await expect(page.locator('#remote-code-display')).toBeVisible();
+	await expect(page.locator('#remote-code-display')).not.toHaveText(code);
 });
