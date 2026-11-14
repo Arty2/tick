@@ -7,7 +7,7 @@ No install. No build step. No server. Open `tick.html` and go.
 - Live: [acari.vercel.app](https://acari.vercel.app)
 - Source: [github.com/Arty2/tick](https://github.com/Arty2/tick)
 
-![/tick counting down a 25-minute keynote, with a break and Q&A queued next](./screenshots/ticker-screenshot_01.png)
+![/tick in its last minute of a keynote, at 00:59 in warning orange, with a break and Q&A queued next](./screenshots/ticker-screenshot_01.png)
 
 ---
 
