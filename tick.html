@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="version" content="0.3.1">
+<meta name="version" content="0.3.2">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0a0a0a">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -250,8 +250,14 @@ body.kiosk #swipe-hint{display:none}
 #queue-add{margin-top:0.3rem;align-self:flex-start}
 
 @media(max-width:600px){
-  #toolbar{right:0;bottom:0;left:0;max-width:100vw;flex-direction:column;align-items:stretch;gap:0;border-top:1px solid var(--dim);background:var(--panel);padding-bottom:0}
-  .tb-group{border:none;border-bottom:1px solid var(--dim);width:100%;justify-content:flex-end;flex-wrap:nowrap;padding:0.4rem 0.8rem;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  /* Above the corner buttons: full width here, so the ? button sat on it. */
+  #toolbar{z-index:250;right:0;bottom:0;left:0;max-width:100vw;flex-direction:column;align-items:stretch;gap:0;border-top:1px solid var(--dim);background:var(--panel);padding-bottom:0}
+  /* Right-aligned by an auto margin, not justify-content:flex-end: with
+     flex-end a row too long for the screen overflows off the left edge,
+     where no scroll position can reach it. An auto margin only takes up
+     space that is free, so a long row starts at the left and scrolls. */
+  .tb-group{border:none;border-bottom:1px solid var(--dim);width:100%;justify-content:flex-start;flex-wrap:nowrap;padding:0.4rem 0.8rem;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .tb-group > :first-child{margin-left:auto}
   .tb-group::-webkit-scrollbar{display:none}
   .tb-group:last-child{border-bottom:none}
   .tb-btn{flex-shrink:0}
@@ -342,6 +348,9 @@ body.light #manual-h1-fixed{background:rgba(150,145,138,0.98)}
 #manual-inner p{margin-bottom:0.5rem;color:var(--fg);font-size:0.9em}
 #manual-inner a{color:inherit}
 #manual-inner .manual-credit{color:var(--dim)}
+/* The name and version sit under the title bar, not in it: on a phone the
+   longer title ran under the close button. */
+#manual-inner .manual-app{font-size:1em;letter-spacing:0.12em;font-weight:700}
 code{background:rgba(128,128,128,0.16);padding:0.08em 0.33em;font-family:var(--font);font-size:0.92em}
 
 /* ── Remote control ── */
@@ -541,9 +550,10 @@ body.light #op-msg-box{background:rgba(255,255,255,0.9)}
 </div>
 
 <div id="manual">
-  <div id="manual-h1-fixed"><h1>/tick manual <span id="manual-version"></span></h1></div>
+  <div id="manual-h1-fixed"><h1>Manual</h1></div>
   <button id="manual-close">close</button>
   <div id="manual-inner">
+    <p class="manual-app">/tick <span id="manual-version"></span></p>
     <p>/tick is a countdown timer. People use it to keep time during talks, live streams, meetings and stage events. It is one file and works without the internet.</p>
     <p class="manual-links">Live: <a href="https://acari.vercel.app">acari.vercel.app</a> &#xB7; Source: <a href="https://github.com/Arty2/tick">github.com/Arty2/tick</a> &#xB7; Website: <a href="https://heracl.es/tick">heracl.es/tick</a></p>
     <p class="manual-credit">Dialectic Acheiropoieton of Heracles Papatheodorou and&nbsp;Claude</p>
@@ -1436,7 +1446,8 @@ function updateUntilPreview() {
   const el = $('until-preview'), hm = getUntilHM();
   if (!hm) { el.textContent = '\u2014'; el.classList.add('dim'); return; }
   const [h,m] = hm;
-  el.textContent = `${fmt(Math.round((nextUntilMs(h,m)-Date.now())/1000))} > ${pad(h)}:${pad(m)}`;
+  // Only the time left: the target itself is in the boxes right below.
+  el.textContent = fmt(Math.round((nextUntilMs(h,m)-Date.now())/1000));
   el.classList.remove('dim');
 }
 function openUntilModal() {

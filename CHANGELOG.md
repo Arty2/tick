@@ -6,7 +6,7 @@ heading to the new number and adds its lines there, never a section of its own.
 Features only — not fixes, not why, not how; that is the README's. Three lines
 to a release, six at the very most. Plain text and `code` spans only.
 
-## 0.3.1 — 2026-11-14
+## 0.3.2 — 2026-11-14
 
 - Live at acari.vercel.app, where a link with settings opens the timer as set.
 - The first warning comes 5 minutes before the end of sessions longer than 10 minutes.
