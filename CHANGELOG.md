@@ -8,9 +8,13 @@ to a release, six at the very most. Plain text and `code` spans only.
 
 ## 0.3.0 — 2026-11-14
 
+- Live at acari.vercel.app, where a link with settings opens the timer as set.
 - The first warning comes 5 minutes before the end of sessions longer than 10 minutes.
+- A larger counter that fits any screen, upright or sideways.
+- The remote pad works by touch, and says when no timer answers its code.
+- A manual and README in plain English.
 
-## 0.2.1 — 2026-11-14
+## 0.2.0 — 2026-11-14
 
 - A named session queue that loads and starts the next slot when time runs out.
 - Countdown to a wall-clock time, and a clock mode that keeps the timer running behind it.

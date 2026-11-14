@@ -256,8 +256,8 @@ pnpm run serve     # serves the app at http://localhost:4173
 
 | Version change | When |
 |---|---|
-| Patch (`0.2.1` → `0.2.2`) | A fix |
-| Minor (`0.2.1` → `0.3.0`) | A new feature |
+| Patch (`0.3.0` → `0.3.1`) | A fix |
+| Minor (`0.3.0` → `0.4.0`) | A new feature |
 | The first number | Changes only when the project is decided to be finished |
 
 The version number is written in one place: `<meta name="version">` in `tick.html`. The manual shows it, and [CHANGELOG.md](./CHANGELOG.md) starts with it. [AGENTS.md](./AGENTS.md) explains how to work on the project.
